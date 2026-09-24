@@ -18,7 +18,7 @@
 Scriptname SkyrimNet_BakaInteg_ButtReaction_ME extends ActiveMagicEffect
 
 Event OnEffectStart(Actor akTarget, Actor akCaster)
-    If !akTarget || akTarget.GetActorBase().GetSex() != 1
+    If !akTarget || _SexOf(akTarget) != 1
         Return
     EndIf
     If akTarget.IsDead() || akTarget.IsInCombat()
@@ -64,4 +64,25 @@ Keyword Function _ModestyKeyword(Actor akTarget)
         Return Game.GetFormFromFile(0x000D8F, "Modesty_Keyword.esp") as Keyword
     EndIf
     Return Game.GetFormFromFile(0x000D90, "Modesty_Keyword.esp") as Keyword
+EndFunction
+
+; ---------------------------------------------------------------------------------------------
+; Sex lookup that works on LEVELED actors. See SkyrimNet_BakaIntegration.psc for the full
+; explanation: Actor.GetActorBase() returns the EDITOR base, which for generic leveled NPCs is a
+; template shell whose ACBS sex is an unused placeholder reading MALE (sex is templated in via the
+; Traits flag). GetLeveledActorBase() returns the game-generated base the leveled list actually
+; resolved to. Local copy because a magic effect script can't reach the quest script's helper.
+; Returns 0 male, 1 female, -1 unknown/none.
+Int Function _SexOf(Actor akActor) Global
+    If !akActor
+        Return -1
+    EndIf
+    ActorBase bse = akActor.GetLeveledActorBase()
+    If !bse
+        bse = akActor.GetActorBase()
+    EndIf
+    If !bse
+        Return -1
+    EndIf
+    Return bse.GetSex()
 EndFunction

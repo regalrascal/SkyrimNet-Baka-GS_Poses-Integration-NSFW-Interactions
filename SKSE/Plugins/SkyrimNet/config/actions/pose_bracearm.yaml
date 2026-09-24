@@ -1,7 +1,14 @@
 name: PoseBraceArm
 description: |
-  BraceArm — shy, nervous, uneasy, bracing yourself, waiting awkwardly. Held until you stop it,
-  combat starts, or it times out on its own.
+  YOU hug one arm — shy, nervous, uneasy, holding yourself together at the seams while you
+  wait for whatever comes next.
+  Held until you stop it, combat starts, or it times out on its own.
+
+  WHEN nerves show: caught staring, out of your element among strangers, waiting on news
+  that matters, braced for a blow you can't dodge. Pairs naturally with a line of dialogue —
+  the too-quiet answer, the "it's nothing."
+  REV-27 register calibration (approved): the anticipation register shares the hold — also
+  braced for the good kind of news, the wait for something you actually want to arrive.
 questEditorId: SkyrimNet_BakaIntegration
 scriptName: SkyrimNet_BakaIntegration
 executionFunctionName: PoseBraceArm_Execute
@@ -13,7 +20,7 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 2
-customCategory: SNBaka_Pose
+customCategory: SNGS_Pose
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"
@@ -32,6 +39,13 @@ eligibilityRules:
   - conditions:
       - decoratorName: "get_faction_rank"
         arguments: ["currentActor", "OStimExcitementFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
         comparisonOperator: "<"
         expectedValue: 0
     logicalOperator: "AND"

@@ -1,7 +1,11 @@
 name: PoseAutograph
 description: |
-  Autograph — miming signing an autograph, e.g. a fan or admirer asks and you're showing off your
-  fame. Held until you stop it, combat starts, or it times out on its own.
+  YOU mime signing an autograph — fame put to work, one flourish of the quill for an admirer.
+  Held until you stop it, combat starts, or it times out on its own.
+
+  WHEN celebrity calls: a fan works up the nerve to ask, someone recognizes the hero of
+  the song, a bard made you famous and now everyone wants the name on something. Pairs
+  naturally with a line of dialogue — the gracious "of course," the "spell it for me."
 questEditorId: SkyrimNet_BakaIntegration
 scriptName: SkyrimNet_BakaIntegration
 executionFunctionName: PoseAutograph_Execute
@@ -13,7 +17,7 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 2
-customCategory: SNBaka_Pose
+customCategory: SNGS_Pose
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"
@@ -32,6 +36,13 @@ eligibilityRules:
   - conditions:
       - decoratorName: "get_faction_rank"
         arguments: ["currentActor", "OStimExcitementFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
         comparisonOperator: "<"
         expectedValue: 0
     logicalOperator: "AND"

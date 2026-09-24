@@ -10,7 +10,15 @@ vcpkg_installed/
 # which are minimal local declarations of other mods' APIs.
 Scripts/Source/*.psc
 !Scripts/Source/SkyrimNet_Baka*.psc
+!Scripts/Source/SkyrimNet_Anim*.psc
 !Scripts/Source/SNBakaUI.psc
+!Scripts/Source/SNAnimGSUI.psc
+
+# ───────────── Third-party compile stubs ─────────────
+# These are framework API stubs for local compilation (SexLab, OStim, MfgConsole, Acheron,
+# SlaveTats, SPE, AELStruggle). They live in the working repos but must NOT ship in the
+# public fork or any release zip — they are other authors' code.
+tools/
 
 # ───────────── Build tools / artifacts (NOT shipped) ─────────────
 compile.bat
@@ -23,6 +31,7 @@ compile.bat
 *.7z
 *.bak*
 *.dot
+*.sha256
 Scripts/pex_backup_*/
 
 # ───────────── Mod-manager / editor / agent local metadata ─────────────

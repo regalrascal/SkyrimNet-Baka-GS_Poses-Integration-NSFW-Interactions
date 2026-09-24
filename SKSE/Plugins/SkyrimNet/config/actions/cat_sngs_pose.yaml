@@ -1,0 +1,17 @@
+# YAML-defined replacement for the DLL-registered SNBaka_Pose category. The DLL category's
+# description is locked in compiled C++ and is WHAT-only (no WHEN cues); this file gives us
+# control of the single highest-leverage string in the project -- the intent-selection text
+# the LLM reads when deciding whether to offer a pose. DLL-registered and YAML-defined
+# categories coexist by design (Baka itself ships cat_snbaka_creature.yaml alongside its DLL
+# registrations); once all 27 pose actions repoint customCategory: SNBaka_Pose -> SNGS_Pose,
+# the DLL's SNBaka_Pose registration simply becomes an empty category, to be disabled once
+# via the dashboard after deployment. Revert path: repoint back + re-enable in dashboard.
+#
+# MUST STAY enabled: true -- same confirmed behavior as cat_snbaka_creature.yaml and
+# cat_snbaka_downed.yaml: enabled: false strips every member action out of SkyrimNet's
+# rendered "## Eligible Actions" menu entirely, regardless of EligibilityChecker still
+# reporting them individually eligible.
+customCategory: SNGS_Pose
+name: "Pose"
+description: "Pose, dance, stretch, show off — express a mood through your body, on your own, for no one in particular: a SOLO held pose or gesture, no target, no physical contact (unlike SNBaka_Display, which is a brief beat performed FOR someone else). Use when the moment invites it: music playing and you feel like dancing, celebrating a win, flirting or being teased, freshly complimented, dared, flushed with wine, relaxing or bored, praying or meditating, pleading or surrendering to someone of higher status, training, stretching, or simply striking an attitude as you speak — a pose pairs naturally with a line of dialogue. Held until you stop it, combat starts, or it times out on its own. Skip it entirely in combat, danger, or mid-scene — nothing inside is available then."
+enabled: true

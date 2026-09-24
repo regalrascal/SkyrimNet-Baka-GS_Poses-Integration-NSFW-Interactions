@@ -1,7 +1,12 @@
 name: PoseScratchHead
 description: |
-  ScratchHead — confused, embarrassed, unsure, caught out, thinking out loud. Held until you stop it,
-  combat starts, or it times out on its own.
+  YOU scratch your head — confused, caught out, the universal gesture for not knowing what
+  else to do with yourself.
+  Held until you stop it, combat starts, or it times out on its own.
+
+  WHEN puzzled: handed a contradiction, asked to explain the unexplainable, caught in a
+  small lie, watching a plan stop making sense. Pairs naturally with a line of dialogue —
+  the "wait, what?", the "how does that even..."
 questEditorId: SkyrimNet_BakaIntegration
 scriptName: SkyrimNet_BakaIntegration
 executionFunctionName: PoseScratchHead_Execute
@@ -13,7 +18,7 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 2
-customCategory: SNBaka_Pose
+customCategory: SNGS_Pose
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"
@@ -32,6 +37,13 @@ eligibilityRules:
   - conditions:
       - decoratorName: "get_faction_rank"
         arguments: ["currentActor", "OStimExcitementFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
         comparisonOperator: "<"
         expectedValue: 0
     logicalOperator: "AND"

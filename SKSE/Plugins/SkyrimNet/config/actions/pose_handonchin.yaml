@@ -1,7 +1,14 @@
 name: PoseHandOnChin
 description: |
-  HandOnChin — thinking, appraising, sizing someone up, deciding, skeptical. Held until you stop it,
-  combat starts, or it times out on its own.
+  YOU rest a hand on your chin — weighing, appraising, turning it over before you commit
+  to an opinion.
+  Held until you stop it, combat starts, or it times out on its own.
+
+  WHEN judgment is asked for: sizing up a suspect answer, appraising wares or an offer,
+  weighing a plan, skepticism that wants evidence first. Pairs naturally with a line of
+  dialogue — the "let me think," the level "mm," the "go on."
+  REV-27 register calibration (approved): the coy register shares the hand — also being
+  coy about it, the pose of a woman who already knows her answer and wants you to guess.
 questEditorId: SkyrimNet_BakaIntegration
 scriptName: SkyrimNet_BakaIntegration
 executionFunctionName: PoseHandOnChin_Execute
@@ -13,7 +20,7 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 2
-customCategory: SNBaka_Pose
+customCategory: SNGS_Pose
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"
@@ -32,6 +39,13 @@ eligibilityRules:
   - conditions:
       - decoratorName: "get_faction_rank"
         arguments: ["currentActor", "OStimExcitementFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
         comparisonOperator: "<"
         expectedValue: 0
     logicalOperator: "AND"

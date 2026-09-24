@@ -1,7 +1,13 @@
 name: PoseDogeza
 description: |
-  Dogeza — a full grovelling floor-bow: apologizing profusely, begging forgiveness, total submission.
+  YOU go all the way down — the full grovelling floor-bow, forehead to the boards, the deepest
+  apology Skyrim knows. Where a kneel keeps its dignity, dogeza throws it away on purpose:
+  total abjection, everything held open to the mercy of the one you wronged.
   Held until you stop it, combat starts, or it times out on its own.
+
+  WHEN nothing less will do: caught in a grave error, begging for your life, apologizing past
+  all reason, groveling before a fury you cannot talk down. Pairs naturally with a line of
+  dialogue — the babbling apology, the "I'll do anything," the plea for forgiveness.
 questEditorId: SkyrimNet_BakaIntegration
 scriptName: SkyrimNet_BakaIntegration
 executionFunctionName: PoseDogeza_Execute
@@ -13,7 +19,7 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 2
-customCategory: SNBaka_Pose
+customCategory: SNGS_Pose
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"
@@ -32,6 +38,13 @@ eligibilityRules:
   - conditions:
       - decoratorName: "get_faction_rank"
         arguments: ["currentActor", "OStimExcitementFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
         comparisonOperator: "<"
         expectedValue: 0
     logicalOperator: "AND"

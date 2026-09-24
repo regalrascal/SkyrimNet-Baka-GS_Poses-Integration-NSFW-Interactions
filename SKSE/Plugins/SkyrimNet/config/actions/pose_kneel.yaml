@@ -1,7 +1,14 @@
 name: PoseKneel
 description: |
-  Kneel — before someone of higher status, praying, surrendering, pledging, or begging. Held until
-  you stop it, combat starts, or it times out on its own.
+  YOU kneel — upright, formal, and dignified — before someone or something of higher status: the
+  plain ceremonial kneel of rank, respect, and ritual. Not the desperate begging of a pleading
+  kneel, and not the bent-over yield of a surrendered captive — this one keeps its spine.
+  Held until you stop it, combat starts, or it times out on its own.
+
+  WHEN the moment calls for formality: swearing homage or service, receiving an accolade,
+  petitioning a jarl, temple prayer, a formal apology to a superior, a clean surrender on
+  agreed terms. Pairs naturally with a line of dialogue — the oath, the "my lord," the
+  requested boon.
 questEditorId: SkyrimNet_BakaIntegration
 scriptName: SkyrimNet_BakaIntegration
 executionFunctionName: PoseKneel_Execute
@@ -13,7 +20,7 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 2
-customCategory: SNBaka_Pose
+customCategory: SNGS_Pose
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"
@@ -32,6 +39,13 @@ eligibilityRules:
   - conditions:
       - decoratorName: "get_faction_rank"
         arguments: ["currentActor", "OStimExcitementFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
         comparisonOperator: "<"
         expectedValue: 0
     logicalOperator: "AND"

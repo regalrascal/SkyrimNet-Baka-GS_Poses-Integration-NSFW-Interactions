@@ -1,7 +1,14 @@
 name: PoseHandOnFace
 description: |
-  HandOnFace — shocked, dismayed, worried, overwhelmed, hiding your reaction. Held until you stop it,
-  combat starts, or it times out on its own.
+  YOU cover your face — a hand across the eyes or the mouth, giving shock or dismay or
+  secondhand shame somewhere to go.
+  Held until you stop it, combat starts, or it times out on its own.
+
+  WHEN it's all too much: news that floors you, a disaster unfolding in front of you,
+  hearing your own mistake repeated back, embarrassment that needs hiding. Pairs naturally
+  with a line of dialogue — the muffled "by the gods," the long groan.
+  REV-27 register calibration (approved): the blush register shares the palm — also hiding
+  a blush that gives the whole game away, composure held one second longer.
 questEditorId: SkyrimNet_BakaIntegration
 scriptName: SkyrimNet_BakaIntegration
 executionFunctionName: PoseHandOnFace_Execute
@@ -13,7 +20,7 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 2
-customCategory: SNBaka_Pose
+customCategory: SNGS_Pose
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"
@@ -32,6 +39,13 @@ eligibilityRules:
   - conditions:
       - decoratorName: "get_faction_rank"
         arguments: ["currentActor", "OStimExcitementFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
         comparisonOperator: "<"
         expectedValue: 0
     logicalOperator: "AND"

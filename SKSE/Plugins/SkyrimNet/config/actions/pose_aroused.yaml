@@ -1,7 +1,12 @@
 name: PoseAroused
 description: |
-  Aroused — shifting with visible arousal, restless heated body language. Held until you stop it,
-  combat starts, or it times out on its own.
+  YOU show it — shifting your weight, restless and heated, arousal visible enough that
+  pretending otherwise would be the stranger choice.
+  Held until you stop it, combat starts, or it times out on its own.
+
+  WHEN heat has nowhere left to hide: flirtation past the plausible-deniability stage, wine
+  and proximity doing their work, a touch that hasn't let go of you. Pairs naturally with a
+  line of dialogue — the too-honest answer, the voice that won't stay level.
 questEditorId: SkyrimNet_BakaIntegration
 scriptName: SkyrimNet_BakaIntegration
 executionFunctionName: PoseAroused_Execute
@@ -13,7 +18,7 @@ parameterMapping:
 
 enabled: true
 defaultPriority: 2
-customCategory: SNBaka_Pose
+customCategory: SNGS_Pose
 eligibilityRules:
   - conditions:
       - decoratorName: "is_in_combat"
@@ -32,6 +37,13 @@ eligibilityRules:
   - conditions:
       - decoratorName: "get_faction_rank"
         arguments: ["currentActor", "OStimExcitementFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
         comparisonOperator: "<"
         expectedValue: 0
     logicalOperator: "AND"

@@ -19,6 +19,14 @@ description: |
   - The helper briefly crouches over them first (checking on them)
   - Fires baka_release so the target and witnesses react to being helped up
 
+  MERCY IS A CHOICE, NOT A DEFAULT — the other face of the moment. Standing a defeated
+  body up is what a captor does when the hunger is real and something else wins:
+  loyalty, affection, cold arithmetic, the discipline of a professional who doesn't mix
+  the job with pleasure. The hand offered instead of taken; the heat put away because
+  this one matters — or because being *seen* to spare them is its own kind of holding
+  power. A downed target demands an answer — this is the one that costs something.
+  Choose it BECAUSE of who the character is; never by silence, never by default.
+
 questEditorId: SkyrimNet_BakaIntegration
 scriptName: SkyrimNet_BakaIntegration
 executionFunctionName: HelpUp_Execute

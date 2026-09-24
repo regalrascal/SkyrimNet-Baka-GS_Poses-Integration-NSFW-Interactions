@@ -120,6 +120,7 @@ Float Property fNPCStageTime        = 5.0 Auto
 Float Property fQTEStartDelay       = 4.0  Auto
 ; Escalation window and QTE difficulty after QTE defeat
 Float Property fEscalationWindow     = 20.0 Auto  ; how long the downed victim waits for escalate before recovering
+Float Property fDownedSilenceSec     = 25.0 Auto  ; REV-17 Task 2: silence-watch length for an ABANDONED delegated hold (20-30s band)
 Float Property fEscalationDifficulty = 70.0 Auto
 ; SexLab is now reached ONLY through the SkyrimNet_BakaSL bridge (global funcs), so this script holds
 ; no SexLab script types and the mod loads/runs without SexLab installed.
@@ -291,6 +292,21 @@ String _sDownPose           = ""
 Bool _bEscalateRequested    = False
 ; Set by Release_Execute during the ground window to free the victim early without escalating.
 Bool _bReleaseRequested     = False
+; --- Escalate lock-race retry window (docs/LOCKRACE_FIX_DESIGN.md, variant (c), user-approved) ---
+; The 03:38:25 specimen: the forced-choice Escalate call landed while the initiator was still
+; SNBaka.Locked from the preceding struggle/QTE; _CleanupPair cleared the lock the SAME SECOND,
+; but the call had already read InitLocked=1 and silently dropped -- the model was never told
+; its decision failed. Same disease class as the bleedout settle wait in _DispatchDownedAction
+; (state-landing lag eating a legitimate call), so same cure: a bounded inline settle window,
+; then a FRESH full-gate revalidation. Single-entry by construction (the window IS the entry);
+; a second drop while a window is active is superseded (logged with who/why, silent). Absolute
+; revalidation: the retry fires only if _EscalateValidate returns "" at fire time -- permanent
+; gate failure is the slipped-cue path, never a retry loop.
+Bool  _bEscalateRetryActive  = False
+; Named constants (retune by edit if the re-test suggests different values -- no MCM surface
+; for a race-window patch):
+Float fEscalateRetryWindowSec = 10.0    ; cap: the specimen cleared in <1s; two full QTE cycles fit inside 10s
+Float fEscalateRetryPollSec   = 0.5     ; poll cadence, same as the bleedout settle wait
 ; Debounce so the "escalate or back down" decision cue isn't fired twice for one action (e.g. by both
 ; _RecoveryPeriod and UnlockBoth). Real-time seconds of the last baka_opportunity we fired.
 Float _fLastOpportunityRT   = 0.0
@@ -393,6 +409,9 @@ Function Setup()
     If !PlayerRef
         PlayerRef = Game.GetPlayer()
     EndIf
+    ; REV-24 1a: clear stale PendingScene latches BEFORE anything re-registers — every
+    ; surviving latch at this point is prior-session residue (the owning VM thread is gone).
+    _SweepStaleSceneLatches()
     UnregisterForAllModEvents()
     _RegisterDecorators()
     ; Acheron-downed handoff (creature pounce) + AEL/menu events. Re-asserted from OnUpdateGameTime too,
@@ -572,6 +591,14 @@ Bool Function IsEligible(Actor akA1, Actor akA2, Bool abAllowMidCombat = False)
         _Log("[SNBaka] IsEligible: blocked — an actor is mid sex scene (" + akA1.GetDisplayName() + " -> " + akA2.GetDisplayName() + ")")
         Return False
     EndIf
+    ; Pending-scene latch (rev-22): an escalation is mid-dispatch for this pair — the
+    ; wizard is open or the thread is still in setup, so IsInSexAnimation reads False
+    ; for both even though they are committed to a scene. This is the guard that
+    ; refuses the would-be interleave the 09-17 session raced through.
+    If _IsScenePending(akA1) || _IsScenePending(akA2)
+        _Log("[SNBaka] IsEligible: blocked — scene latch held, pair already escalating (" + akA1.GetDisplayName() + " -> " + akA2.GetDisplayName() + ")")
+        Return False
+    EndIf
     ; Player-involved uses the crosshair-range gate; NPC-vs-NPC gets the larger reach.
     Float maxDist = fMaxInteractionDistance
     If akA1 != PlayerRef && akA2 != PlayerRef
@@ -622,7 +649,48 @@ Bool Function IsEligible(Actor akA1, Actor akA2, Bool abAllowMidCombat = False)
     If IsInSexAnimation(akA1) || IsInSexAnimation(akA2)
         Return False
     EndIf
+    ; Pending-scene latch (rev-22) — see the main guard above. Belt-and-braces second
+    ; site, same as the doubled IsInSexAnimation check.
+    If _IsScenePending(akA1) || _IsScenePending(akA2)
+        Return False
+    EndIf
     Return True
+EndFunction
+
+; ---------------------------------------------------------------------------------------------
+; Sex lookup that works on LEVELED actors.
+;
+; Actor.GetActorBase() returns the EDITOR base object. For the generic leveled NPCs that make up
+; most of the world (bandits, forsworn, vampires, most guards) that editor base is a TEMPLATE
+; SHELL -- e.g. dunPOILvlBanditMissileAggro1536 (07F89F:Skyrim.esm) -- which carries a Template
+; (TPLT) pointing at a leveled character list plus TemplateFlags including Traits. Because sex
+; lives in the Traits flag, the shell's own ACBS sex field is an unused placeholder that reads
+; MALE, and its Race field is likewise junk (FoxRace on that record). The real sex only exists on
+; the game-generated base created when the leveled list resolves at spawn time.
+;
+; Actor.GetLeveledActorBase() (SKSE) returns exactly that generated base. Per SKSE's own Actor.psc:
+;   "Obtains a leveled actor's 'fake' base (the one generated by the game when the actor is
+;    leveled. This differs from GetActorBase which will return the editor base object)"
+;
+; Symptom of getting this wrong: a visibly female bandit reads as male, so every anatomically
+; gated action hits a bare Return -- no animation, no log, no notification. Unique named NPCs
+; (no template) work fine, which makes the failure look intermittent rather than systematic.
+;
+; Returns 0 male, 1 female, -1 unknown/none.
+Int Function _SexOf(Actor akActor) Global
+    If !akActor
+        Return -1
+    EndIf
+    ActorBase bse = akActor.GetLeveledActorBase()
+    If !bse
+        ; Non-leveled actors (uniques, the player) can return None here -- fall back to the editor
+        ; base, which for them IS the real record.
+        bse = akActor.GetActorBase()
+    EndIf
+    If !bse
+        Return -1
+    EndIf
+    Return bse.GetSex()
 EndFunction
 
 ; Returns True if the actor has a female body (sex == 1).
@@ -631,7 +699,7 @@ Bool Function HasFemaleBody(Actor akActor)
     If !akActor
         Return False
     EndIf
-    Return akActor.GetActorBase().GetSex() == 1
+    Return _SexOf(akActor) == 1
 EndFunction
 
 ; iTargetSex gate, shared by IsEligible (the ~24 "initiate an interaction" actions) AND Escalate_Execute
@@ -702,6 +770,97 @@ Bool Function IsInSexAnimation(Actor akActor)
         Return True
     EndIf
     Return False
+EndFunction
+
+; ============================================================
+; Pending-scene latch (rev-22) — closes the check-to-act race between the
+; escalation decision and SexLab's thread reaching AnimationStart (~16s window
+; observed 09-17: run 3's Struggle passed IsEligible while run 2's PrismaUI
+; wizard was pending; IsInSexAnimation reads False until the thread adds both
+; actors to the SexLab faction). The latch marks the pair busy from
+; wizard-open/scene-start until _EscalationCleanup confirms the scene has
+; ended. All escalation exits (cancel, automatic, wizard paths, hard-cap
+; fallthrough, invalid-actor abort) run through _EscalationCleanup, so the
+; release cannot be stranded.
+; ============================================================
+Function _SetSceneLatch(Actor akA1, Actor akA2)
+    StorageUtil.SetIntValue(akA1, "SNBaka.PendingScene", 1)
+    StorageUtil.SetIntValue(akA2, "SNBaka.PendingScene", 1)
+    ; REV-24 1a: registry for the startup sweep — the latch ints persist in the cosave but
+    ; the escalation VM thread that owns them does NOT survive a save-load (proven 09-17:
+    ; a quit during the pinned 15-min poll left SNBaka.PendingScene stranded on both actors
+    ; with no code path left to clear it). Every set is registered here so _SweepStaleSceneLatches
+    ; can enumerate and clear stale residue at boot/load. FormList on Self (the quest) persists too.
+    StorageUtil.FormListAdd(Self, "SNBaka.LatchReg", akA1, False)
+    StorageUtil.FormListAdd(Self, "SNBaka.LatchReg", akA2, False)
+    _Log("[SNBaka] scene latch: SET — " + akA1.GetDisplayName() + " <-> " + akA2.GetDisplayName() + " (escalation pending; closes the IsInSexAnimation gap until the thread spins up)")
+EndFunction
+
+Function _ClearSceneLatch(Actor akA1, Actor akA2)
+    If akA1
+        StorageUtil.UnsetIntValue(akA1, "SNBaka.PendingScene")
+        StorageUtil.FormListRemove(Self, "SNBaka.LatchReg", akA1)
+    EndIf
+    If akA2
+        StorageUtil.UnsetIntValue(akA2, "SNBaka.PendingScene")
+        StorageUtil.FormListRemove(Self, "SNBaka.LatchReg", akA2)
+    EndIf
+    _Log("[SNBaka] scene latch: RELEASED — " + akA1.GetDisplayName() + " <-> " + akA2.GetDisplayName())
+EndFunction
+
+; REV-24 Task 1a (user-approved rev-24 scope): startup sweep of stale scene latches.
+; Runs from Setup() — the proven load path for this quest (MCM OnGameReload calls it on
+; every single load; OnInit covers the cold boot). At that moment ANY surviving
+; SNBaka.PendingScene is definitionally stale: the escalation VM thread that would have
+; released it does not survive a save-load (the 09-17 stranding mechanism). Follows the
+; clamp-pattern lineage (stamp clamps, session-scope reset): a persisted residue read at
+; session scope is cleared with an unconditional SENTINEL, never a silent mutation.
+; One deliberate exception: an actor who is LIVE in a sex animation right now is skipped —
+; that is a save loaded mid-scene (the thread is gone but the scene is real); the race the
+; latch guards still applies until the scene ends, and clearing it would reopen the
+; check-to-act window mid-scene. Rare, and self-resolving at the scene's end (the actors
+; leave the animating faction and any later load sweeps it).
+Function _SweepStaleSceneLatches()
+    Int i = StorageUtil.FormListCount(Self, "SNBaka.LatchReg") - 1
+    While i >= 0
+        Actor ak = StorageUtil.FormListGet(Self, "SNBaka.LatchReg", i) as Actor
+        If ak && StorageUtil.GetIntValue(ak, "SNBaka.PendingScene", 0) == 1
+            If IsInSexAnimation(ak)
+                _Log("[SNBaka] scene latch sweep: KEEP — " + ak.GetDisplayName() + " is live in a sex animation (save loaded mid-scene); latch stays until the scene ends")
+            Else
+                StorageUtil.UnsetIntValue(ak, "SNBaka.PendingScene")
+                _Log("[SNBaka] scene latch sweep: CLEARED stale latch on " + ak.GetDisplayName() + " (escalation thread did not survive the load — residue from a prior session)")
+            EndIf
+        EndIf
+        StorageUtil.FormListRemoveAt(Self, "SNBaka.LatchReg", i)
+        i -= 1
+    EndWhile
+    ; REV-25 Task 1b gap fix (found in the 09-18 log read): the registry only contains latches
+    ; SET after rev-24 — a stranded latch from a PRE-rev-24 save (the 09-17 quit-during-pinned-
+    ; wait pair) has no registry entry, so the pass above is structurally blind to it (Papyrus
+    ; cannot enumerate StorageUtil key owners). Legacy pass: scan loaded actors directly —
+    ; the same PO3 scan the GS daemon uses. Same KEEP rule (a live scene is real). Limitation
+    ; (accepted): only LOADED actors are reachable at sweep time; an unloaded stranded pair
+    ; sweeps on a later load once its cell loads. The 09-18 session printed zero sweep lines
+    ; while a pre-registry latch plausibly sat in the save lineage — this pass closes that.
+    Actor[] akAll = PO3_SKSEFunctions.GetActorsByProcessingLevel(0)
+    Int j = 0
+    While j < akAll.Length
+        Actor la = akAll[j]
+        If la && la != PlayerRef && StorageUtil.GetIntValue(la, "SNBaka.PendingScene", 0) == 1
+            If IsInSexAnimation(la)
+                _Log("[SNBaka] scene latch sweep: KEEP — " + la.GetDisplayName() + " is live in a sex animation (save loaded mid-scene); latch stays until the scene ends")
+            Else
+                StorageUtil.UnsetIntValue(la, "SNBaka.PendingScene")
+                _Log("[SNBaka] scene latch sweep: CLEARED legacy latch on " + la.GetDisplayName() + " (pre-rev-24 stranding — no registry entry; swept by full scan)")
+            EndIf
+        EndIf
+        j += 1
+    EndWhile
+EndFunction
+
+Bool Function _IsScenePending(Actor akActor)
+    Return akActor && StorageUtil.GetIntValue(akActor, "SNBaka.PendingScene", 0) == 1
 EndFunction
 
 ; ============================================================
@@ -1725,7 +1884,7 @@ EndFunction
 ; the pools if they read as ground poses in-game. (Outcome-specific poses: set _sDownPose before the
 ; ground window to force one — e.g. a brutal KO -> "BaboDefeatKnockOutStart".)
 String Function _PickDownPose(Actor akVictim)
-    Bool female = akVictim && akVictim.GetActorBase().GetSex() == 1
+    Bool female = akVictim && _SexOf(akVictim) == 1
     ; Wire the pose to WHY they went down (their last Baka action). Unmapped motives -> random variety.
     ; (Choke already forces BaboFaintF via _sDownPose, which overrides this entirely.)
     String motive = StorageUtil.GetStringValue(akVictim, "SNBaka.LastAnim", "")
@@ -1900,8 +2059,8 @@ Function _StartTears(Actor akVictim)
         TearSpell = Game.GetFormFromFile(0x000802, "EmoTears4NPCs.esp") as Spell
         _Log("[SNBaka] _StartTears: lazy-resolved TearSpell=" + TearSpell)
     EndIf
-    If !TearSpell || akVictim.GetActorBase().GetSex() != 1
-        _Log("[SNBaka] _StartTears: GATED — TearSpell=" + TearSpell + " female=" + (akVictim.GetActorBase().GetSex() == 1) + " for " + akVictim.GetDisplayName())
+    If !TearSpell || _SexOf(akVictim) != 1
+        _Log("[SNBaka] _StartTears: GATED — TearSpell=" + TearSpell + " female=" + (_SexOf(akVictim) == 1) + " for " + akVictim.GetDisplayName())
         Return
     EndIf
     ; The EmoTears apply spell TOGGLES the tear ability, and _StartTears is called
@@ -1965,7 +2124,7 @@ EndFunction
 ; (SpankedActors formlist, SpankTatFadeRate), and floors TearHeat at one intensity
 ; step so the streak is visible even with no prior spanks.
 Function _ApplySexTears(Actor akVictim)
-    If !bAnimatedTearsEnabled || !akVictim || akVictim.GetActorBase().GetSex() != 1
+    If !bAnimatedTearsEnabled || !akVictim || _SexOf(akVictim) != 1
         Return
     EndIf
     Int heat = StorageUtil.GetIntValue(akVictim, "SkyrimNetSDB.TearHeat", 0)
@@ -2904,6 +3063,81 @@ Function _UnlockAttackerOnly(Actor akA1)
     StorageUtil.SetIntValue(akA1, "SNBaka.StopRequested", 0)
 EndFunction
 
+; ── REV-17 Task 2: downed-state silence early-exit for the ABANDONED delegated hold ──
+; The 09-14 recorded ruling ("a defeated player must stay down until the get-up key, help,
+; or a won QTE — no unsanctioned self-recovery") left a hole its authors didn't see: an
+; ABANDONED hold. When nobody escalates, nobody helps, and the aggressor has simply walked
+; away, the victim lingers in the Acheron hold indefinitely (09-15: player downed 3m42s+,
+; unresolved at session end). The ruling survives for the ACTIVE cases — get-up key, help
+; actions, won QTEs, and any hold a follow-up could still use — but the ABANDONED case now
+; resolves through the sanctioned recovery chain once silence holds for fDownedSilenceSec:
+;   (a) the aggressor has disengaged (dead, or farther than fCombatOverRadius — the same
+;       radius the stand-down gate below uses);
+;   (b) nothing is pending — no SexLab/OStim thread on the victim, no follow-up lock
+;       (SNBaka.Locked), not still queued for the Acheron bridge;
+;   (c) no combat near the victim (any nearby fighting keeps the hold — _WaitOrAbort
+;       suspends recovery while combat runs, and recovering mid-fight would stand the
+;       player up into a live brawl).
+; Bounded: single fixed watch, hard-capped at 240s like the fallback window — it resets on
+; every condition failure and never fires under an active follow-up. Runs only on the
+; delegated path; the fallback window already recovers on its own timer.
+Function _AbandonedHoldWatch(Actor akAggressor, Actor akVictim)
+    If !akVictim
+        Return
+    EndIf
+    _Log("[SNBaka] silence watch armed for " + akVictim.GetDisplayName() + " (" + fDownedSilenceSec + "s)")
+    Float silence  = 0.0
+    Float total    = 0.0
+    While silence < fDownedSilenceSec && total < 240.0
+        Utility.Wait(1.0)
+        total += 1.0
+        If akVictim.IsDead() || !_IsDownedAny(akVictim)
+            _Log("[SNBaka] silence watch: " + akVictim.GetDisplayName() + " no longer downed (resolved by a sanctioned exit) — watch standing down")
+            Return
+        EndIf
+        If IsInSexAnimation(akVictim)
+            _Log("[SNBaka] silence watch: scene took over " + akVictim.GetDisplayName() + " — standing down WITHOUT recovery")
+            Return
+        EndIf
+        If StorageUtil.GetIntValue(akVictim, "SNBaka.Locked", 0) == 1
+            _Log("[SNBaka] silence watch: " + akVictim.GetDisplayName() + " locked by a follow-up action — standing down (that action owns resolution)")
+            Return
+        EndIf
+        If StorageUtil.FormListFind(PlayerRef, "SNBaka.AcheronDownQueue", akVictim) >= 0
+            _Log("[SNBaka] silence watch: " + akVictim.GetDisplayName() + " still queued for the Acheron bridge — standing down")
+            Return
+        EndIf
+        If akVictim.IsInCombat() \
+                || (akAggressor && !akAggressor.IsDead() && akAggressor.GetDistance(akVictim) <= fCombatOverRadius)
+            silence = 0.0
+        Else
+            silence += 1.0
+        EndIf
+    EndWhile
+    If silence < fDownedSilenceSec
+        _Log("[SNBaka] silence watch: capped after " + total + "s without " + fDownedSilenceSec + "s of straight silence — standing down WITHOUT recovery, hold persists")
+        Return
+    EndIf
+    ; Unconditional reason-coded sentinel (2c): the next session's log confirms the fix
+    ; from one grep — victim named, plus the three condition states.
+    _Log("[SNBaka] silence watch FIRED for " + akVictim.GetDisplayName() + " — reason: silence-timeout (" \
+        + fDownedSilenceSec + "s) | aggressor-disengaged=true combat-near=" + akVictim.IsInCombat() \
+        + " locked=" + StorageUtil.GetIntValue(akVictim, "SNBaka.Locked", 0) \
+        + " sexthread=" + IsInSexAnimation(akVictim) \
+        + " queued=" + (StorageUtil.FormListFind(PlayerRef, "SNBaka.AcheronDownQueue", akVictim) >= 0) \
+        + " | firing recovery chain")
+    ; REV-17 Task 4 rider: stop any stale victim-side struggle loop before recovering.
+    ; _CleanupPair skips the victim's IdleForceDefaultState when bSkipA2Reset=True (the
+    ; defeat paths pass it), so the paired struggle loop's victim half is never stopped on
+    ; this path (09-15: the player's half lingered ~15s until a jump interrupted it). This
+    ; is the exact stop call _Bleedout already uses to clear looping paired anims — a
+    ; harmless no-op on a clean graph, stops a stale loop in place.
+    Debug.SendAnimationEvent(akVictim, "IdleForceDefaultState")
+    ; Sanctioned recovery chain — HelpUp's own (HelpUp → _ForceRecover): get-up transition
+    ; first, then the Acheron hold clear + essential-HP guard underneath it.
+    _ForceRecover(akVictim)
+EndFunction
+
 ; Called after a QTE defeat. Victim drops to the ground for fEscalationWindow
 ; seconds. During that window the attacker is free; if Escalate_Execute fires,
 ; _DoEscalation runs. Otherwise the victim is released and a cooldown starts.
@@ -2930,7 +3164,32 @@ Function _DefeatGroundWindow(Actor akA1, Actor akA2)
         StorageUtil.SetIntValue(akA2, "SNBaka.OnGround",      0)
         StorageUtil.SetStringValue(akA2, "SNBaka.DownPose",   "")
         StorageUtil.SetFormValue(akA2, "SNBaka.GroundWindowAggressor", None)
+        ; REV-17 Task 3: delegated victims never received the downed DECISION event — this
+        ; branch returns below, before the fallback window's baka_defeat registration
+        ; (the two RegisterEvent calls further down), so on Acheron-held victims the
+        ; Escalate / HelpUp / Release trio was only ever reachable through Acheron's own
+        ; (much sparser) acheron_downed cue — the LLM had no Baka-side prompt inviting a
+        ; disposition at all (09-15 session: victim downed 3m42s, unresolved at session
+        ; end). Register our decision cue here, adapted to the delegated state (down and
+        ; helpless, not PINNED — Acheron owns the hold; the fallback text's "pinned" framing
+        ; would be false). Double-registration guard is structural: this branch and the
+        ; fallback window are mutually exclusive arms of this same If — a non-delegated
+        ; victim keeps the fallback registration only, a delegated one gets this one only.
+        SkyrimNetApi.RegisterEvent("baka_defeat", \
+            akA2.GetDisplayName() + " is beaten down and helpless at " + akA1.GetDisplayName() + "'s feet. " + \
+            akA1.GetDisplayName() + " can talk to them — interrogate, threaten, mock, demand their surrender " + \
+            "or belongings — but must still decide NOW and carry it out (use the action, don't just describe it) " + \
+            "— exactly ONE of: Escalate (force them into sex; use the Escalate action — never StartNewSex), " + \
+            "HelpUp (show mercy, stand them up), or Release (step back, let the moment pass). " + \
+            "Pick ONE and do it now. " + akA2.GetDisplayName() + " reacts. One beat.", \
+            akA1, akA2)
+        _Log("[SNBaka] _DefeatGroundWindow: baka_defeat registered for delegated victim " + akA2.GetDisplayName() + " (aggressor " + akA1.GetDisplayName() + ")")
         _StartCooldown(akA1)
+        ; REV-17 Task 2: this branch previously returned straight into Acheron's hold with
+        ; no bounded exit of its own — the 09-15 session's abandoned hold. Run the silence
+        ; watch here: it resolves the delegated hold through the sanctioned recovery chain
+        ; when the aggressor has disengaged and no action claimed the victim.
+        _AbandonedHoldWatch(akA1, akA2)
         _Log("[SNBaka] _DefeatGroundWindow: delegated downed state to Acheron for " + akA2.GetDisplayName())
         Return
     EndIf
@@ -3538,6 +3797,12 @@ Function _DoEscalation(Actor akA1, Actor akA2)
 
     _Log("[SNBaka] _DoEscalation: SexLab installed=" + SkyrimNet_BakaSL.Installed() + " drugged=" + _bDruggedEscalation)
 
+    ; Pending-scene latch (rev-22): from here until _EscalationCleanup confirms scene
+    ; end, this pair is busy even though IsInSexAnimation still reads False (wizard
+    ; open / thread in setup). Both dispatch paths below run through a cleanup that
+    ; releases it.
+    _SetSceneLatch(akA1, akA2)
+
     ; ── Player involved: open our PrismaUI encounter wizard (async).  The scene
     ; is started in _StartSexLabScene when the player finishes; cleanup happens
     ; there too.  No SkyrimNet_SexLab dependency. ─────────────────────────────
@@ -3633,6 +3898,17 @@ Function _EscalationCleanup(Actor akA1, Actor akA2)
     Else
         _Log("[SNBaka] _EscalationCleanup: scene ended after " + waited + "s — proceeding with cleanup")
     EndIf
+    ; [L2 — docs\MALE_VICTIM_L2_TREATASSEX.md] Scene-end rollback of the TreatAsFemale override
+    ; SkyrimNet_BakaSL.StartScene may have applied to the victim at handoff. Flag-gated inside
+    ; (SNBakaSL.L2Override): a no-op on female scenes — the female path is byte-identical. Placed
+    ; BEFORE the invalid-actor guard so the override never outlives the scene even if the rest of
+    ; the cleanup aborts; the guard's early-exit below therefore cannot strand it.
+    SkyrimNet_BakaSL.ClearVictimOverride(akA2)
+    ; Pending-scene latch (rev-22): scene over (or fell through) — release the pair.
+    ; Placed BEFORE the invalid-actor guard so the latch never outlives the
+    ; escalation even if the rest of the cleanup aborts (_ClearSceneLatch tolerates
+    ; None/disabled actors itself).
+    _ClearSceneLatch(akA1, akA2)
     ; Defensive: a long wait is exactly where an actor could go invalid (unloaded, killed, deleted) out
     ; from under us. Every call below assumes both are live; without this guard a None here would throw
     ; the same "call X on a None object" error on every single line for the rest of the function.
@@ -4309,7 +4585,7 @@ Function KissLove_Execute(Actor akInitiator, Actor akTarget)
     String[] a1 = new String[2]
     String[] a2 = new String[2]
     ; A1 animations = female role. Swap when male initiator kisses female target.
-    Bool kissSwap = (akInitiator.GetActorBase().GetSex() == 0) && (akTarget.GetActorBase().GetSex() == 1)
+    Bool kissSwap = (_SexOf(akInitiator) == 0) && (_SexOf(akTarget) == 1)
     If kissSwap
         a1[0] = "BaboKissLoveS01_A2"
         a1[1] = "BaboKissLoveS02_A2"
@@ -5066,8 +5342,7 @@ Function ChokeHug_Execute(Actor akInitiator, Actor akTarget, Bool abFromHit = Fa
         _UnlockAttackerOnly(akInitiator)
         ; Choke knocks the victim out — female victims faint (BaboFaintF). No male faint anim exists,
         ; so males fall through to the default trauma down-pose.
-        ActorBase _tb = akTarget.GetActorBase()
-        If _tb && _tb.GetSex() == 1
+        If _SexOf(akTarget) == 1
             _sDownPose = "BaboFaintF"
         EndIf
         _DefeatGroundWindow(akInitiator, akTarget)
@@ -6445,45 +6720,83 @@ Function Untie_Execute(Actor akCutter, Actor akTarget)
 EndFunction
 
 ; --- Escalate ---
-; Called during the 20-second ground window after a QTE defeat.
-; akTarget must be on the ground (SNBaka.OnGround = 1).
+; Entry for BOTH the LLM action path (DLL action execution) AND the PrismaUI downed-menu's
+; choice 0 (line ~6649 dispatch) -- both land here and both are covered by the retry window.
+; AcheronNG's native Hunter's Pride menu calls _DoEscalation directly and is NOT covered.
+; akTarget must be on the ground (SNBaka.OnGround = 1) or externally downed (Acheron).
 ; akInitiator must be free (not locked). Sets _bEscalateRequested so
 ; _DefeatGroundWindow proceeds to _DoEscalation.
+; v2.0.10 lock-race fix (docs/LOCKRACE_FIX_DESIGN.md, variant (c)): the initiator-locked
+; block no longer silently drops the call -- it enters _EscalateRetryWindow (bounded
+; settle, one fresh full-gate revalidation, slipped cue on expiry/permanent failure).
 Function Escalate_Execute(Actor akInitiator, Actor akTarget)
     _Log("[SNBakaACT] Escalate ENTER")
     _Log("[SNBaka] Escalate_Execute: initiator=" + akInitiator.GetDisplayName() + " target=" + akTarget.GetDisplayName() + " OnGround=" + StorageUtil.GetIntValue(akTarget, "SNBaka.OnGround", 0) + " InitLocked=" + StorageUtil.GetIntValue(akInitiator, "SNBaka.Locked", 0) + " bNPCCanEscalate=" + bNPCCanEscalate)
+    String blockReason = _EscalateValidate(akInitiator, akTarget)
+    If blockReason == "initiator locked"
+        If _bEscalateRetryActive
+            ; Supersede (single-entry policy): an earlier dropped call already owns the retry
+            ; window. Record WHO was superseded and WHY the window was still live, so a wild
+            ; supersede tells its story in the log without a new investigation.
+            _Log("[SNBaka] EscalateRetry: superseded — initiator=" + akInitiator.GetDisplayName() + " target=" + akTarget.GetDisplayName() + " — dropped again while an earlier dropped call's window was still active (single-entry policy; this call is not queued)")
+            Return
+        EndIf
+        _Log("[SNBaka] Escalate_Execute: blocked — initiator locked (entering retry window)")
+        _EscalateRetryWindow(akInitiator, akTarget)
+        Return
+    ElseIf blockReason != ""
+        Return
+    EndIf
+    _EscalateAccept(akInitiator, akTarget)
+EndFunction
+
+; The full Escalate gate chain, extracted so the retry window revalidates with the EXACT
+; same code (absolute revalidation -- zero stale-state assumptions; the same standard as
+; the T3 floor's self-guard discipline). Returns "" when every gate passes, otherwise the
+; block reason. Trace strings are identical to the pre-refactor blocks so standing
+; forensic greps keep working. The initiator-locked case returns WITHOUT tracing here --
+; its handling IS the retry logic, and the caller (dispatcher / retry fire path) narrates.
+String Function _EscalateValidate(Actor akInitiator, Actor akTarget)
     If !akTarget || !akInitiator
         _Log("[SNBaka] Escalate_Execute: blocked — None actor")
-        Return
+        Return "none actor"
     EndIf
     If _IsCreatureActor(akInitiator) || _IsCreatureActor(akTarget)
         _Log("[SNBaka] Escalate_Execute: blocked — creature actor (use CreatureEscalate instead)")
-        Return
+        Return "creature actor"
     EndIf
     ; Content-preference filter, not a technical constraint -- same precedent as bNPCCanEscalate below,
     ; only gates a non-player initiator. The player targeting whoever they want is their own choice.
     If akInitiator != PlayerRef && !_TargetSexAllowed(akTarget)
         _Log("[SNBaka] Escalate_Execute: blocked — target sex not allowed by MCM (iTargetSex=" + iTargetSex + ")")
-        Return
+        Return "target sex not allowed"
     EndIf
     Bool ours = StorageUtil.GetIntValue(akTarget, "SNBaka.OnGround", 0) == 1
     Bool external = !ours && _IsDownedAny(akTarget)
     If !ours && !external
         _Log("[SNBaka] Escalate_Execute: blocked — target not downed")
-        Return
+        Return "target not downed"
     EndIf
     If StorageUtil.GetIntValue(akInitiator, "SNBaka.Locked", 0) == 1
-        _Log("[SNBaka] Escalate_Execute: blocked — initiator locked")
-        Return
+        Return "initiator locked"
     EndIf
     If _IsDownedAny(akInitiator)
         _Log("[SNBaka] Escalate_Execute: blocked — initiator is downed")
-        Return
+        Return "initiator downed"
     EndIf
     If akInitiator != PlayerRef && !bNPCCanEscalate
         _Log("[SNBaka] Escalate_Execute: blocked — NPC escalation disabled (bNPCCanEscalate=False)")
-        Return
+        Return "npc escalation disabled"
     EndIf
+    Return ""
+EndFunction
+
+; Post-gate body, extracted so the original call and the retry's fire path run the
+; IDENTICAL accept sequence (tears, the baka_escalate event, ours/external dispatch).
+; ours is recomputed here -- by design: the accept path re-reads the ground state fresh
+; rather than trusting anything the validation pass saw.
+Function _EscalateAccept(Actor akInitiator, Actor akTarget)
+    Bool ours = StorageUtil.GetIntValue(akTarget, "SNBaka.OnGround", 0) == 1
     _StartTears(akTarget)
     SkyrimNetApi.RegisterEvent("baka_escalate", \
         akInitiator.GetDisplayName() + " moves in on the helpless " + akTarget.GetDisplayName() + ".", \
@@ -6495,6 +6808,77 @@ Function Escalate_Execute(Actor akInitiator, Actor akTarget)
         _Log("[SNBaka] Escalate_Execute: accepted — external down, escalating directly")
         _DoEscalation(akInitiator, akTarget)   ; no window of ours -> run it now
     EndIf
+EndFunction
+
+; The settle window itself (inline, house style -- cf. the bleedout settle wait in
+; _DispatchDownedAction, added for the same disease class). Utility.Wait yields this
+; stack, so _CleanupPair (the lock clearer, running on the QTE-resolution stack)
+; proceeds fine while we wait -- no self-deadlock. On lock clear: ONE fresh full-gate
+; validation via _EscalateValidate; pass -> _EscalateAccept (no recursion, no second
+; window); relock-at-fire / permanent block / initiator death / cap expiry ->
+; _EscalateSlippedCue. Single-shot: the wait never restarts once the lock has been
+; seen clear (a re-acquired lock at fire time counts as expiry, per the design doc).
+Function _EscalateRetryWindow(Actor akInitiator, Actor akTarget)
+    _bEscalateRetryActive = True
+    Float startRT = Utility.GetCurrentRealTime()
+    _Log("[SNBaka] EscalateRetry: queued — initiator=" + akInitiator.GetDisplayName() + " target=" + akTarget.GetDisplayName() + " window=" + fEscalateRetryWindowSec + "s")
+    String verdict = ""
+    Bool lockSeenClear = False
+    Bool done = False
+    While !done && (Utility.GetCurrentRealTime() - startRT) < fEscalateRetryWindowSec
+        If !akInitiator || akInitiator.IsDead()
+            verdict = "initiator dead"
+            done = True
+        ElseIf !lockSeenClear
+            If StorageUtil.GetIntValue(akInitiator, "SNBaka.Locked", 0) == 0
+                lockSeenClear = True
+            Else
+                Utility.Wait(fEscalateRetryPollSec)
+            EndIf
+        Else
+            ; Lock has cleared -- validate ONCE, fresh, every gate.
+            String reblock = _EscalateValidate(akInitiator, akTarget)
+            If reblock == ""
+                verdict = "accepted"
+            ElseIf reblock == "initiator locked"
+                verdict = "relocked during fire"    ; single-shot: the wait never restarts
+            Else
+                verdict = "blocked at fire: " + reblock
+            EndIf
+            done = True
+        EndIf
+    EndWhile
+    _bEscalateRetryActive = False
+    Float waited = Utility.GetCurrentRealTime() - startRT
+    If verdict == "accepted"
+        _Log("[SNBaka] EscalateRetry: fired -> accepted after " + waited + "s")
+        _EscalateAccept(akInitiator, akTarget)
+    ElseIf verdict == ""
+        _Log("[SNBaka] EscalateRetry: expired — still locked after " + waited + "s (window cap)")
+        _EscalateSlippedCue(akInitiator, akTarget, "expired")
+    Else
+        _Log("[SNBaka] EscalateRetry: " + verdict + " (" + waited + "s)")
+        _EscalateSlippedCue(akInitiator, akTarget, verdict)
+    EndIf
+EndFunction
+
+; The surface-the-failure half of variant (c). Rides the EXISTING event channel the
+; model demonstrably reads and obeys (the same SkyrimNetApi.RegisterEvent path as
+; baka_escalate / baka_opportunity / acheron_downed) -- no new notification plumbing.
+; ROLEPLAY-FRAMED, interruption not error: the model gets a beat to play (frustration,
+; a redirected threat), never an instruction. Wording is the user-approved draft text
+; (batch-1 conventions). NOTE: the paired trigger YAML (baka_escalate_slipped.yaml)
+; MUST stay probability: 1.0 -- a probabilistic gate on the failure cue would
+; reintroduce the silent drop in the notification path (the bug being fixed, wearing
+; a different hat). The retry-window-expiry condition is the cue's only gate.
+Function _EscalateSlippedCue(Actor akInitiator, Actor akTarget, String why)
+    If !akInitiator || !akTarget
+        Return
+    EndIf
+    _Log("[SNBaka] EscalateRetry: slipped cue — initiator=" + akInitiator.GetDisplayName() + " target=" + akTarget.GetDisplayName() + " why=" + why)
+    SkyrimNetApi.RegisterEvent("baka_escalate_slipped", \
+        akInitiator.GetDisplayName() + " moves in — and the moment slips away. A heartbeat too slow, and the opening is gone; whatever " + akInitiator.GetDisplayName() + " meant to do has not happened.", \
+        akInitiator, akTarget)
 EndFunction
 
 ; --- In-combat "Grapple" menu dispatch ---
@@ -6983,7 +7367,7 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
         _Log("[SNBaka] CreatureEscalate: blocked — player victim, bCreatureOnPlayer OFF")
         Return
     EndIf
-    Bool vFemale = akVictim.GetActorBase().GetSex() == 1
+    Bool vFemale = _SexOf(akVictim) == 1
     ; iCreatureVictimSex: 0 = Both (allow all), 1 = Female only, 2 = Male only (same scheme as iTargetSex).
     If (iCreatureVictimSex == 1 && !vFemale) || (iCreatureVictimSex == 2 && vFemale)
         _Log("[SNBaka] CreatureEscalate: blocked — victim sex not allowed by MCM (iCreatureVictimSex=" + iCreatureVictimSex + " victimFemale=" + vFemale + ")")
@@ -7345,6 +7729,11 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
                 waited += 1
             EndIf
         EndWhile
+        ; [L2 — docs\MALE_VICTIM_L2_TREATASSEX.md] Scene-end rollback, creature path: the creature
+        ; escalation funnels through the same SkyrimNet_BakaSL.StartScene choke point, so the same
+        ; TreatAsFemale override may be pending on akVictim here. Same flag-gated no-op on female
+        ; scenes; same self-healing if a rollback is ever missed.
+        SkyrimNet_BakaSL.ClearVictimOverride(akVictim)
         _ProtectNearbyAllies(akVictim, akCreature, False)
         ; End the scene-scoped two-way pacify on the scene actors (mirrors the PacifyActor calls at
         ; scene start). The aggressor's ONE-WAY pacify (_PacifyActor: aggression 0) stays until the
@@ -7867,7 +8256,7 @@ Actor Function _FindCreatureVictim(Actor akCreature)
                 ok = False
             EndIf
             If ok
-                Bool female = a.GetActorBase().GetSex() == 1
+                Bool female = _SexOf(a) == 1
                 ; 0 = Both, 1 = Female only, 2 = Male only (same scheme as iTargetSex).
                 If (iCreatureVictimSex == 1 && !female) || (iCreatureVictimSex == 2 && female)
                     ok = False
@@ -8023,7 +8412,7 @@ Function PoseAroused_Execute(Actor akInitiator)
     _Log("[SNBakaACT] PoseAroused ENTER")
     RecordAnimation(akInitiator, "PoseAroused", "")
     String ev
-    If akInitiator.GetActorBase().GetSex() == 1   ; female
+    If _SexOf(akInitiator) == 1   ; female
         If Utility.RandomInt(1, 2) == 1
             ev = "BaboArousedFemale01"
         Else
@@ -8166,10 +8555,20 @@ EndEvent
 ; (Execute, Tie Up, Untie), is already reachable through Baka's own interact-power menu.
 
 Function _RegisterDecorators()
-    SkyrimNetApi.RegisterDecorator("get_baka_state",              "SkyrimNet_BakaIntegration", "GetBakaState")
-    SkyrimNetApi.RegisterDecorator("is_in_baka_animation",        "SkyrimNet_BakaIntegration", "IsInBakaAnimation")
-    SkyrimNetApi.RegisterDecorator("get_spank_state",             "SkyrimNet_BakaIntegration", "GetSpankState")
-    SkyrimNetApi.RegisterDecorator("get_nearby_furniture_actors", "SkyrimNet_BakaIntegration", "GetNearbyFurnitureActors")
+    ; Phase 6a.1 instrument: unconditional raw return-code trace per decorator (rc = 0 registered
+    ; OK; nonzero = the DLL refused the registration). Deliberately NOT behind the bDebugLog MCM
+    ; gate -- this is the diagnostic that settles 6b's decorator verdict, and a gated instrument
+    ; can go dark exactly when the flag is off. Registration is idempotent and re-asserted on the
+    ; heartbeat, so traces repeat at that cadence; the FIRST line after launch/load is the verdict
+    ; line. Retire or re-gate after the 6a session.
+    Int rc = SkyrimNetApi.RegisterDecorator("get_baka_state",              "SkyrimNet_BakaIntegration", "GetBakaState")
+    Debug.Trace("[SNBaka] decorator register: get_baka_state rc=" + rc)
+    rc = SkyrimNetApi.RegisterDecorator("is_in_baka_animation",        "SkyrimNet_BakaIntegration", "IsInBakaAnimation")
+    Debug.Trace("[SNBaka] decorator register: is_in_baka_animation rc=" + rc)
+    rc = SkyrimNetApi.RegisterDecorator("get_spank_state",             "SkyrimNet_BakaIntegration", "GetSpankState")
+    Debug.Trace("[SNBaka] decorator register: get_spank_state rc=" + rc)
+    rc = SkyrimNetApi.RegisterDecorator("get_nearby_furniture_actors", "SkyrimNet_BakaIntegration", "GetNearbyFurnitureActors")
+    Debug.Trace("[SNBaka] decorator register: get_nearby_furniture_actors rc=" + rc)
     ; baka_flirted decorator removed — the flirt escalations self-gate via their descriptions now.
     ; (GetFlirted is kept below, unused, so any stale SkyrimNet registration still resolves cleanly.)
 EndFunction
@@ -8249,7 +8648,7 @@ Function SpankTarget_Execute(Actor akSpanker, Actor akTarget, Bool akForceButt =
         _Log("[SNBaka] SpankTarget: player-as-target is disabled.")
         Return
     EndIf
-    If !bSpankMaleTargets && akTarget.GetActorBase().GetSex() == 0
+    If !bSpankMaleTargets && _SexOf(akTarget) == 0
         _Log("[SNBaka] SpankTarget: target is male — toggle 'Allow Male Targets' in MCM.")
         Return
     EndIf
@@ -8341,7 +8740,7 @@ Function BreastSlap_Execute(Actor akSpanker, Actor akTarget)
         _Log("[SNBaka] BreastSlap_Execute: player-as-target is not allowed.")
         Return
     EndIf
-    If akTarget.GetActorBase().GetSex() != 1
+    If _SexOf(akTarget) != 1
         Return
     EndIf
     Float lastSpank = StorageUtil.GetFloatValue(None, "SkyrimNetSDB.LastSpankTime", 0.0)
@@ -8360,7 +8759,7 @@ Function BreastSlap_Execute(Actor akSpanker, Actor akTarget)
         ApplyBreastReaction(akTarget)
     Else
         PlaySmackSound(akTarget)
-        If akTarget.GetActorBase().GetSex() == 1 && SpankMoanSound
+        If _SexOf(akTarget) == 1 && SpankMoanSound
             ; 0.5s so the smack finishes first (shared output model steals the voice otherwise).
             Utility.Wait(0.5)
             SpankMoanSound.Play(akTarget)
@@ -8385,7 +8784,7 @@ Function _DoSpank(Actor akSpanker, Actor akTarget, Sound akImpact = None, Bool b
     Utility.Wait(0.15)
     _PlaySpankSound(akTarget, akImpact)
     If akTarget == PlayerRef
-        If akTarget.GetActorBase().GetSex() == 1
+        If _SexOf(akTarget) == 1
             If bForwardReact
                 Debug.SendAnimationEvent(akTarget, "Sta_slap_forward")
             Else
@@ -8429,7 +8828,7 @@ Function _PlaySpankSound(Actor akTarget, Sound akImpact = None)
         _Log("[SNBaka] _PlaySpankSound: SpankImpactSound is NONE")
     EndIf
 
-    Bool isFemale = akTarget.GetActorBase().GetSex() == 1
+    Bool isFemale = _SexOf(akTarget) == 1
     If isFemale && SpankMoanSound
         Utility.Wait(0.1)
         Int moan = SpankMoanSound.Play(akTarget)
@@ -8449,7 +8848,7 @@ EndFunction
 ; too made a double sound, so out of sex we suppress our slap and call this right
 ; after the paired anim returns (~when the Babo impact lands) for just the moan.
 Function _PlaySpankMoanOnly(Actor akTarget)
-    If !akTarget || akTarget.GetActorBase().GetSex() != 1 || !SpankMoanSound
+    If !akTarget || _SexOf(akTarget) != 1 || !SpankMoanSound
         Return
     EndIf
     Int moan = SpankMoanSound.Play(akTarget)
@@ -8461,7 +8860,7 @@ EndFunction
 
 ; ---- Reaction spells ----
 Function ApplyButtReaction(Actor akTarget)
-    If !ButtReactionSpell || !akTarget || akTarget.GetActorBase().GetSex() != 1
+    If !ButtReactionSpell || !akTarget || _SexOf(akTarget) != 1
         Return
     EndIf
     If akTarget.IsInCombat() || akTarget.IsDead()
@@ -8472,7 +8871,7 @@ Function ApplyButtReaction(Actor akTarget)
 EndFunction
 
 Function ApplyBreastReaction(Actor akTarget)
-    If !BreastReactionSpell || !akTarget || akTarget.GetActorBase().GetSex() != 1
+    If !BreastReactionSpell || !akTarget || _SexOf(akTarget) != 1
         Return
     EndIf
     If akTarget.IsInCombat() || akTarget.IsDead()
@@ -8484,7 +8883,7 @@ EndFunction
 
 ; ---- Tattoo system ----
 Function ApplySpankMark(Actor akTarget)
-    If !akTarget || akTarget.GetActorBase().GetSex() != 1
+    If !akTarget || _SexOf(akTarget) != 1
         Return
     EndIf
     Int maxHeat = SpankTatIntensity * 4
@@ -8506,7 +8905,7 @@ Function ApplySpankMark(Actor akTarget)
 EndFunction
 
 Function ApplyBreastMark(Actor akTarget)
-    If !akTarget || akTarget.GetActorBase().GetSex() != 1
+    If !akTarget || _SexOf(akTarget) != 1
         Return
     EndIf
     StorageUtil.SetIntValue(akTarget, "SkyrimNetSDB.HasBreastTat", 1)
@@ -8516,7 +8915,7 @@ Function ApplyBreastMark(Actor akTarget)
 EndFunction
 
 Function ApplyFaceMarks(Actor akTarget)
-    If !akTarget || akTarget.GetActorBase().GetSex() != 1
+    If !akTarget || _SexOf(akTarget) != 1
         Return
     EndIf
     Int maxTear  = SpankTatIntensity * 4
@@ -8530,7 +8929,7 @@ Function ApplyFaceMarks(Actor akTarget)
 EndFunction
 
 Function UpdateFaceMarks(Actor akTarget, Int tearHeat)
-    If !akTarget || akTarget.GetActorBase().GetSex() != 1
+    If !akTarget || _SexOf(akTarget) != 1
         Return
     EndIf
     ClearFaceMarks(akTarget)
@@ -8549,7 +8948,7 @@ Function UpdateFaceMarks(Actor akTarget, Int tearHeat)
 EndFunction
 
 Function ClearFaceMarks(Actor akTarget)
-    If !akTarget || akTarget.GetActorBase().GetSex() != 1
+    If !akTarget || _SexOf(akTarget) != 1
         Return
     EndIf
     SlaveTats.simple_remove_tattoo(akTarget, "SkyrimNet Spank", "tears1", True, False)
@@ -8561,7 +8960,7 @@ Function ClearFaceMarks(Actor akTarget)
 EndFunction
 
 Function FadeActorTats(Actor akTarget)
-    If !akTarget || akTarget.GetActorBase().GetSex() != 1
+    If !akTarget || _SexOf(akTarget) != 1
         Return
     EndIf
     Int tearHeat    = StorageUtil.GetIntValue(akTarget, "SkyrimNetSDB.TearHeat", 0)
@@ -8983,7 +9382,7 @@ String Function GetNearbyFurnitureActors(Actor akActor) Global
         If target && target != akActor && !target.IsDead()
             ObjectReference furnRef = target.GetFurnitureReference()
             If furnRef != None && target.GetDistance(akPlayer) < 1500.0 && SNBakaUI.IsCraftingTemptation(furnRef)
-                Bool isFemale  = target.GetActorBase().GetSex() == 1
+                Bool isFemale  = _SexOf(target) == 1
                 Bool tempting  = isFemale
                 String sexStr  = "male"
                 If isFemale

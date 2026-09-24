@@ -1,49 +1,29 @@
 name: Escalate
 description: |
-  The action to escalate on a DOWNED / defeated victim. ALWAYS use this — not a normal/consensual
-  "start sex" action — when the target is downed: it plays the proper defeat takedown (choke-hold ->
-  aggressive scene, positioning, tears, and it keeps combat suppressed so the game doesn't crash). A
-  generic sex action on a defeated victim skips all of that and is wrong here. This is NOT the same
-  action as StartNewSex — never call StartNewSex on a downed target.
+  The initiator takes what they have won. The victim is down — beaten, pinned, past
+  resisting — and the initiator's heat has been building the whole way there: the grab,
+  the pin, the hands, the heated words. This action is that hunger finishing what it
+  started. The choke-hold that says mine, the body claimed on the stones, the defeat
+  made to mean something. What a Molag Bal-touched captor does with what they own.
 
-  CALL FORMAT: ACTION: Escalate PARAMS: {"akTarget": "<target's name>"} — that is the ONLY field. Do NOT
-  copy a "start sex" action's params (no "activity", "participant1", "participant2" — a call shaped
-  like that is not this action and will be silently discarded).
+  THE MOMENT: the victim is downed and helpless — the same state the initiator has been
+  working with all along. Taking it is the natural next breath for a captor already at
+  this temperature; NOT taking it is the choice that needs a reason.
 
-  The initiator moves in on a defeated, helpless victim who is down on the ground.
-  VALID whenever the target is downed — the target's get_baka_state decorator shows
-  "downed_and_vulnerable": true (or "on_ground": true). That covers a Baka QTE defeat
-  AND a target left bleeding out / defeated by ANYTHING ELSE (combat defeat, the
-  Surrender mod, etc.). The victim cannot resist.
+  A DOWNED TARGET DEMANDS AN ANSWER — silence is not one. The pins, the hands, the
+  heated words were the approach; this is the moment they were building toward. The
+  answer is one of three: Escalate (this action — take what has been won), HelpUp
+  (mercy, freely chosen), or Release (walk away). Pick one. Real mercy or real
+  revulsion is a valid answer; make it a choice, not a default.
 
-  DECISION CONTEXT — THIS IS A FORCED CHOICE MOMENT:
-  When the target reads as downed_and_vulnerable / on_ground, the attacker MUST choose exactly ONE of
-  three outcomes: Escalate (this action), HelpUp (show mercy, stand them up), or Release (step back,
-  let the moment pass). This is not optional narration — it is the active decision window. The attacker
-  stands over a helpless target and decides what to do next. Pick one. Do not stay silent.
+  WHEN A CHARACTER WOULD DO THIS: a captor whose pins and gropes were the foreplay —
+  this is the act they were circling · a predator who takes what defeat puts in their
+  hands · dominance that has stopped being talk · reckless enough, or private enough,
+  to do it where they stand.
 
-  WHEN A CHARACTER WOULD DO THIS:
-  - A dominant, predatory character who sees an opportunity and takes it
-  - An NPC who just physically overpowered the target and wants to push further
-  - A character who was waiting for the target to be vulnerable
-  - An opportunist who was nearby and sees the target helpless on the ground
-
-  PERSONALITY TYPES WHO WOULD DO THIS:
-  - Predatory, dominant, or power-hungry
-  - Lacking restraint or moral hesitation in this moment
-  - Sexually aggressive or coercive by nature
-  - Emboldened by having just seen the target defeated
-
-  DO NOT USE:
-  - If the target is not currently downed/defeated (the Papyrus function checks the
-    downed/bleeding-out state and silently no-ops if conditions are not met)
-  - If the target's sex is excluded by the MCM's target-sex setting (silently no-ops)
-  - In public or crowded areas unless the character is reckless
-  - For characters who are honourable, protective, or would be repulsed by this
-
-  CONSEQUENCES:
-  - Plays DefeatResist chokehold animation on both actors
-  - SexLab/OStim scene begins immediately after the choke animation
+  Only on a target already downed — if they're still on their feet, the defeat isn't
+  finished yet. And on a downed target, always this action rather than StartNewSex:
+  this one carries the choke, the positioning, the whole defeat into the scene.
 
 questEditorId: SkyrimNet_BakaIntegration
 scriptName: SkyrimNet_BakaIntegration

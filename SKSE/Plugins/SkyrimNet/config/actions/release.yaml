@@ -37,6 +37,15 @@ description: |
   - Fires baka_release event — the victim and witnesses react to being spared
   - The moment passes; normal interaction can resume after cooldown
 
+  WALKING AWAY IS AN ENDING, NOT AN AVOIDANCE — the third face of the moment. Stepping
+  back from a downed body leaves both of them with the story of what didn't happen:
+  the predator who loses interest, the professional who banks the favour, the one whose
+  code says *not like this*. The choice to leave the moment unresolved is still a
+  choice, and it should land like one — what they saw, what they wanted, what they
+  decided instead. A downed target demands an answer — Release is the answer that
+  trusts the next scene more than this one. Choose it deliberately; never by silence,
+  never by default.
+
 questEditorId: SkyrimNet_BakaIntegration
 scriptName: SkyrimNet_BakaIntegration
 executionFunctionName: Release_Execute
