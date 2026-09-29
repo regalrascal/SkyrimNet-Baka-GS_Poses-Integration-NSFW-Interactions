@@ -1,5 +1,22 @@
 # Changelog
 
+## v0.2.0-alpha — 2026-09-28: Beta 25 plugin migration
+
+**Delivery-layer migration.** No gameplay changes.
+
+### Migration
+- All content (78 actions, 15 triggers, 6 prompts) repackaged as
+  `regalrascal.baka-gs-integration` plugin in the external layer
+  (`SKSE/Plugins/SkyrimNet/external/`). Requires SkyrimNet Beta 25 (0.25.x)+.
+- Old `config/` and `prompts/` loose-file layout retired.
+- 70 action files renamed to comply with Beta 25's filename rule (in-game
+  name unchanged). Per-action settings for renamed actions need re-applying
+  once after updating.
+
+### Dev
+- DevKit `content-validate` exit 0 (zero structural errors).
+- Signed-off by PROJECT_STATE.md §53.
+
 ## v0.1.0-alpha — 2026-09-24: unified fork consolidation (rev-49)
 
 **Consolidates** the SkyrimNet Baka Integration + Animations GS codebases into a
