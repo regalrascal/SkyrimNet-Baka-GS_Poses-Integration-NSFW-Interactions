@@ -10,8 +10,7 @@
   (`SKSE/Plugins/SkyrimNet/external/`). Requires SkyrimNet Beta 25 (0.25.x)+.
 - Old `config/` and `prompts/` loose-file layout retired.
 - 70 action files renamed to comply with Beta 25's filename rule (in-game
-  name unchanged). Per-action settings for renamed actions need re-applying
-  once after updating.
+  name unchanged). Per-action settings (keyed by action name) carry over.
 
 ### Dev
 - DevKit `content-validate` exit 0 (zero structural errors).

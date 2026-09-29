@@ -11,10 +11,9 @@ this is a delivery-layer migration.
   external-layer location. SkyrimNet lists it under **Installed Plugins**
   with an External badge.
 - 70 action files were renamed to satisfy Beta 25's filename rule. The
-  in-game action names are unchanged. Per-action enable/cooldown settings
-  for the **renamed** actions need to be re-applied once after updating
-  (the dashboard lists the affected actions); settings for the 8
-  unrenamed actions are unaffected.
+  in-game action names are unchanged, and per-action enable/cooldown
+  settings are keyed by action name — **your toggles carry over**
+  (confirmed against live config/Actions.yaml storage).
 - The old loose-file layout is retired (Beta 25 ignores it anyway).
 
 ## Requirements change
