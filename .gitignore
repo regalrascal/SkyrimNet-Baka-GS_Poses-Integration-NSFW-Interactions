@@ -29,7 +29,8 @@ compile.bat
 *.zip
 *.rar
 *.7z
-*.bak*
+*.bak
+*.bak.*
 *.dot
 *.sha256
 Scripts/pex_backup_*/
