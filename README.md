@@ -208,7 +208,7 @@ runtimes. (VR additionally needs SkyrimNet and PrismaUI themselves to work in VR
 - **A sex framework for escalation scenes — SexLab _or_ [OStim Standalone (OStim SA)](https://www.nexusmods.com/skyrimspecialedition/mods/98163).** Pick it in the MCM (Auto uses whichever is installed). Neither is a hard requirement; without one, escalation just won't start a scene.
 - [Emotional Tears Effect (EmoTears)](https://www.nexusmods.com/skyrimspecialedition/mods/122296) — for animated tears
 - [Baka Motion Data Pack](https://www.loverslab.com/files/file/26992-baka-motion-data-pack/) — the paired interaction animations; build with **FNIS / Nemesis / Pandora**
-- [GSPoses](https://www.patreon.com/Gunslicer/posts/pose-mod-01-09-168367065) — the 12 GS solo pose animations; also required by Animations GS
+- [GSPoses](https://www.patreon.com/Gunslicer/posts/pose-mod-02-06-159933025?utm_campaign=postshare_fan&utm_content=android_share) — the 12 GS solo pose animations; also required by Animations GS
 
 ### Soft (strongly recommended)
 - [Flash Games – Struggling QTE](https://www.nexusmods.com/skyrimspecialedition/mods/121909) — blocking-based QTE for grab/choke holds
