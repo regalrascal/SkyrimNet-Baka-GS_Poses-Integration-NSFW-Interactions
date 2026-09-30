@@ -31,20 +31,16 @@
   (`overlay/x64-windows-static-md.cmake`) committed as `3ff8e06`.
 - Cold reproducibility verified: full rebuild from scratch (empty binary
   cache, scrubbed buildtrees) completed in ~6 min, zero link errors.
-- **Staging deploy** at `dist/[REV-56] SN-BakaGS-Unified reference build/`
-  (renamed per rev-42 convention at rev-57).
 
-### REV-57: Staging rename + doc-model audit
-- **Staging rename:** `dist/REV-56-reference/` renamed to
-  `dist/[REV-56] SN-BakaGS-Unified reference build/` (rev-42 stamped
-  convention applied — internal staging path, hygiene).
-- **Doc-model audit:** see `docs/PROJECT_STATE.md` §57 for full report.
-- **Created `docs/PROJECT_STATE.md`:** rev-56 central findings extracted
-  from CHANGELOG into proper modular doc (per rev-55 rider). Rev-57 entry
-  records audit results + branch-strategy ruling.
-- **Routing fix:** REV-56 toolchain findings (Gate 0 retarget, vcpkg overlay
-  port, rc.exe/vcvars wrapper) moved from CHANGELOG-only to
-  `docs/PROJECT_STATE.md` §56. CHANGELOG retains a summary reference.
+### REV-57: Fork revert (two-tree rule); strategist question flagged
+- **Revert:** `docs/PROJECT_STATE.md` removed from fork — public product
+  tree carries only `docs/STANDING_RULESET.md` (and see strategist flag
+  below). The rev-55 rider central doc lives in the GS canonical repo.
+- **Strategist flag (not decided):** whether `docs/STANDING_RULESET.md`
+  itself belongs in the public fork is a pending question; keeping it
+  mirror-in-sync for now, no decision made.
+- Staging rename (rev-42) and migration to NEW project home executed in
+  the same revision — see GS `docs/PROJECT_STATE.md` §57.
 
 ## v0.1.0-alpha — 2026-09-24: unified fork consolidation (rev-49)
 
