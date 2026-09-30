@@ -1,39 +1,5 @@
 # Changelog
 
-## v0.3.0-alpha — 2026-09-30: Repository migration and dogfood
-
-**Repository relocation (path 1b→1a) and reference-build dogfood.**
-No gameplay changes.
-
-### Migration
-- Whole-repo robocopy /MIR from `workspace/BKA/SkyrimNet-Baka-GS-_Poses-...`
-  to `workspace/SkyrimNet-Baka-GS_Poses-Integration-NSFW-Interactions`.
-- Remote `origin` updated to `regalrascal/SkyrimNet-Baka-GS_Poses-...` (canonical).
-- Historical remotes `baka` (StephenS112/SkyrimNet-BakaIntegration-working)
-  and `gs` (gs-muse/SkyrimNet-Animations-GS) preserved.
-- Path 1b (BKA) and 1c (LegacyPOSes) marked read-only with QUARANTINE_NOTICE.
-- QUARANTINE_NOTICE.txt written to repo root documenting all three paths.
-
-### Stale-reference audit
-- **Build artifacts** in `dll-source/build/release/` and `dll-source-gs/build/release/`
-  still reference old BKA workspace path — auto-regenerated on next clean build
-  (`git clean -xdf dll-source/build/ dll-source-gs/build/` before rebuilding).
-- **Build scripts** (`build_plugin.bat`, `build_plugin-gs.bat`) are `%~dp0`-relative,
-  fully portable — no stale paths.
-- **Overlay files** (`dll-source-gs/overlay/`) use relative `file://` URI — portable.
-- **No deploy-path hardcodes** found in repo (no `D:\Modlists\` references).
-
-### Archive model
-- `releases/archive/` created. Historical v0.1.0-alpha zip + sha256 moved to archive.
-- Current v0.2.0-alpha zip + sha256 remains at repo root (single loose zip).
-
-### REV-57 reference build (dogfood)
-- Full MO2-installable mod tree built at `dist/SN-AnimationsGS-Baka-Unified-REV-56-reference.zip`
-  (6.5 MB, SHA256 `E5331DD5…`, 237 entries).
-- Contents: v0.2.0-alpha deployment tree + `meta.ini` + reference-built DLLs
-  (`SkyrimNet_BakaIntegration.dll` SHA256 `8BE130F8…`; `SNAnimGS_UI.dll` SHA256 `9BD281E6…`).
-- No `.pdb` files in installable tree.
-- Folder naming per rev-42: bracket-prefixed rev tag.
 ## v0.2.0-alpha — 2026-09-28: Beta 25 plugin migration
 
 **Delivery-layer migration.** No gameplay changes.
