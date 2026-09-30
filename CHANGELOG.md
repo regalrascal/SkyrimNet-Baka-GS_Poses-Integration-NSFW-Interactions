@@ -16,6 +16,22 @@
 - DevKit `content-validate` exit 0 (zero structural errors).
 - Signed-off by PROJECT_STATE.md §53.
 
+### REV-56: Reference builds (Phase 1)
+- **dll-source** (`SkyrimNet_BakaIntegration.dll`): source build from local
+  CommonLibSSE-NG submodule v4.26.0, verified byte-identical to shipped
+  v1.4.1 (SHA256 `8BE130F8…`, 1,035,776 bytes). Zero STL ABI issues.
+- **dll-source-gs** (`SNAnimGS_UI.dll`): source build from same submodule,
+  fixes LNK2001 root cause — vcpkg auto-detected VS 2019 Build Tools (v142)
+  over VS 2022 Community (v143), producing CommonLibSSE with mismatched STL
+  ABI. Fixed via overlay triplet forcing `VCPKG_PLATFORM_TOOLSET v143`.
+  Fresh: SHA256 `9BD281E6…`, 564,736 bytes (shipped was 398,848 bytes —
+  growth from linked CommonLibSSE 4.26.0 vs 3.7.0). Export parity confirmed
+  (same 3 SKSE plugin exports). Dependency set identical (17 DLLs).
+- **Overlay port** (`overlay/commonlibsse-ng/`) and **overlay triplet**
+  (`overlay/x64-windows-static-md.cmake`) committed as `3ff8e06`.
+- Cold reproducibility verified: full rebuild from scratch (empty binary
+  cache, scrubbed buildtrees) completed in ~6 min, zero link errors.
+
 ## v0.1.0-alpha — 2026-09-24: unified fork consolidation (rev-49)
 
 **Consolidates** the SkyrimNet Baka Integration + Animations GS codebases into a
