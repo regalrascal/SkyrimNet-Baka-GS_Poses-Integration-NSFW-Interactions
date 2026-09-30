@@ -1,4 +1,5 @@
 build/
+*.vs18backup
 out/
 vcpkg_installed/
 *.user
