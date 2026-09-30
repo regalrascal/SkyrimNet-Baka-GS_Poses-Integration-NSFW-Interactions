@@ -1,0 +1,18 @@
+QUARANTINE NOTICE — Paths 1b and 1c
+Dated: 2026-09-30 13:47 (migration completed)
+
+Path 1b (OLD): D:\Modding\Skyrim\Workspace\BKA\SkyrimNet-Baka-GS-_Poses-Integration-NSFW-Interactions
+  - Source repository for the migration
+  - HEAD: 78d6af8 (REV-57), branch main, ahead 7 of origin/main
+  - Working tree clean
+  - Not deleted — read-only fallback/reference only
+  - Robocopy /MIR source copied to 1a on 2026-09-30
+
+Path 1c (WRONG-NAMED COPY): D:\Modding\Skyrim\Workspace\SkyrimNet-Baka-GS-_Poses-Integration-NSFW-Interactions
+  - Created during earlier mis-migration (destination string had hyphen in GS-_Poses)
+  - Identical repository state to 1b (same HEAD 78d6af8, same remotes)
+  - Contains empty releases\archive\ dir not present in 1b/1a
+  - Not deleted — read-only fallback/reference only
+
+Subsequent work: Path 1a ONLY
+  - D:\Modding\Skyrim\Workspace\SkyrimNet-Baka-GS_Poses-Integration-NSFW-Interactions
