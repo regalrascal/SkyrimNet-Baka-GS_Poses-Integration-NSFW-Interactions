@@ -210,3 +210,21 @@ Function StopScene(Int tid) Global
         EndIf
     EndIf
 EndFunction
+
+; [REV-63 2a-ii] Thread positions for SkyrimNet_BakaDetection's SexLab
+; orgasm-hook proxy: HookStageEnd delivers the thread id; this resolves the
+; controller's actor list through the same cached-bridge pattern as everything
+; above (SexLab absent -> empty array, caller no-ops). sslThreadController
+; .Positions is signature-true to the installed P+ source; the compile stub
+; (tools/compile/local/sslThreadController.psc) was extended to match.
+Actor[] Function SLThreadPositions(Int tid) Global
+    SexLabFramework sl = _SL()
+    If !sl || tid < 0
+        Return None
+    EndIf
+    sslThreadController tc = sl.GetController(tid)
+    If !tc || !tc.Positions
+        Return None
+    EndIf
+    Return tc.Positions
+EndFunction

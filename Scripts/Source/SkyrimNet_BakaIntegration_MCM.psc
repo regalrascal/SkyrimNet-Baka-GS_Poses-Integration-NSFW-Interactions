@@ -50,6 +50,10 @@ Int _sellSlaveryOID
 Int _followerSlaveryOID
 Int _slaveryDistOID
 Int _tiedHoursOID
+; REV-63 detection + inflation triggers (Plugins page)
+Int _cumDetectOID
+Int _slProxyOID
+Int _fhuAwareOID
 
 Event OnConfigInit()
     ModName = "Baka SkyrimNet"
@@ -68,14 +72,13 @@ Event OnGameReload()
 EndEvent
 
 ; Bumped to 2 in v1.1 (added the "Scenes & FX" page), to 3 for the "Plugins" page (Lap Sitting).
-; Increasing this makes SkyUI fire OnVersionUpdate on EXISTING saves so a newly added page actually
-; appears -- without it, an existing save keeps running whatever Pages[] array _BuildPages() last
-; wrote for that save, forever, regardless of what the .psc source says now. Confirmed live:
-; forgot this bump when Plugins was added -- the tab was invisible on an existing save, AND every
-; MCM toggle living on that page (bLapSitEnabled) had never actually been reachable to set, so it
-; was silently stuck at its compiled default the whole time no matter what got clicked.
+; REV-63: bumped to 4 -- added the detection-trigger toggles (Cum Detection / FHU Inflation) to
+; the EXISTING "Plugins" page. Version-field lesson (confirmed live, see rev notes above): an
+; existing save keeps whatever Pages[]/_BuildPages state it last wrote UNLESS the version is
+; bumped so SkyUI fires OnVersionUpdate. No NEW page this time, but new OPTIONS on an existing
+; page still need the bump on existing saves (the page content is cached with the save too).
 Int Function GetVersion()
-    Return 3
+    Return 4
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -196,6 +199,25 @@ Event OnPageReset(String page)
         Else
             _lapSitOID = AddToggleOption("Enable Lap Sitting Actions (mod not installed)", False, OPTION_FLAG_DISABLED)
         EndIf
+        ; REV-63 detection + inflation triggers -- same presence-gated pattern as Lap Sitting.
+        AddHeaderOption("Cum Detection (OCum / SexLab)")
+        If Main._OCumInstalled()
+            _cumDetectOID = AddToggleOption("Cum Cues (OCum + SexLab climax proxy)", Main.bCumDetectionEnabled)
+            If Main.bCumDetectionEnabled
+                _slProxyOID = AddToggleOption("SexLab Climax Proxy Share", Main.bSLProxyEnabled)
+            Else
+                _slProxyOID = AddToggleOption("SexLab Climax Proxy Share", Main.bSLProxyEnabled, OPTION_FLAG_DISABLED)
+            EndIf
+        Else
+            _cumDetectOID = AddToggleOption("Cum Cues (OCum not installed)", False, OPTION_FLAG_DISABLED)
+            _slProxyOID   = -1
+        EndIf
+        AddHeaderOption("FHU Inflation Awareness")
+        If Main._FHUInstalled()
+            _fhuAwareOID = AddToggleOption("Inflation Level Cues (Fill Her Up)", Main.bFHUInflationEnabled)
+        Else
+            _fhuAwareOID = AddToggleOption("Inflation Level Cues (mod not installed)", False, OPTION_FLAG_DISABLED)
+        EndIf
     EndIf
 EndEvent
 
@@ -215,6 +237,23 @@ Event OnOptionSelect(Int option)
             SkyrimNetApi.UnregisterAction("SitOnLap")
             Debug.Notification("Lap Sitting actions disabled and removed from the action menu.")
         EndIf
+    ElseIf option == _cumDetectOID
+        Main.bCumDetectionEnabled = !Main.bCumDetectionEnabled
+        SetToggleOptionValue(_cumDetectOID, Main.bCumDetectionEnabled)
+        SetOptionFlags(_slProxyOID, OPTION_FLAG_DISABLED * ((!Main.bCumDetectionEnabled) as Int))
+        If Main.bCumDetectionEnabled
+            Main.Setup()
+            Debug.Notification("Cum cues enabled.")
+        Else
+            Debug.Notification("Cum cues disabled.")
+        EndIf
+    ElseIf option == _slProxyOID
+        Main.bSLProxyEnabled = !Main.bSLProxyEnabled
+        SetToggleOptionValue(_slProxyOID, Main.bSLProxyEnabled)
+    ElseIf option == _fhuAwareOID
+        Main.bFHUInflationEnabled = !Main.bFHUInflationEnabled
+        SetToggleOptionValue(_fhuAwareOID, Main.bFHUInflationEnabled)
+        Main.Setup()   ; re-arms or disarms the level poll right now
     ElseIf option == _animatedTearsOID
         Main.bAnimatedTearsEnabled = !Main.bAnimatedTearsEnabled
         SetToggleOptionValue(_animatedTearsOID, Main.bAnimatedTearsEnabled)
