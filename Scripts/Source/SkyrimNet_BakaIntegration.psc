@@ -1093,14 +1093,30 @@ Event OnUpdate()
 EndEvent
 
 ; REV-63: start/stop the FHU level poll chain (multiplexed, see _ArmRealtimeTimer).
+; REV-65: idempotent arming -- called from Setup() (primary) AND the
+; OnUpdateGameTime heartbeat (self-heal). REV-64 evidence of record: Setup()
+; never executed at save-load (the MCM OnGameReload chain was stale), so the
+; poll never armed; the heartbeat demonstrably executes every ~3.3 min. A
+; redundant call while a poll is already pending is a no-op.
 Function _FHUStartPoll()
+    Float nowRT = Utility.GetCurrentRealTime()
+    ; Idempotent guard: a VALID pending poll is always within one interval of
+    ; now (OnUpdate re-arms to now+interval every tick). A pending time that
+    ; is FARTHER out is stale save residue (quest variables persist, but
+    ; real time resets every game launch) -- treat as not armed.
+    If _fFHUNextPollRT > 0.0 && _fFHUNextPollRT > nowRT && (_fFHUNextPollRT - nowRT) <= _RT_POLL_INTERVAL
+        Return  ; already armed, poll pending
+    EndIf
     _PollFHULevels()   ; seed pass: records current amounts, fires no cue
-    _fFHUNextPollRT = Utility.GetCurrentRealTime() + _RT_POLL_INTERVAL
+    _fFHUNextPollRT = nowRT + _RT_POLL_INTERVAL
     _ArmRealtimeTimer()
     _Log("[SNBaka] _FHUStartPoll: level poll armed (" + _RT_POLL_INTERVAL + "s, registered-actors only)")
 EndFunction
 
 Function _FHUStopPoll()
+    If _fFHUNextPollRT == 0.0
+        Return  ; REV-65: idempotent -- not armed, nothing to do (no log spam)
+    EndIf
     _fFHUNextPollRT = 0.0
     _Log("[SNBaka] _FHUStopPoll: level poll disarmed")
 EndFunction
@@ -8662,10 +8678,10 @@ Function _RegisterModEvents()
     ; presence- and toggle-gated, and registering for an event nobody sends is
     ; harmless (OCum/FHU/SexLab all optional — listeners idle, no error spam).
     RegisterForModEvent("ocum_applied_cum",           "OnOCumApplied")
-    RegisterForModEvent("ocum_applied_cum_npc_scene", "OnOCumApplied")
+    RegisterForModEvent("ocum_applied_cum_npc_scene", "OnOCumAppliedNPCScene")
     RegisterForModEvent("HookStageEnd",               "OnSLStageEnd")
     RegisterForModEvent("sr.inflater.start",          "OnFHUStartSignal")
-    _Log("[SNBaka] _RegisterModEvents: REV-63 detection triggers armed (OCum x2, SL HookStageEnd, FHU start)")
+    _Log("[SNBaka] _RegisterModEvents: REV-65 detection triggers armed (OCum x2 [5-arg + 6-arg npc_scene], SL HookStageEnd [2-arg], FHU start [0-arg])")
 EndFunction
 
 ; Acheron's player self-recovery QTE (hold-key) asks us to force-recover an actor it can't fully clean
@@ -8751,6 +8767,17 @@ Event OnUpdateGameTime()
     ; run on reload). This is what keeps the creature hand-off (and AEL/menu events) alive across loads.
     _RegisterDecorators()
     _RegisterModEvents()
+    ; REV-65: FHU poll self-healing arming. REV-64 defect of record: the poll
+    ; armed ONLY from Setup(), whose MCM OnGameReload chain never executed at
+    ; save-load (stale save-bound SKI config instance) -- the poll was dead
+    ; every load. This heartbeat demonstrably executes (~3.3 min cadence in
+    ; the rev-64 log), so arming here too makes the poll self-heal within one
+    ; heartbeat even when the MCM reload path is stale. _FHUStartPoll() is
+    ; idempotent (no-op while a poll is pending); arming remains
+    ; toggle-gated + install-gated. Arming points: Setup() (primary) + here.
+    If bFHUInflationEnabled && _FHUInstalled()
+        _FHUStartPoll()
+    EndIf
     Float currentTime = Utility.GetCurrentGameTime()
     If _lastSpankFadeTime <= 0.0
         _lastSpankFadeTime = currentTime
@@ -9654,47 +9681,84 @@ Bool Function _FHUInstalled()
 EndFunction
 
 ; ---- CUM DETECTION (OCum / OStim side) ----
-; ocum_applied_cum pushes:        Form Orgasmer, Form Target, Float AmountML, String Area, String SceneID
-; ocum_applied_cum_npc_scene:     Form Orgasmer, Form Target, Int ThreadID, Float AmountML, String Area, String SceneID
-; (OCumMaleScript.psc L687-706, rev-55 research, re-verified this session.)
-; A Papyrus ModEvent handler receives the FIRST push of each type:
-;   sender = Orgasmer (first Form), strArg = Area (first String),
-;   numArg = AmountML (plain event) / ThreadID (npc_scene event).
-; The TARGET (second Form push) is NOT recoverable from the 4-slot handler
-; signature -- flagged limitation of record: we forward originator = Orgasmer,
-; target = None, and the YAML cue is written to work without a named target.
-; If dogfood shows mis-cuing, STOP and report.
-Event OnOCumApplied(String eventName, String strArg, Float numArg, Form sender)
+; REV-65: handler signatures derived from the senders' ACTUAL ModEvent push
+; sequences (statically re-confirmed this session from the installed trees,
+; per the rev-64 root cause of record):
+;   ocum_applied_cum (OCumMaleScript.psc L689-695, [035.00002] tree):
+;     PushForm(Orgasmer), PushForm(Target), PushFloat(AmountML),
+;     PushString(Area), PushString(SceneID)                 -- 5 args
+;   ocum_applied_cum_npc_scene (same file, L697-704):
+;     Form Orgasmer, Form Target, Int ThreadID, Float AmountML,
+;     String Area, String SceneID                           -- 6 args
+; The rev-63 4-slot (eventName, strArg, numArg, sender) shape was the
+; SendModEvent convention and is RETIRED: a ModEvent.Create/Push* handler
+; receives exactly the pushed values as typed parameters, and the VM
+; rejects the dispatch on mismatch (the 44 "Incorrect number of arguments"
+; log errors of the rev-64 dogfood).
+; REV-65 bonus (user ruling): the TARGET (second Form push) is now
+; recoverable -- named-partner cue wording is PRIMARY; the rev-63 unnamed
+; wording is the fallback only (Target == None guard).
+Event OnOCumApplied(Form akOrgasmer, Form akTarget, Float afAmountML, String asArea, String asSceneID)
     If !bEnabled || !bCumDetectionEnabled || !_OCumInstalled()
         Return
     EndIf
-    Actor orgasmer = sender as Actor
+    Actor orgasmer = akOrgasmer as Actor
     If !orgasmer || orgasmer.IsDead()
         Return
     EndIf
-    If eventName == "ocum_applied_cum_npc_scene"
-        _Log("[SNBaka] OnOCumApplied [npc-scene]: orgasmer=" + orgasmer.GetDisplayName() + " area=" + strArg + " thread=" + (numArg as Int))
-    Else
-        _Log("[SNBaka] OnOCumApplied: orgasmer=" + orgasmer.GetDisplayName() + " area=" + strArg + " amount=" + numArg + "ml")
+    Actor target = akTarget as Actor
+    ; REV-65 full-payload sentinel: reception verified at the ARGUMENT level.
+    _Log("[SNBaka] OnOCumApplied: orgasmer=" + orgasmer.GetDisplayName() + " target=" + (target as Form) + " amount=" + afAmountML + "ml area=" + asArea + " sceneID=" + asSceneID)
+    _FireCumCue(orgasmer, target)
+EndEvent
+
+; REV-65: the npc_scene variant carries ThreadID as a 3rd (Int) push, so it
+; needs its own 6-arg handler. Identical gating/cue logic; thread id is
+; logged in the sentinel (positions still resolve via the SL thread surface
+; only in the SL proxy below -- OCum scenes do not use it).
+Event OnOCumAppliedNPCScene(Form akOrgasmer, Form akTarget, Int aiThreadID, Float afAmountML, String asArea, String asSceneID)
+    If !bEnabled || !bCumDetectionEnabled || !_OCumInstalled()
+        Return
     EndIf
-    ; Shared 15s cum-cue cooldown (with the SL proxy) -- HJ/FJ scenes loop over
-    ; multiple givers and multi-fire; one narrator cue per 15s.
+    Actor orgasmer = akOrgasmer as Actor
+    If !orgasmer || orgasmer.IsDead()
+        Return
+    EndIf
+    Actor target = akTarget as Actor
+    _Log("[SNBaka] OnOCumApplied [npc-scene]: orgasmer=" + orgasmer.GetDisplayName() + " target=" + (target as Form) + " thread=" + aiThreadID + " amount=" + afAmountML + "ml area=" + asArea + " sceneID=" + asSceneID)
+    _FireCumCue(orgasmer, target)
+EndEvent
+
+; REV-65: shared outbound leg for both OCum events (was inline in the
+; rev-63 handler). Shared 15s cum-cue cooldown (with the SL proxy) --
+; HJ/FJ scenes loop over multiple givers and multi-fire; one narrator cue
+; per 15s. Cooldown behavior is IDENTICAL to rev-63 (same key, same window,
+; same write point) -- only the call shape changed.
+Function _FireCumCue(Actor orgasmer, Actor target)
     Float nowRT = Utility.GetCurrentRealTime()
     If nowRT - StorageUtil.GetFloatValue(None, "SNBaka.LastCumCueRT", -999.0) < 15.0
-        _Log("[SNBaka] OnOCumApplied: cue suppressed (shared 15s cum-cue cooldown)")
+        _Log("[SNBaka] _FireCumCue: cue suppressed (shared 15s cum-cue cooldown)")
         Return
     EndIf
     StorageUtil.SetFloatValue(None, "SNBaka.LastCumCueRT", nowRT)
     String desc
     If iCumCueMode == 1
         ; per-source (OStim/OCum) wording -- DRAFT, §7 approval pending
-        desc = orgasmer.GetDisplayName() + " just came inside an OStim scene; OCum applies the result."
+        If target
+            desc = orgasmer.GetDisplayName() + " just came inside " + target.GetDisplayName() + "; OCum applies the result."
+        Else
+            desc = orgasmer.GetDisplayName() + " just came inside an OStim scene; OCum applies the result."
+        EndIf
     Else
         ; unified (framework-neutral) wording -- DRAFT, §7 approval pending
-        desc = orgasmer.GetDisplayName() + " just came, finishing all over their partner."
+        If target
+            desc = orgasmer.GetDisplayName() + " just came, finishing all over " + target.GetDisplayName() + "."
+        Else
+            desc = orgasmer.GetDisplayName() + " just came, finishing all over their partner."
+        EndIf
     EndIf
-    SkyrimNetApi.RegisterEvent("sdb_cum_applied", desc, orgasmer, None)
-EndEvent
+    SkyrimNetApi.RegisterEvent("sdb_cum_applied", desc, orgasmer, target)
+EndFunction
 
 ; ---- SEXLAB ORGASM-HOOK PROXY (amendment 2a-ii; verdict of record: PROXY) ----
 ; SexLab has NO dedicated cum-state API (no event/faction/spell surface; its
@@ -9704,21 +9768,24 @@ EndEvent
 ; including the orgasm stage. Evidence supports the PROXY case: the cue rides
 ; "a SexLab scene reached release" and NEVER claims overlay application.
 ; numArg = thread_id (first numeric push, sslThreadModel L2266-2270).
-Event OnSLStageEnd(String eventName, String strArg, Float numArg, Form sender)
+; REV-65: signature derived from the sender's ACTUAL pushes (sslThreadModel
+; PPLUS V2.18.1, SetupThreadEvent L2261-2268: PushInt(thread_id),
+; PushBool(HasPlayer) -- 2 args). The rev-63 4-slot shape is retired.
+Event OnSLStageEnd(Int aiThreadID, Bool abHasPlayer)
     If !bEnabled || !bCumDetectionEnabled || !bSLProxyEnabled || !SkyrimNet_BakaSL.Installed()
         Return
     EndIf
-    Int threadID = numArg as Int
+    Int threadID = aiThreadID
     If threadID < 0
         Return
     EndIf
     Actor[] positions = SkyrimNet_BakaSL.SLThreadPositions(threadID)
     If !positions || positions.Length == 0
-        _Log("[SNBaka] OnSLStageEnd: thread=" + threadID + " -- no positions resolved, skipping")
+        _Log("[SNBaka] OnSLStageEnd: thread=" + threadID + " hasPlayer=" + abHasPlayer + " -- no positions resolved, skipping")
         Return
     EndIf
     Actor lead = positions[0]
-    ; Shared 15s cum-cue cooldown (see OnOCumApplied).
+    ; Shared 15s cum-cue cooldown (see _FireCumCue).
     Float nowRT = Utility.GetCurrentRealTime()
     If nowRT - StorageUtil.GetFloatValue(None, "SNBaka.LastCumCueRT", -999.0) < 15.0
         Return
@@ -9753,8 +9820,11 @@ EndEvent
 ; (decrease). Deflation detection = amount decreasing in the poll (the SpermOut
 ; ability path exposes no event). sr.inflater.start is used ONLY as an
 ; immediate-poll nudge on top of the interval.
-Event OnFHUStartSignal(String eventName, String strArg, Float numArg, Form sender)
-    ; Parameterless broadcast from sr_inflateQuest.InflateQueued() (L1891).
+Event OnFHUStartSignal()
+    ; REV-65: zero-arg handler -- sr.inflater.start is a parameterless
+    ; broadcast (sr_inflateQuest.InflateQueued() L2081-2084, Beta 2.11 tree:
+    ; ModEvent.Create + Send, no Push calls). The rev-63 4-slot shape is
+    ; retired (rev-64: 7x "Expected 4, got 0" VM rejections).
     If bEnabled && bFHUInflationEnabled && _FHUInstalled()
         _Log("[SNBaka] OnFHUStartSignal: sr.inflater.start received -- immediate level poll")
         _PollFHULevels()
