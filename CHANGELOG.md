@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.3.0-alpha — UNPUBLISHED DRAFT (feature work in progress)
+
+### Removed
+- Removed the vestigial `SNBaka_Pose` category — the dashboard disable-step workaround is no longer needed; all pose actions render under `SNGS_Pose`.
+
 ## v0.2.0-alpha — 2026-09-28: Beta 25 plugin migration
 
 **Delivery-layer migration.** No gameplay changes.

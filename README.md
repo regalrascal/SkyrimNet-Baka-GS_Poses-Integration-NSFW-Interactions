@@ -234,10 +234,6 @@ both.
 3. Run **Pandora / FNIS / Nemesis** so paired animations register.
 4. Launch the game, load your save, and wait for SkyrimNet to pick up the new actions (or reload
    its config from the in-game dashboard). The mod's MCM should appear once.
-5. **(One-time, only if updating from a pre-fork install)** Open the SkyrimNet dashboard and
-   **disable the `SNBaka_Pose` category** — the DLL-registered category is now empty; all 27 pose
-   actions use the composite YAML `SNGS_Pose` category instead. The old category header will sit
-   empty in the dashboard with nothing in it — hiding it cleans up the list.
 
 ### Notes
 - The archive is the **release set only** — source code (`dll-source/`, `dll-source-gs/`,
