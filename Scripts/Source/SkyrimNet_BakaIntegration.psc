@@ -563,14 +563,21 @@ EndFunction
 ; premise. Every other gate (enabled, dead, downed initiator, creatures, distance, player-target
 ; permission, sex filter) still applies unconditionally.
 Bool Function IsEligible(Actor akA1, Actor akA2, Bool abAllowMidCombat = False)
-    If !bEnabled || !akA1 || !akA2
+    If !bEnabled
+        _Log("[SNBaka] IsEligible: blocked — master switch off")
+        Return False
+    EndIf
+    If !akA1 || !akA2
+        _Log("[SNBaka] IsEligible: blocked — null actor")
         Return False
     EndIf
     If akA1.IsDead() || akA2.IsDead()
+        _Log("[SNBaka] IsEligible: blocked — actor dead (" + akA1.GetDisplayName() + " -> " + akA2.GetDisplayName() + ")")
         Return False
     EndIf
     ; A downed/defeated actor can only be acted ON (akA2), never act themselves (akA1).
     If _IsDownedAny(akA1)
+        _Log("[SNBaka] IsEligible: blocked — initiator is downed, can only be acted ON (" + akA1.GetDisplayName() + ")")
         Return False
     EndIf
     ; Creatures (Draugr, Falmer, Giant, wolves, etc.) get ONLY CreatureEscalate — never the human action
@@ -613,24 +620,29 @@ Bool Function IsEligible(Actor akA1, Actor akA2, Bool abAllowMidCombat = False)
     ; helpless, so choke/pin/grope/escalate/etc. are valid. LockBoth then Calms the attacker out of
     ; combat so the held anim plays, and _ShouldAbort re-breaks it only if the attacker is actually hit.
     If akA1.IsInCombat() && !_IsDownedAny(akA2) && !abAllowMidCombat
+        _Log("[SNBaka] IsEligible: blocked — attacker in combat, target not downed (" + akA1.GetDisplayName() + " -> " + akA2.GetDisplayName() + ")")
         Return False
     EndIf
     ; "Player Can Be Target" gates only the player being the VICTIM (akA2) — NOT the player
     ; initiating on an NPC (akA1). The old check also blocked akA1==player, so unchecking this
     ; disabled every player-started action and made the whole mod look "off".
     If !bPlayerCanBeTarget && akA2 == PlayerRef
+        _Log("[SNBaka] IsEligible: blocked — player-as-target disabled (" + akA1.GetDisplayName() + " -> player)")
         Return False
     EndIf
     ; Content-preference filter (what the LLM/an NPC should be allowed to pick), not a technical
     ; constraint -- only gates a non-player initiator, same as bNPCCanEscalate/_DoEscalation. The
     ; player targeting whoever they want, via any action, is their own deliberate choice.
     If akA1 != PlayerRef && !_TargetSexAllowed(akA2)
+        _Log("[SNBaka] IsEligible: blocked — target sex not allowed by content filter (" + akA1.GetDisplayName() + " -> " + akA2.GetDisplayName() + ")")
         Return False
     EndIf
     If IsActorLocked(akA1) || IsActorLocked(akA2)
+        _Log("[SNBaka] IsEligible: blocked — actor locked/busy (" + akA1.GetDisplayName() + " locked=" + IsActorLocked(akA1) + ", " + akA2.GetDisplayName() + " locked=" + IsActorLocked(akA2) + ")")
         Return False
     EndIf
     If _bCooldownActive && akA1 == PlayerRef
+        _Log("[SNBaka] IsEligible: blocked — player action cooldown active")
         Return False
     EndIf
     If akA1 != PlayerRef
@@ -638,20 +650,24 @@ Bool Function IsEligible(Actor akA1, Actor akA2, Bool abAllowMidCombat = False)
         ; Per-initiator cooldown — same NPC can't act again too soon.
         Float lastTime = StorageUtil.GetFloatValue(akA1, "SNBaka.LastActionTime", 0.0)
         If now - lastTime < (fNPCCooldown / 86400.0)
+            _Log("[SNBaka] IsEligible: blocked — initiator per-NPC cooldown (" + akA1.GetDisplayName() + ")")
             Return False
         EndIf
         ; Global NPC cooldown — blocks all NPC actions for fNPCGlobalCooldown seconds
         ; after any NPC-initiated action. Prevents AI from chaining multiple actors.
         If now - _fLastNPCActionTime < (fNPCGlobalCooldown / 86400.0)
+            _Log("[SNBaka] IsEligible: blocked — global NPC cooldown")
             Return False
         EndIf
     EndIf
     If IsInSexAnimation(akA1) || IsInSexAnimation(akA2)
+        _Log("[SNBaka] IsEligible: blocked — late re-check: mid sex scene (" + akA1.GetDisplayName() + " -> " + akA2.GetDisplayName() + ")")
         Return False
     EndIf
     ; Pending-scene latch (rev-22) — see the main guard above. Belt-and-braces second
     ; site, same as the doubled IsInSexAnimation check.
     If _IsScenePending(akA1) || _IsScenePending(akA2)
+        _Log("[SNBaka] IsEligible: blocked — late re-check: scene latch held (" + akA1.GetDisplayName() + " -> " + akA2.GetDisplayName() + ")")
         Return False
     EndIf
     Return True
@@ -1477,6 +1493,20 @@ EndFunction
 ; window); False when it isn't installed, so the caller runs Baka's fallback _DefeatGroundWindow.
 Bool Function _DelegateDownToAcheron(Actor akVictim)
     If !akVictim || !PlayerRef
+        Return False
+    EndIf
+    ; REV-61 1a — bridge liveness handshake: SNAcheron.Present/Enabled are StorageUtil keys
+    ; that persist in the cosave, so they can be STALE from an install where the bridge was
+    ; loaded/enabled but is now disabled/absent (the 09-30 Frabbi incident: delegation sent
+    ; SNBaka_RequestAcheronDown into a void — no listener, victim never downed, nobody owned
+    ; recovery). Probe the bridge's own quest form (SNAcheron_Quest 0x800) directly: None
+    ; means the bridge esp is NOT in the load order right now, so we route to the local
+    ; fallback window exactly like an absent bridge — no matter what the flags say.
+    If !Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp")
+        _Log("[SNBaka] _DelegateDownToAcheron: bridge liveness probe FAILED (SNAcheron_Quest 0x800 not loaded) — stale SNAcheron.Present=" + StorageUtil.GetIntValue(PlayerRef, "SNAcheron.Present", 0) + "; routing to local fallback window, victim=" + akVictim.GetDisplayName())
+        ; Kill the stale flag so no other Present-reading path is fooled this session —
+        ; the bridge re-stamps it on its own init if it ever loads again.
+        StorageUtil.SetIntValue(PlayerRef, "SNAcheron.Present", 0)
         Return False
     EndIf
     ; The integration stamps this flag on init + every self-heal; absent == integration not installed.
@@ -3088,12 +3118,28 @@ Function _AbandonedHoldWatch(Actor akAggressor, Actor akVictim)
     _Log("[SNBaka] silence watch armed for " + akVictim.GetDisplayName() + " (" + fDownedSilenceSec + "s)")
     Float silence  = 0.0
     Float total    = 0.0
+    ; REV-61 1b — observed-downed state: the "no longer downed (sanctioned exit)" stand-down
+    ; is only valid if this watch actually SAW the victim downed first. The 09-30 Frabbi
+    ; incident stood down 1s after arming because a dead delegation never set any downed flag
+    ; — absence-of-flags was misread as a sanctioned exit and the abandoned-hold recovery
+    ; never ran (victim stuck in the struggle-lost anim). Without observed-downed-before,
+    ; absence is AMBIGUOUS: keep watching and let the expiry paths below decide.
+    Bool bObservedDowned = False
     While silence < fDownedSilenceSec && total < 240.0
         Utility.Wait(1.0)
         total += 1.0
-        If akVictim.IsDead() || !_IsDownedAny(akVictim)
-            _Log("[SNBaka] silence watch: " + akVictim.GetDisplayName() + " no longer downed (resolved by a sanctioned exit) — watch standing down")
+        If akVictim.IsDead()
+            _Log("[SNBaka] silence watch: " + akVictim.GetDisplayName() + " died — watch standing down")
             Return
+        EndIf
+        If !_IsDownedAny(akVictim)
+            If bObservedDowned
+                _Log("[SNBaka] silence watch: " + akVictim.GetDisplayName() + " no longer downed (resolved by a sanctioned exit) — watch standing down")
+                Return
+            EndIf
+            ; Never observed downed — absence is ambiguous (possible dead delegation). Keep watching.
+        Else
+            bObservedDowned = True
         EndIf
         If IsInSexAnimation(akVictim)
             _Log("[SNBaka] silence watch: scene took over " + akVictim.GetDisplayName() + " — standing down WITHOUT recovery")
@@ -3115,13 +3161,27 @@ Function _AbandonedHoldWatch(Actor akAggressor, Actor akVictim)
         EndIf
     EndWhile
     If silence < fDownedSilenceSec
-        _Log("[SNBaka] silence watch: capped after " + total + "s without " + fDownedSilenceSec + "s of straight silence — standing down WITHOUT recovery, hold persists")
+        If bObservedDowned
+            _Log("[SNBaka] silence watch: capped after " + total + "s without " + fDownedSilenceSec + "s of straight silence — standing down WITHOUT recovery, hold persists")
+        Else
+            ; REV-61 1b: the watch ran its full course WITHOUT ever seeing the victim downed —
+            ; that is the dead-delegation signature (09-30 Frabbi class). Do NOT stand down
+            ; silently: log it and fire the recovery chain (safe no-op on a clean state).
+            _Log("[SNBaka] silence watch: EXPIRED without observed downed state — possible dead delegation; actor: " + akVictim.GetDisplayName() + " — firing recovery chain")
+            Debug.SendAnimationEvent(akVictim, "IdleForceDefaultState")
+            _ForceRecover(akVictim)
+        EndIf
         Return
     EndIf
     ; Unconditional reason-coded sentinel (2c): the next session's log confirms the fix
-    ; from one grep — victim named, plus the three condition states.
-    _Log("[SNBaka] silence watch FIRED for " + akVictim.GetDisplayName() + " — reason: silence-timeout (" \
-        + fDownedSilenceSec + "s) | aggressor-disengaged=true combat-near=" + akVictim.IsInCombat() \
+    ; from one grep — victim named, plus the three condition states. REV-61 1b: the reason
+    ; string now distinguishes a genuine silence-timeout from one where the victim was
+    ; never observed downed at all (dead-delegation class).
+    String sReason = "silence-timeout (" + fDownedSilenceSec + "s)"
+    If !bObservedDowned
+        sReason = "silence-timeout WITHOUT observed downed state — possible dead delegation"
+    EndIf
+    _Log("[SNBaka] silence watch FIRED for " + akVictim.GetDisplayName() + " — reason: " + sReason + " | aggressor-disengaged=true combat-near=" + akVictim.IsInCombat() \
         + " locked=" + StorageUtil.GetIntValue(akVictim, "SNBaka.Locked", 0) \
         + " sexthread=" + IsInSexAnimation(akVictim) \
         + " queued=" + (StorageUtil.FormListFind(PlayerRef, "SNBaka.AcheronDownQueue", akVictim) >= 0) \
@@ -5592,6 +5652,7 @@ EndFunction
 ;     SNBaka_InteractMenuAffectionate: NO CHANGE
 Function Interact_ShowMenu(Actor akTarget, Actor akCaster)
     If !akTarget || !akCaster
+        _Log("[SNBaka] interact menu: blocked — null target/caster")
         Return
     EndIf
 
@@ -5607,6 +5668,7 @@ Function Interact_ShowMenu(Actor akTarget, Actor akCaster)
     ; PrismaUI is a hard requirement for this mod now, so there's no real vanilla-fallback case left to
     ; preserve here.
     If _IsDownedAny(akTarget)
+        _Log("[SNBaka] interact menu: " + akTarget.GetDisplayName() + " is downed (_IsDownedAny) — routing to downed menu")
         _pendingCaster = akCaster
         _pendingTarget = akTarget
         SNBakaUI.ShowDownedMenu(akCaster, akTarget)
@@ -5632,6 +5694,7 @@ Function Interact_ShowMenu(Actor akTarget, Actor akCaster)
     ; same as it always does.
     If akTarget.IsHostileToActor(akCaster) && akTarget.IsInCombat() \
             && !_IsCreatureActor(akTarget) && _CreatureAnimKey(akTarget) == ""
+        _Log("[SNBaka] interact menu: " + akTarget.GetDisplayName() + " hostile+in-combat — routing to grapple menu")
         _pendingCaster = akCaster
         _pendingTarget = akTarget
         SNBakaUI.ShowMidCombatMenu(akCaster, akTarget)
@@ -5639,6 +5702,7 @@ Function Interact_ShowMenu(Actor akTarget, Actor akCaster)
     EndIf
 
     If !IsEligible(akCaster, akTarget)
+        _Log("[SNBaka] interact menu: blocked — IsEligible refused (gate logged above; target=" + akTarget.GetDisplayName() + ")")
         Return
     EndIf
 
@@ -5649,11 +5713,13 @@ Function Interact_ShowMenu(Actor akTarget, Actor akCaster)
         ; Actors are passed into the DLL and handed straight back on dispatch,
         ; so _pending* is only a fallback — the menu being open (unpaused) can no
         ; longer leave us with the wrong actors.
+        _Log("[SNBaka] interact menu: opening PrismaUI interact menu (" + akCaster.GetDisplayName() + " -> " + akTarget.GetDisplayName() + ")")
         SNBakaUI.ShowInteractMenu(akCaster, akTarget)
         Return  ; result arrives via _DispatchInteractActionWithActors
     EndIf
 
     ; ── Vanilla fallback (synchronous) ───────────────────────────────────────
+    _Log("[SNBaka] interact menu: PrismaUI unavailable — falling back to vanilla Message menus")
     ; Resolve menus fresh each call — VMAD properties may be zombie refs after ESL compaction.
     Message _mmMain    = Game.GetFormFromFile(0x00080A, "SkyrimNet_BakaIntegration.esp") as Message
     Message _mmAff     = Game.GetFormFromFile(0x00080B, "SkyrimNet_BakaIntegration.esp") as Message
@@ -8504,6 +8570,19 @@ Function _RegisterModEvents()
         _Log("[SNBaka] _RegisterModEvents: SNBaka.Present set to 1 on " + PlayerRef + " (readback=" + StorageUtil.GetIntValue(PlayerRef, "SNBaka.Present", -99) + ")")
     Else
         _Log("[SNBaka] _RegisterModEvents: PlayerRef is None -- SNBaka.Present NOT set this call")
+    EndIf
+    ; REV-61 1a — Acheron bridge liveness re-stamp (per load + heartbeat): SNAcheron.Present
+    ; is written by the BRIDGE and persists in the cosave, so it can outlive the bridge mod
+    ; being disabled (09-30 Frabbi incident root cause). _RegisterModEvents is re-run from
+    ; Setup() on every OnInit/OnPlayerLoadGame/MCM reload + the OnUpdateGameTime heartbeat,
+    ; so this is the per-load re-stamp surface: if the bridge esp is not in the load order
+    ; NOW, clear the stale flag. We only ever CLEAR — setting it is the bridge's job when it
+    ; is actually loaded. _DelegateDownToAcheron carries an independent runtime probe as
+    ; belt-and-braces, so a stale value can never route a delegation into the void.
+    If PlayerRef && StorageUtil.GetIntValue(PlayerRef, "SNAcheron.Present", 0) == 1 \
+            && !Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp")
+        StorageUtil.SetIntValue(PlayerRef, "SNAcheron.Present", 0)
+        _Log("[SNBaka] Acheron bridge: esp probe failed at re-registration — stale SNAcheron.Present cleared to 0 (local downed fallback owns this session)")
     EndIf
 EndFunction
 
