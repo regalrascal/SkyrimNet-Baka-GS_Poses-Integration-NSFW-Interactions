@@ -7,6 +7,7 @@
 
 static constexpr const char* kMenuHTMLPath    = "SNBaka_Menu/index.html";
 static constexpr const char* kHudHTMLPath     = "SNBaka_Hud/index.html";
+static constexpr const char* kSTMenuHTMLPath   = "SNSlaveTats_Menu/index.html";
 struct NoCollisionEntry { RE::FormID id; float radius; };
 static std::vector<NoCollisionEntry> s_noCollisionActors;
 static constexpr const char* kModEventName    = "SNBaka_MenuChoice";
@@ -315,6 +316,22 @@ void PrismaUIBridge::CreateHudView() noexcept {
     SKSE::log::info("SNBaka_Hud view created.");
 }
 
+// REV-72: dedicated SlaveTats set-picker view. Modal like s_view's wizards (created hidden,
+// Show+Focus happen per open in ShowSlaveTatsView). Same "snbaka_chose" listener name —
+// PrismaUI dispatches listeners per-view, so only the focused view's pick reaches OnJSChoice.
+void PrismaUIBridge::CreateSlaveTatsView() noexcept {
+    if (!s_prisma) return;
+    if (s_stView && s_prisma->IsValid(s_stView)) return; // already valid
+    s_stView = s_prisma->CreateView(kSTMenuHTMLPath);
+    if (!s_prisma->IsValid(s_stView)) {
+        SKSE::log::error("Failed to create SNSlaveTats_Menu view at '{}'.", kSTMenuHTMLPath);
+        return;
+    }
+    s_prisma->Hide(s_stView);
+    s_prisma->RegisterJSListener(s_stView, "snbaka_chose", OnJSChoice);
+    SKSE::log::info("SNSlaveTats_Menu view created and JS listener registered.");
+}
+
 void PrismaUIBridge::SetGetUpCharge(float pct) noexcept {
     if (!s_prisma || !s_prisma->IsValid(s_hudView)) {
         SKSE::log::warn("SetGetUpCharge: HUD view unavailable, attempting recovery (pct={}).", pct);
@@ -516,6 +533,31 @@ void PrismaUIBridge::ShowMidCombatMenu(RE::Actor* caster, RE::Actor* target) noe
     s_prisma->Focus(s_view, /*pauseGame=*/true, /*disableFocusMenu=*/false);
 }
 
+// REV-72: SlaveTats degradation-set picker. Dedicated view (SNSlaveTats_Menu/index.html); the
+// pick comes back on the same "snbaka_chose" JS listener, with a "slot;section;name" spec
+// (or "cancel") which OnJSChoice parses and dispatches to _ST_MenuChoice.
+void PrismaUIBridge::ShowSlaveTatsMenu(const std::string& json) noexcept {
+    if (!s_prisma) return;
+    if (!(s_stView && s_prisma->IsValid(s_stView))) {
+        CreateSlaveTatsView();
+        if (!(s_stView && s_prisma->IsValid(s_stView))) {
+            SKSE::log::error("ShowSlaveTatsMenu: view unavailable.");
+            return;
+        }
+    }
+
+    s_mode = MenuMode::SlaveTats;
+    // Escape single-quotes in section/name keys before embedding into the JS call.
+    std::string effective = json;
+    for (auto& c : effective) if (c == '\'') c = '\x60';
+    const auto script = std::format("window.snbaka_open_slavetats('{}')", effective);
+    s_prisma->Show(s_stView);
+    s_prisma->Invoke(s_stView, script.c_str());
+    // Pause while picking (like the encounter wizard): the choice changes set
+    // state that later events read, and nothing in-world needs to run meanwhile.
+    s_prisma->Focus(s_stView, /*pauseGame=*/true, /*disableFocusMenu=*/false);
+}
+
 void PrismaUIBridge::ShowSexSpankMenu(const std::string& json) noexcept {
     if (!IsAvailable()) {
         CreateMenuView();
@@ -603,15 +645,18 @@ void PrismaUIBridge::OnJSChoice(const char* value) noexcept {
 
     SKSE::log::info("OnJSChoice: value='{}'", value ? value : "(null)");
 
-    s_prisma->Unfocus(s_view);
-    s_prisma->Hide(s_view);
-
+    // Read the mode FIRST so we unfocus the view this pick actually came from
+    // (REV-72: the SlaveTats picker lives on its own s_stView, not s_view).
     const MenuMode mode = s_mode.exchange(MenuMode::None);
+    const PrismaView view = (mode == MenuMode::SlaveTats) ? s_stView : s_view;
+    s_prisma->Unfocus(view);
+    s_prisma->Hide(view);
     const int      choice    = value ? std::atoi(value) : -1;
     const float    numArg    = static_cast<float>(choice);
     const char*    strArg    = (mode == MenuMode::SexSpank)  ? "sexspank"  :
                                 (mode == MenuMode::Downed)    ? "downed"    :
-                                (mode == MenuMode::MidCombat) ? "midcombat" : "interact";
+                                (mode == MenuMode::MidCombat) ? "midcombat" :
+                                (mode == MenuMode::SlaveTats) ? "slavetats" : "interact";
 
     // Snapshot C++ actor state so the lambda doesn't race with a future ShowSexSpankMenu.
     const bool                      useCpp  = s_usingCppSexActors;
@@ -775,6 +820,40 @@ void PrismaUIBridge::OnJSChoice(const char* value) noexcept {
                 args, cb);
             delete args;
             SKSE::log::info("Task: _DispatchMidCombatAction dispatched.");
+            return;
+        }
+
+        // ── SlaveTats: parse "slot;section;name" → 3 strings ─────────────────────
+        if (mode == MenuMode::SlaveTats) {
+            SKSE::log::info("Task: slavetats spec='{}'", spec);
+            // "cancel" (or anything without the two separators) = no change.
+            if (spec == "cancel" || spec.find(';') == std::string::npos) {
+                SKSE::log::info("Task: slavetats — cancelled/no-op.");
+                return;
+            }
+            std::string parts[3] = { "", "", "" };
+            {
+                std::size_t start = 0;
+                int idx = 0;
+                while (idx < 3) {
+                    const std::size_t sep = spec.find(';', start);
+                    parts[idx++] = (sep == std::string::npos) ? spec.substr(start)
+                                                              : spec.substr(start, sep - start);
+                    if (sep == std::string::npos) break;
+                    start = sep + 1;
+                }
+            }
+            auto* args = RE::MakeFunctionArguments(
+                RE::BSFixedString(parts[0].c_str()),
+                RE::BSFixedString(parts[1].c_str()),
+                RE::BSFixedString(parts[2].c_str()));
+            RE::BSTSmartPointer<RE::BSScript::IStackCallbackFunctor> cb;
+            vm->DispatchMethodCall(handle,
+                RE::BSFixedString("SkyrimNet_BakaIntegration"),
+                RE::BSFixedString("_ST_MenuChoice"),
+                args, cb);
+            delete args;
+            SKSE::log::info("Task: _ST_MenuChoice dispatched (slot='{}' section='{}').", parts[0], parts[1]);
             return;
         }
 

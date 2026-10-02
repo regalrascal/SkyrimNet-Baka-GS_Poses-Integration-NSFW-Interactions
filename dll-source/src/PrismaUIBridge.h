@@ -19,6 +19,8 @@ public:
     // above) -- same pattern as Ostim_interactions' OII_Hud. Currently just the get-up-key charge bar,
     // but any future passive HUD element belongs here, not on s_view.
     static void CreateHudView() noexcept;
+    // REV-72: dedicated SlaveTats set-picker view (modal, like s_view's wizards).
+    static void CreateSlaveTatsView() noexcept;
     // Updates the get-up-key "charging toward 3s" bar. pct in [0,1]; negative hides it.
     static void SetGetUpCharge(float pct) noexcept;
     static bool IsMenuOpen() noexcept;
@@ -39,6 +41,11 @@ public:
     // of the normal interact menu when the target is hostile and actively fighting the caster. The
     // pick comes back to Papyrus _DispatchMidCombatAction(choice, caster, target).
     static void ShowMidCombatMenu(RE::Actor* caster, RE::Actor* target) noexcept;
+
+    // REV-72 SlaveTats degradation-set picker (SNSlaveTats_Menu view). The player's pick comes
+    // back as a "slot;section;name" spec string (or "cancel") and is dispatched to Papyrus
+    // SkyrimNet_BakaIntegration._ST_MenuChoice with the three parsed strings.
+    static void ShowSlaveTatsMenu(const std::string& json) noexcept;
 
     // Resolves the NPC the player is targeting (crosshair, then nearest-actor
     // fallback).  Returns nullptr if none / only the player.  Called from
@@ -63,12 +70,13 @@ public:
 private:
     static void OnJSChoice(const char* value) noexcept;
 
-    enum class MenuMode { None, Interact, SexSpank, Encounter, Downed, MidCombat };
+    enum class MenuMode { None, Interact, SexSpank, Encounter, Downed, MidCombat, SlaveTats };
 
     static inline PRISMA_UI_API::IVPrismaUI1* s_prisma = nullptr;
     static inline PRISMA_UI_API::IVPrismaUI2* s_prismav2 = nullptr;
     static inline PrismaView                  s_view   = 0;
     static inline PrismaView                  s_hudView = 0;
+    static inline PrismaView                  s_stView = 0;
     static inline std::atomic<MenuMode>       s_mode   = MenuMode::None;
 
     // When Papyrus-side sex scene detection returns no NPCs we fall back to a

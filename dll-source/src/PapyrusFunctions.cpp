@@ -123,6 +123,11 @@ static void SNBakaUI_SetGetUpCharge(RE::StaticFunctionTag*, float afPct) {
     PrismaUIBridge::SetGetUpCharge(afPct);
 }
 
+// REV-72: SlaveTats set-picker entry point (SNSlaveTats_Menu view, modal).
+static void SNBakaUI_ShowSlaveTatsMenu(RE::StaticFunctionTag*, RE::BSFixedString json) {
+    PrismaUIBridge::ShowSlaveTatsMenu(json.c_str() ? json.c_str() : "{}");
+}
+
 bool PapyrusFunctions::Register(RE::BSScript::IVirtualMachine* vm) {
     vm->RegisterFunction("IsAvailable",       kScriptName, SNBakaUI_IsAvailable);
     vm->RegisterFunction("ShowInteractMenu",  kScriptName, SNBakaUI_ShowInteractMenu);
@@ -137,6 +142,7 @@ bool PapyrusFunctions::Register(RE::BSScript::IVirtualMachine* vm) {
     vm->RegisterFunction("ReloadOffsets",       kScriptName, SNBakaUI_ReloadOffsets);
     vm->RegisterFunction("GetLastHitAggressor", kScriptName, SNBakaUI_GetLastHitAggressor);
     vm->RegisterFunction("SetGetUpCharge",      kScriptName, SNBakaUI_SetGetUpCharge);
+    vm->RegisterFunction("ShowSlaveTatsMenu",   kScriptName, SNBakaUI_ShowSlaveTatsMenu);
     SKSE::log::info("Papyrus functions registered.");
     return true;
 }

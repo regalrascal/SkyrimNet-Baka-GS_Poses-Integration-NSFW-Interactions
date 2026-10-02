@@ -79,6 +79,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
             // lazily if PrismaUI ever reports the view invalid.
             PrismaUIBridge::CreateMenuView();
             PrismaUIBridge::CreateHudView();
+            PrismaUIBridge::CreateSlaveTatsView();   // REV-72 SlaveTats set-picker
             RE::BSInputDeviceManager::GetSingleton()->AddEventSink(MenuInputHandler::GetSingleton());
             SKSE::log::info("Input handler registered.");
             RE::ScriptEventSourceHolder::GetSingleton()->AddEventSink<RE::TESHitEvent>(HitEventSink::GetSingleton());

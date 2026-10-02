@@ -13,6 +13,7 @@ Scripts/Source/*.psc
 !Scripts/Source/SkyrimNet_Baka*.psc
 !Scripts/Source/SkyrimNet_Anim*.psc
 !Scripts/Source/SNBakaUI.psc
+!Scripts/Source/SNBaka_SlaveTatsModule.psc
 !Scripts/Source/SNAnimGSUI.psc
 
 # ───────────── Third-party compile stubs ─────────────
@@ -45,3 +46,6 @@ meta.ini
 Thumbs.db
 desktop.ini
 .DS_Store
+
+# --- [CASE-redress] case-isolated records: quarantined, never tracked/pushed (user's ruling only to promote) ---
+case-redress/

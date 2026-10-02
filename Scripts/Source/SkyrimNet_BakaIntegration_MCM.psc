@@ -66,6 +66,16 @@ Int _achHandoffOID
 Int _achGetUpKeyOID
 Int _achEngageOID
 Int _achDebugOID
+; REV-72 "SlaveTats Degradation Sets" section (Plugins page) — SNBaka_SlaveTatsModule state
+; (SNBaka.ST.* StorageUtil keys, player-keyed). Set section/name values are picked from the
+; PrismaUI SlaveTats menu (SNSlaveTats_Menu view) rather than typed here; the MCM exposes
+; the event toggles + Refresh + status, presence-gated like the other plugin sections.
+Int _stEnabledOID
+Int _stSpankOID
+Int _stDefeatOID
+Int _stEscalOID
+Int _stRefreshOID
+Int _stStatusOID
 
 Event OnConfigInit()
     ModName = "Baka SkyrimNet"
@@ -93,8 +103,11 @@ EndEvent
 ; Plugins page (the bridge's own standalone MCM quest remains in its esp but is superseded by
 ; this section). Same StorageUtil keys/defaults as the bridge MCM (SNAcheron.*, player-keyed) —
 ; NO data migration: a save that used the old MCM reads identical values here.
+; REV-72: bumped to 6 -- the "SlaveTats Degradation Sets" section was added to the Plugins
+; page (SNBaka_SlaveTatsModule state: SNBaka.ST.* StorageUtil keys, player-keyed, defaults
+; set in the module). No data migration (new keys only).
 Int Function GetVersion()
-    Return 5
+    Return 6
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -105,6 +118,13 @@ Event OnVersionUpdate(Int aVersion)
         ; key for the migration test (grep SNBaka.MCMConsolidated in Papyrus.0.log).
         StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMConsolidated", 5)
         Debug.Trace("[SNBaka] MCM v5: Acheron-bridge settings consolidated onto the Plugins page (SNBaka.MCMConsolidated=5 marker set)")
+    EndIf
+    If aVersion < 6
+        ; REV-72 self-migration marker (one-time, per-player): distinguishes a save that crossed
+        ; the SlaveTats-section rev from a fresh install. Dogfood probe (grep SNBaka.ST.MCMv6 in
+        ; Papyrus.0.log); not read by code.
+        StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.ST.MCMv6", 1)
+        Debug.Trace("[SNBaka] MCM v6: SlaveTats degradation-set section added to the Plugins page (SNBaka.ST.MCMv6=1 marker set)")
     EndIf
     _BuildPages()
 EndEvent
@@ -271,6 +291,32 @@ Event OnPageReset(String page)
             _achEngageOID   = -1
             _achDebugOID    = -1
         EndIf
+        ; REV-72 SlaveTats degradation sets — same presence-gated pattern as the sections
+        ; above. Set section/name pairs are chosen in the PrismaUI SlaveTats menu; here we
+        ; expose the master/event toggles, a pack-list Refresh (rebuilds the SlaveTats cache
+        ; after enabling a pack in MO2 — see SNBaka_SlaveTatsModule.RefreshPacks), and a
+        ; status line summarizing discovery + the chosen sets.
+        AddEmptyOption()
+        AddHeaderOption("SlaveTats Degradation Sets")
+        Actor _stP = Main.PlayerRef
+        If !_stP
+            _stP = Game.GetPlayer()
+        EndIf
+        If SNBaka_SlaveTatsModule.Installed()
+            _stEnabledOID = AddToggleOption("Module Enabled",               StorageUtil.GetIntValue(_stP,  "SNBaka.ST.Enabled",           1) == 1)
+            _stSpankOID   = AddToggleOption("Apply Set On Spank",           StorageUtil.GetIntValue(_stP,  "SNBaka.ST.ApplyOnSpank",      1) == 1)
+            _stDefeatOID  = AddToggleOption("Apply Set On Defeat",          StorageUtil.GetIntValue(_stP,  "SNBaka.ST.ApplyOnDefeat",     1) == 1)
+            _stEscalOID   = AddToggleOption("Apply Set On Escalation",      StorageUtil.GetIntValue(_stP,  "SNBaka.ST.ApplyOnEscalation", 0) == 1)
+            _stRefreshOID = AddTextOption("Refresh Pack List",             "Refresh")
+            _stStatusOID  = AddTextOption("Discovered Sections",           StorageUtil.GetIntValue(_stP, "SNBaka.ST.SectionCount", 0) + " (sets: choose in SlaveTats menu)")
+        Else
+            _stEnabledOID = AddToggleOption("Module Enabled (SlaveTats not installed)", False, OPTION_FLAG_DISABLED)
+            _stSpankOID   = -1
+            _stDefeatOID  = -1
+            _stEscalOID   = -1
+            _stRefreshOID = -1
+            _stStatusOID  = -1
+        EndIf
     EndIf
 EndEvent
 
@@ -336,6 +382,22 @@ Event OnOptionSelect(Int option)
         Int vDbg = 1 - StorageUtil.GetIntValue(achP3, "SNAcheron.DebugLog", 1)
         StorageUtil.SetIntValue(achP3, "SNAcheron.DebugLog", vDbg)
         SetToggleOptionValue(_achDebugOID, vDbg == 1)
+    ElseIf option == _stEnabledOID
+        _ST_Toggle("SNBaka.ST.Enabled", _stEnabledOID, 1)
+    ElseIf option == _stSpankOID
+        _ST_Toggle("SNBaka.ST.ApplyOnSpank", _stSpankOID, 1)
+    ElseIf option == _stDefeatOID
+        _ST_Toggle("SNBaka.ST.ApplyOnDefeat", _stDefeatOID, 1)
+    ElseIf option == _stEscalOID
+        _ST_Toggle("SNBaka.ST.ApplyOnEscalation", _stEscalOID, 0)
+    ElseIf option == _stRefreshOID
+        SNBaka_SlaveTatsModule.RefreshPacks()
+        Actor stP1 = Main.PlayerRef
+        If !stP1
+            stP1 = Game.GetPlayer()
+        EndIf
+        SetTextOptionValue(_stStatusOID, StorageUtil.GetIntValue(stP1, "SNBaka.ST.SectionCount", 0) + " (sets: choose in SlaveTats menu)")
+        Debug.Notification("SlaveTats: pack list refreshed — " + StorageUtil.GetIntValue(stP1, "SNBaka.ST.SectionCount", 0) + " sections visible.")
     ElseIf option == _animatedTearsOID
         Main.bAnimatedTearsEnabled = !Main.bAnimatedTearsEnabled
         SetToggleOptionValue(_animatedTearsOID, Main.bAnimatedTearsEnabled)
@@ -843,5 +905,28 @@ Event OnOptionHighlight(Int option)
         SetOptionHighlightText("Chance a nearby creature bothers engaging at all once nobody able is around, rolled fresh every confirm cycle — not one-shot. After a scene ends, it can roll again and re-engage. At 100% this can loop indefinitely by design; lower it if you want downed actors to reliably get free. Default 50%.")
     ElseIf option == _achDebugOID
         SetOptionHighlightText("Write the Acheron bridge's detailed traces to the Papyrus log. Keep ON while testing/reporting issues; turn OFF for less script-engine load during normal play.")
+    ElseIf option == _stEnabledOID
+        SetOptionHighlightText("Master switch for the SlaveTats degradation-set module. When off, no event applies any set. The spank-heat marks Baka itself applies are separate and unaffected.")
+    ElseIf option == _stSpankOID
+        SetOptionHighlightText("Apply your chosen degradation set alongside Baka's own spank-heat marks when an actor is spanked. Choose the set in the SlaveTats menu (MCM → Plugins → Refresh, then in-game SlaveTats menu). Default ON once a set is chosen.")
+    ElseIf option == _stDefeatOID
+        SetOptionHighlightText("Apply your chosen degradation set when an actor is downed/defeated. Default ON once a set is chosen.")
+    ElseIf option == _stEscalOID
+        SetOptionHighlightText("Apply your chosen degradation set at the escalation handoff (the moment a scene starts). Default OFF. Needs a set chosen in the SlaveTats menu.")
+    ElseIf option == _stRefreshOID
+        SetOptionHighlightText("Rebuild the SlaveTats pack cache from disk. Use after enabling or disabling a tattoo pack in MO2 (MO2 closed, or enabled before launching). Picks up newly visible packs without a game restart.")
+    ElseIf option == _stStatusOID
+        SetOptionHighlightText("Number of tattoo sections SlaveTats discovered in the last Refresh. Sets are picked in the SlaveTats menu, not typed here.")
     EndIf
 EndEvent
+
+; REV-72 SlaveTats toggle helper — flips a player-keyed SNBaka.ST.* int between 1 and 0.
+Function _ST_Toggle(String asKey, Int aiOID, Int aiDefault)
+    Actor p = Main.PlayerRef
+    If !p
+        p = Game.GetPlayer()
+    EndIf
+    Int v = 1 - StorageUtil.GetIntValue(p, asKey, aiDefault)
+    StorageUtil.SetIntValue(p, asKey, v)
+    SetToggleOptionValue(aiOID, v == 1)
+EndFunction

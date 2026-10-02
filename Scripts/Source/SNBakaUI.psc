@@ -74,3 +74,9 @@ Actor Function GetLastHitAggressor(Actor akTarget) Global Native
 ; pauses the game, unlike the menus above). afPct: 0.0 (just pressed) .. 1.0 (fully charged, releasing
 ; now starts the QTE). Any negative value hides the bar. Safe to call every tick while the key is held.
 Function SetGetUpCharge(Float afPct) Global Native
+
+; REV-72: opens the SlaveTats degradation-set picker (SNSlaveTats_Menu view). asJson is the payload
+; built by SNBaka_SlaveTatsModule.BuildMenuJSON(). The player's pick comes back to
+; SkyrimNet_BakaIntegration._ST_MenuChoice(slot, section, name) via the DLL's modal dispatch:
+; slot is "spank"/"defeat"/"escalation"; empty section/name = cleared; "cancel" = no change.
+Function ShowSlaveTatsMenu(String asJson) Global Native

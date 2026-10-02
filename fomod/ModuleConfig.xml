@@ -34,10 +34,11 @@ Modules:
 - Baka's Animations integration (escalation, reactions, modesty, spank, SexLab cues)
 - AnimationsGS pose integration (solo posing, power-of-poses)
 - Acheron downed-state bridge (Downed State section in MCM, 8 options)
+- SlaveTats degradation sets (set picker, spank/defeat/escalation hooks, MCM section)
 
-All modules ship as one unit (REV-68 module lifecycle + consolidated MCM v5); each module is toggled in-game via its MCM section. All features configurable via MCM.
+All modules ship as one unit (REV-68 module lifecycle + consolidated MCM v5; REV-72 SlaveTats module added at MCM v6); each module is toggled in-game via its MCM section. All features configurable via MCM.
 
-Requirements: SKSE, SkyrimNet, Acheron (for the downed-state bridge).</description>
+Requirements: SKSE, SkyrimNet, Acheron (for the downed-state bridge), SlaveTats + JContainers (for degradation sets; both optional — the section greys out without them).</description>
 							<files/>
 							<typeDescriptor>
 								<type name="Required"/>

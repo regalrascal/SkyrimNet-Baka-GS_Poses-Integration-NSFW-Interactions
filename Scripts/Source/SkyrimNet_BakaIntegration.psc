@@ -3416,6 +3416,9 @@ Function _DefeatGroundWindow(Actor akA1, Actor akA2)
     ; (Flags were already cleared at the top, before OnGround=1 — do NOT clear them again here,
     ; or a downed-menu pick made during this settle would be lost.)
     _Log("[SNBaka] _DefeatGroundWindow: escalate window open (" + fEscalationWindow + "s)")
+    ; REV-72 SlaveTats module: user-chosen degradation set rides the defeat/downed event
+    ; (module checks its own Enabled/ApplyOnDefeat/set-config gates; extend-not-duplicate).
+    SNBaka_SlaveTatsModule.OnDefeat(akA2)
     If _bDruggedEscalation
         SkyrimNetApi.RegisterEvent("baka_defeat", \
             akA2.GetDisplayName() + " is unconscious — drugged by " + akA1.GetDisplayName() + ". " + \
@@ -3875,6 +3878,9 @@ Function _DoEscalation(Actor akA1, Actor akA2)
         Return
     EndIf
     _Log("[SNBaka] _DoEscalation: A1=" + akA1.GetDisplayName() + " A2=" + akA2.GetDisplayName())
+    ; REV-72 SlaveTats module: user-chosen degradation set rides the escalation handoff
+    ; (module checks its own Enabled/ApplyOnEscalation/set-config gates; default OFF).
+    SNBaka_SlaveTatsModule.OnEscalation(akA2)
     ; Lock BOTH — not just the attacker. The victim must be Locked too, or (when the victim is the
     ; player) Downed_SkyrimNet keeps running its hold/recovery/creature-retry THROUGH the sex scene and
     ; fires the down pose into it, breaking the animation.
@@ -7073,6 +7079,49 @@ Function _DispatchMidCombatAction(Int choice, Actor akCaster, Actor akTarget)
     EndIf
 EndFunction
 
+; --- REV-72 SlaveTats set-picker dispatch ---
+; Called by the DLL (SlaveTats menu mode) when the player picks a degradation set in the
+; SNSlaveTats_Menu PrismaUI view. asSlot = "spank"/"defeat"/"escalation"; empty section/name
+; clears the slot. Thin dispatcher only — all state lives in SNBaka_SlaveTatsModule.
+Function _ST_MenuChoice(String asSlot, String asSection, String asName)
+    _Log("[SNBaka] _ST_MenuChoice: slot=" + asSlot + " section=" + asSection + " name=" + asName)
+    SNBaka_SlaveTatsModule.SetChoice(asSlot, asSection, asName)
+EndFunction
+
+; --- REV-72 SlaveTats LLM actions (external YAML: apply_tattoo / remove_tattoos) ---
+; Thin executors — the module owns all state/gating. ApplyTattoo uses the spank-slot set
+; (the natural "mark them" choice); RemoveTattoos strips everything the MODULE applied
+; (never Baka's own "SkyrimNet Spank" heat marks).
+Function ApplyTattoo_Execute(Actor akInitiator, Actor akTarget)
+    If !akTarget || !SNBaka_SlaveTatsModule.Installed()
+        Return
+    EndIf
+    Actor p = Game.GetPlayer()
+    String section = StorageUtil.GetStringValue(p, "SNBaka.ST.SpankSetSection", "")
+    String name = StorageUtil.GetStringValue(p, "SNBaka.ST.SpankSetName", "")
+    If section == "" || name == ""
+        Return    ; no set configured — action is a silent no-op (MCM/SlaveTats menu sets it)
+    EndIf
+    If SNBaka_SlaveTatsModule.ApplyTattoo(akTarget, section, name)
+        StorageUtil.StringListAdd(akTarget, "SNBaka.ST.Applied", section + "|" + name, True)
+        _Log("[SNBaka] ApplyTattoo_Execute: applied '" + name + "' (" + section + ") to " + akTarget.GetDisplayName())
+        SkyrimNetApi.RegisterEvent("baka_tattoo_applied", \
+            akInitiator.GetDisplayName() + " marks " + akTarget.GetDisplayName() + " with a degrading tattoo.", \
+            akInitiator, akTarget)
+    EndIf
+EndFunction
+
+Function RemoveTattoos_Execute(Actor akInitiator, Actor akTarget)
+    If !akTarget || !SNBaka_SlaveTatsModule.Installed()
+        Return
+    EndIf
+    SNBaka_SlaveTatsModule.RemoveAllFromActor(akTarget)
+    _Log("[SNBaka] RemoveTattoos_Execute: removed module-applied tattoos from " + akTarget.GetDisplayName())
+    SkyrimNetApi.RegisterEvent("baka_tattoos_removed", \
+        "The degradation tattoos on " + akTarget.GetDisplayName() + " are wiped away.", \
+        akInitiator, akTarget)
+EndFunction
+
 ; --- Downed-victim menu dispatch ---
 ; Called by the DLL (SNBaka_MenuChoice "downed" mode) when the player picks an option from
 ; the menu shown by pressing the power on a downed victim. Runs on its own stack; the actual
@@ -8721,6 +8770,7 @@ Function _ArmModules()
         _Log("[SNBaka] module-arm: Acheron bridge absent (Option-B clause — keeps own Form/esp until the scheduled esp-unification phase)")
     EndIf
     _Log("[SNBaka] module-arm: GS Poses presence=" + (Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None))
+    SNBaka_SlaveTatsModule.Arm()
     _Log("[SNBaka] module-arm: arm pass complete")
 EndFunction
 
@@ -9144,6 +9194,9 @@ Function ApplySpankMark(Actor akTarget)
         StorageUtil.SetIntValue(akTarget, "SkyrimNetSDB.AssTatStage", newStage)
     EndIf
     StorageUtil.FormListAdd(Self, "SkyrimNetSDB.SpankedActors", akTarget, True)
+    ; REV-72 SlaveTats module: user-chosen degradation set rides alongside the heat marks
+    ; (extend-not-duplicate; module checks its own Enabled/ApplyOnSpank/set-config gates).
+    SNBaka_SlaveTatsModule.OnSpankHeat(akTarget)
 EndFunction
 
 Function ApplyBreastMark(Actor akTarget)
