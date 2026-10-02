@@ -1,0 +1,43 @@
+name: Execute
+description: |
+  KILL a DEFEATED or TIED character with a deliberate finishing blow ("finish them", "end it",
+  "put them out of their misery", "no witnesses", "kill the prisoner").
+
+  The target must ALREADY be downed, defeated, bleeding out, or tied — helpless on the ground. This is
+  the coup de grâce on someone who can no longer fight, not an attack on someone still standing.
+
+  USE WHEN:
+  - Ruthlessness: a bandit, assassin, or hardened killer leaves no survivors and no witnesses.
+  - Vengeance or hatred: the victim wronged this character, and mercy is not on the table.
+  - Mercy killing: the victim is beyond saving or begging for an end.
+  - Duty or orders: an executioner, a soldier finishing an enemy, a captor disposing of a prisoner who
+    is no longer useful.
+
+  CONSEQUENCES:
+  - PERMANENT. The victim dies. There is no undoing it.
+  - Essential or protected characters survive the blow (the attempt still happens, they just don't die).
+  - Onlookers witness a killing; allies of the victim will remember who did it.
+
+  DO NOT USE:
+  - On anyone still standing or fighting — it will simply fail. Attack them normally instead.
+  - On the player.
+  - When the character merely wants to humiliate, rob, interrogate, or escalate on the victim — use
+    TieUp, Escalate, or Harass instead. Killing ends every other option.
+  - Casually. A character with no real reason to kill should help the victim up, release them, or
+    walk away.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: Execute_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The character delivering the killing blow. Must be up and able.
+  - type: dynamic
+    name: akTarget
+    description: The DOWNED, defeated, bleeding-out, or TIED character being killed. Never the player.
+
+enabled: true
+defaultPriority: 5
+customCategory: SNBaka_Downed
