@@ -1,13 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <fomod>
-  <!-- Authored REV-68 Phase C (2026-10-02). Player-facing title per the REV-68 §7 rider:
-       "Delectatio et Dominium" (tagline: "Bedroom drama for SkyrimNet").
-       Legacy Beta 25 names live ONLY in technical ids/paths (manifest id
-       regalrascal.baka-gs-integration, folder names) - those are load-bearing and unchanged. -->
+  <!-- Authored REV-68 Phase C (2026-10-02); verified against two known-working local
+       FOMODs (SeverActions 3.9.14, IntelEngine 3.5.0.1) same session. Player-facing
+       title per the REV-68 §7 rider: "Delectatio et Dominium" (tagline: "Bedroom drama
+       for SkyrimNet"). Legacy Beta 25 names live ONLY in technical ids/paths (manifest
+       id regalrascal.baka-gs-integration, folder names) - load-bearing, unchanged. -->
   <Name>Delectatio et Dominium</Name>
-  <Version>0.2.0-alpha</Version>
-  <Description>Bedroom drama for SkyrimNet - unified LLM-driven interaction scenes and solo posing.</Description>
   <Author>regalrascal</Author>
+  <Version>0.2.0-alpha</Version>
+  <Description>Bedroom drama for SkyrimNet - unified LLM-driven interaction scenes and solo posing. Integrates Baka's Animations, AnimationsGS poses, and the Acheron downed-state bridge behind one MCM.
+
+Requirements: SKSE, SkyrimNet, Acheron (for the downed-state bridge).</Description>
   <Groups>
-    <element>Optional</element>
+    <element>SkyrimNet</element>
+    <element>Gameplay</element>
   </Groups>
 </fomod>
+

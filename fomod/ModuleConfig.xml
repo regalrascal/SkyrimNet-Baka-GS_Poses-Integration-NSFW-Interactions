@@ -1,20 +1,52 @@
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/Cutleast/FOMOD-Creation-Kit/master/res/schemas/ModConfig5.0.xsd">
-	<!-- Authored REV-68 Phase C (2026-10-02). Player-facing module title per the REV-68
-	     §7 rider; technical paths (folder names, manifest id regalrascal.baka-gs-integration)
-	     are legacy Beta 25 load-bearing and unchanged. -->
+<?xml version="1.0" encoding="UTF-8"?>
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="http://qconsulting.ca/fo3/ModConfig5.0.xsd">
+	<!-- Authored REV-68 Phase C (2026-10-02); structure verified against two
+	     known-working local FOMODs (SeverActions 3.9.14, IntelEngine 3.5.0.1)
+	     same session - canonical qconsulting schema URL, no alwaysInstall on
+	     required files, one installStep (IntelEngine informational-Required
+	     pattern; module content is not file-separable - module logic lives in
+	     the shared motherboard pex, which is required). Player-facing title per
+	     the REV-68 §7 rider; technical paths (folder names, manifest id
+	     regalrascal.baka-gs-integration) are legacy Beta 25 load-bearing. -->
 	<moduleName>Delectatio et Dominium (0.2.0-alpha)</moduleName>
 	<requiredInstallFiles>
-		<!-- Data-tree assets, sources are the repo root (identical to the v0.2.0-alpha zip layout) -->
-		<folder source="Scripts" destination="Scripts" alwaysInstall="true" priority="0"/>
-		<folder source="SKSE" destination="SKSE" alwaysInstall="true" priority="0"/>
-		<folder source="Interface" destination="Interface" alwaysInstall="true" priority="0"/>
-		<folder source="Sound" destination="Sound" alwaysInstall="true" priority="0"/>
-		<folder source="textures" destination="textures" alwaysInstall="true" priority="0"/>
-		<folder source="PrismaUI" destination="PrismaUI" alwaysInstall="true" priority="0"/>
-		<file source="SkyrimNet_BakaIntegration.esp" destination="" alwaysInstall="true" priority="0"/>
-		<file source="SkyrimNet_AnimationsGS.esp" destination="" alwaysInstall="true" priority="0"/>
-		<file source="SkyrimNet_AcheronIntegration.esp" destination="" alwaysInstall="true" priority="0"/>
+		<!-- Data-tree assets, source is the archive root (identical to the v0.2.0-alpha zip layout) -->
+		<file source="SkyrimNet_BakaIntegration.esp" destination="SkyrimNet_BakaIntegration.esp"/>
+		<file source="SkyrimNet_AnimationsGS.esp" destination="SkyrimNet_AnimationsGS.esp"/>
+		<file source="SkyrimNet_AcheronIntegration.esp" destination="SkyrimNet_AcheronIntegration.esp"/>
+		<folder source="Scripts" destination="Scripts"/>
+		<folder source="SKSE" destination="SKSE"/>
+		<folder source="Interface" destination="Interface"/>
+		<folder source="Sound" destination="Sound"/>
+		<folder source="textures" destination="textures"/>
+		<folder source="PrismaUI" destination="PrismaUI"/>
 	</requiredInstallFiles>
 	<installSteps order="Explicit">
+		<installStep name="Delectatio et Dominium">
+			<optionalFileGroups order="Explicit">
+				<group name="Install" type="SelectAll">
+					<plugins order="Explicit">
+						<plugin name="Delectatio et Dominium">
+							<description>Bedroom drama for SkyrimNet - unified LLM-driven interaction scenes and solo posing.
+
+Modules:
+- Baka's Animations integration (escalation, reactions, modesty, spank, SexLab cues)
+- AnimationsGS pose integration (solo posing, power-of-poses)
+- Acheron downed-state bridge (Downed State section in MCM, 8 options)
+
+All modules ship as one unit (REV-68 module lifecycle + consolidated MCM v5); each module is toggled in-game via its MCM section. All features configurable via MCM.
+
+Requirements: SKSE, SkyrimNet, Acheron (for the downed-state bridge).</description>
+							<files/>
+							<typeDescriptor>
+								<type name="Required"/>
+							</typeDescriptor>
+						</plugin>
+					</plugins>
+				</group>
+			</optionalFileGroups>
+		</installStep>
 	</installSteps>
 </config>
+
