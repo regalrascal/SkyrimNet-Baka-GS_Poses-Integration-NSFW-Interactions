@@ -24,7 +24,9 @@ this design is a STOP for planner/user decision.
 
 `D:\Modding\Skyrim\Workspace\SkyrimNet-Baka-GS_Poses-Integration-NSFW-Interactions\`
 - Role: single active project repo (fork of upstream Baka mod; consolidated fork).
-  Branch `main`; origin `regalrascal/SkyrimNet-Baka-GS_Poses-Integration-NSFW-Interactions`.
+  Branch `new-features` (working branch since REV-59; `main` lags at REV-58 —
+  verified 2026-10-02 REV-69 audit); origin
+  `regalrascal/SkyrimNet-Baka-GS_Poses-Integration-NSFW-Interactions`.
 - **`dist\` conventions:**
   - Contents are **MO2-installable full trees** (root = mod root: both esps,
     `Scripts\`, `SKSE\`, `PrismaUI\`, `Sound\`, `textures\`, `meta.ini`) plus loose
@@ -64,15 +66,43 @@ this design is a STOP for planner/user decision.
 
 ## 4. MO2 deploy target (one deploy target)
 
-`D:\Modlists\LoreRim\mods\SN AnimationsGS v1.1.0 Build Patch\`
-- THE deploy target (ruleset §1) — the Build Patch wins MO2 resolution over both
-  base mods. Base-mod trees are never deploy targets; a build landing there is a
-  wrong-tree deploy (resync to patch before the gate closes).
+**Deploy-target convention (REV-68 ruling, user-ordered, 2026-10-02; AMENDED same
+session per user correction superseding the in-place-deploy variant): the live deploy
+is the latest `[REV-NN]`-stamped unified deploy folder in the MO2 modlist, and EVERY
+changed deploy state gets a NEW stamped folder — deployed folders are NEVER updated
+in place; the prior stamped folder is DISABLED by the user (MO2 toggle), not deleted.
+Folders must tell the truth about contents (rev-42 rider corollary): a folder stamped
+REV-65 that contains REV-68 pex is a violation. The Build Patch era is retired as a
+named folder — `SN AnimationsGS v1.1.0 Build Patch` is a HISTORICAL record only
+(verified absent from the live modlist on 2026-10-02); it is no longer a deploy
+target and must not be recreated.**
+
+Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-REV-69-deploy-integrity\`
+- THE deploy target (§1) until superseded by a later stamped folder; wins MO2 resolution
+  over both base mods. Base-mod trees are never deploy targets; a build landing there is a
+  wrong-tree deploy (resync to the stamped folder before the gate closes).
+- **REV-69 deploy-integrity restoration (2026-10-02):** the REV-68 folder (and the fork
+  tree) carried a stale REV-63-shape `SkyrimNet_BakaIntegration.pex` (E537B692FE69) —
+  compile output was never re-committed/deployed after the REV-65/68 source changes. Fixed
+  by a 0/0 recompile from the fixed source (fresh build output hashed
+  `A47D3CCDB975`/`04FDEBBFDEF0`/`1E22B3C2E7E1` for Integration/_MCM/BakaSL) deployed to
+  this fresh REV-69 stamped folder (REV-68 tree + 3 fresh pex; 38/38 Scripts +
+  3/3 esp hash-verified; §1/§2 verification FROM BUILD OUTPUT). The REV-68 folder is
+  retired (user disables it in MO2, retained for rollback). Root cause + lesson in
+  PROJECT_STATE REV-69.
 - Deployed patch folders carry revision-stamped names per the rev-42 rider
-  (e.g. `SN-AnimationsGS-Baka-CommunityPatch (rev-42)`); renames are MO2 edits
-  under a CLOSED MO2.
-- The fork (1a) is the single source deploy tree; the Build Patch remains the
-  live target until the fork lands in-game (§1 consolidation note).
+  (e.g. `SN-AnimationsGS-Baka-Unified-REV-68-module-lifecycle`); renames are MO2 edits
+  under a CLOSED MO2. Prior stamped folders (REV-65 detection-fix and earlier) are
+  disabled by the user, retained on disk for rollback.
+- The fork (1a) is the single source deploy tree; the stamped unified folder is the live
+  in-game target (§1 consolidation note).
+- **REV-68 deploy history:** first the three REV-68 pex
+  (`SkyrimNet_BakaIntegration`/`_MCM`/`BakaSL`) + matching psc Sources were deployed
+  into the REV-65 stamped folder 2026-10-02 (3/3 pex + 3/3 psc hash MATCH). That
+  in-place update is the violation the same-session amendment corrects: the REV-68
+  state now lives in the fresh REV-68 stamped folder (full tree copied from the
+  REV-65 folder + verified FOMOD `fomod/` + manifest), and the REV-65 folder is
+  retired (user disables it). ESPs untouched (Option B, zero esp edits).
 
 ## 5. DevKit (validation tooling)
 
@@ -80,6 +110,32 @@ this design is a STOP for planner/user decision.
 - `tools\content-validate.exe` — plugin-folder structural validation (used for the
   v0.2.0-alpha external plugin layout: exit 0, 99 entries, 0 structural errors).
 - Consult for `min_skyrimnet_version` and plugin-manifest rules at build time.
+
+## 6. Papyrus compile bat (private home — GS repo)
+
+`C:\Users\Tristan\.cline\data\workspaces\chat\gs-build\SkyrimNet-Animations-GS\tools\compile\compile_baka.bat`
+- Role: the re-versioned `compile_baka.bat` lineage (last publicly versioned at fork
+  commit `c142008` at this same relative `tools\compile\` path; removed from the public
+  tree by the B4 public-safety pass; the rev-61 session-local reconstruction was the
+  interim). REV-62 (2026-10-01) committed it here as its PRIVATE home — the B4
+  public-safety posture stands: it never returns to the public fork. Invocation identical
+  to the rev-61 0/0-compile proof (same imports order, same paths; OUT defaults to a temp
+  dir, optional `%1` override).
+- Depends on: the fork's `tools\compile\{local,ostim,mfg,spe}` stub packs (public fork),
+  SkyrimNet-GamePlugin Source/headers (this workspace), and installed
+  SKSE/PapyrusUtil/CK-base Sources (LoreRim + Steam) — paths baked in the bat.
+- **Stub pack private mirror (REV-68 ruling 2, user-ordered, 2026-10-02):** the full
+  14-stub pack (`{local,ostim,mfg,spe}` — other authors' API declarations, same
+  public-safety posture as the bat: PRIVATE home only, never the public fork) is now
+  ALSO versioned at
+  `C:\Users\Tristan\.cline\data\workspaces\chat\gs-build\SkyrimNet-Animations-GS\tools\compile\stubs\`
+  — hash-verified against the fork pack at copy time (14/14 MATCH, 0 mismatches,
+  2026-10-02). This closes the same single-point-of-loss class as the rev-61 compile-bat
+  gap: the fork remains the compile-import source of record (LOCAL path in the bat is
+  unchanged); the GS mirror is the versioned backup + private-home canonical reference.
+  **Standing maintenance rule:** any fork stub change (e.g., the REV-68 `Acheron.psc`
+  signature extension) must be mirrored to the GS copy in the same session, hash-verified,
+  or the GS copy is stale and must be re-synced before the next compile gate run.
 
 ---
 
@@ -92,3 +148,5 @@ this design is a STOP for planner/user decision.
 - Deployed MO2 patch folders: `(<rev-NN>)` suffix.
 - Repo folder names follow the GitHub repo (`GS_Poses`, underscore — NOT the
   legacy `GS-_Poses` hyphen variant; that spelling marks quarantined trees only).
+
+- [pointer] `../GSA/case-redress/` — REV-69 case-isolated records (Incident #2 redress investigation): quarantined outside tracked roots; excluded from project records/pushes; promotion is the user's ruling only. See `case-redress/CASE_FILE.md`.
