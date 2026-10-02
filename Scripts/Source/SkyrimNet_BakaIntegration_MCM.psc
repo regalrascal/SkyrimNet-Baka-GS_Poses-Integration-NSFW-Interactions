@@ -76,6 +76,7 @@ Int _stDefeatOID
 Int _stEscalOID
 Int _stRefreshOID
 Int _stStatusOID
+Int _stPickOID
 
 Event OnConfigInit()
     ModName = "Baka SkyrimNet"
@@ -309,6 +310,7 @@ Event OnPageReset(String page)
             _stEscalOID   = AddToggleOption("Apply Set On Escalation",      StorageUtil.GetIntValue(_stP,  "SNBaka.ST.ApplyOnEscalation", 0) == 1)
             _stRefreshOID = AddTextOption("Refresh Pack List",             "Refresh")
             _stStatusOID  = AddTextOption("Discovered Sections",           StorageUtil.GetIntValue(_stP, "SNBaka.ST.SectionCount", 0) + " (sets: choose in SlaveTats menu)")
+            _stPickOID    = AddTextOption("Choose Sets (SlaveTats Menu)",  "Open")
         Else
             _stEnabledOID = AddToggleOption("Module Enabled (SlaveTats not installed)", False, OPTION_FLAG_DISABLED)
             _stSpankOID   = -1
@@ -316,6 +318,7 @@ Event OnPageReset(String page)
             _stEscalOID   = -1
             _stRefreshOID = -1
             _stStatusOID  = -1
+            _stPickOID    = -1
         EndIf
     EndIf
 EndEvent
@@ -398,6 +401,10 @@ Event OnOptionSelect(Int option)
         EndIf
         SetTextOptionValue(_stStatusOID, StorageUtil.GetIntValue(stP1, "SNBaka.ST.SectionCount", 0) + " (sets: choose in SlaveTats menu)")
         Debug.Notification("SlaveTats: pack list refreshed — " + StorageUtil.GetIntValue(stP1, "SNBaka.ST.SectionCount", 0) + " sections visible.")
+    ElseIf option == _stPickOID
+        ; REV-72 dogfood fix: the set picker had no in-game entry point (OpenSetMenu was
+        ; dead code). Close the MCM first — PrismaUI modal needs the game input focus.
+        SNBaka_SlaveTatsModule.OpenSetMenu()
     ElseIf option == _animatedTearsOID
         Main.bAnimatedTearsEnabled = !Main.bAnimatedTearsEnabled
         SetToggleOptionValue(_animatedTearsOID, Main.bAnimatedTearsEnabled)
@@ -915,6 +922,8 @@ Event OnOptionHighlight(Int option)
         SetOptionHighlightText("Apply your chosen degradation set at the escalation handoff (the moment a scene starts). Default OFF. Needs a set chosen in the SlaveTats menu.")
     ElseIf option == _stRefreshOID
         SetOptionHighlightText("Rebuild the SlaveTats pack cache from disk. Use after enabling or disabling a tattoo pack in MO2 (MO2 closed, or enabled before launching). Picks up newly visible packs without a game restart.")
+    ElseIf option == _stPickOID
+        SetOptionHighlightText("Open the in-game SlaveTats set picker (choose which degradation set each event applies: spank / defeat / escalation).")
     ElseIf option == _stStatusOID
         SetOptionHighlightText("Number of tattoo sections SlaveTats discovered in the last Refresh. Sets are picked in the SlaveTats menu, not typed here.")
     EndIf
