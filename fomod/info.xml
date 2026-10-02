@@ -1,0 +1,13 @@
+<fomod>
+  <!-- Authored REV-68 Phase C (2026-10-02). Player-facing title per the REV-68 §7 rider:
+       "Delectatio et Dominium" (tagline: "Bedroom drama for SkyrimNet").
+       Legacy Beta 25 names live ONLY in technical ids/paths (manifest id
+       regalrascal.baka-gs-integration, folder names) - those are load-bearing and unchanged. -->
+  <Name>Delectatio et Dominium</Name>
+  <Version>0.2.0-alpha</Version>
+  <Description>Bedroom drama for SkyrimNet - unified LLM-driven interaction scenes and solo posing.</Description>
+  <Author>regalrascal</Author>
+  <Groups>
+    <element>Optional</element>
+  </Groups>
+</fomod>

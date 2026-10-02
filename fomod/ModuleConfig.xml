@@ -1,0 +1,20 @@
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://raw.githubusercontent.com/Cutleast/FOMOD-Creation-Kit/master/res/schemas/ModConfig5.0.xsd">
+	<!-- Authored REV-68 Phase C (2026-10-02). Player-facing module title per the REV-68
+	     §7 rider; technical paths (folder names, manifest id regalrascal.baka-gs-integration)
+	     are legacy Beta 25 load-bearing and unchanged. -->
+	<moduleName>Delectatio et Dominium (0.2.0-alpha)</moduleName>
+	<requiredInstallFiles>
+		<!-- Data-tree assets, sources are the repo root (identical to the v0.2.0-alpha zip layout) -->
+		<folder source="Scripts" destination="Scripts" alwaysInstall="true" priority="0"/>
+		<folder source="SKSE" destination="SKSE" alwaysInstall="true" priority="0"/>
+		<folder source="Interface" destination="Interface" alwaysInstall="true" priority="0"/>
+		<folder source="Sound" destination="Sound" alwaysInstall="true" priority="0"/>
+		<folder source="textures" destination="textures" alwaysInstall="true" priority="0"/>
+		<folder source="PrismaUI" destination="PrismaUI" alwaysInstall="true" priority="0"/>
+		<file source="SkyrimNet_BakaIntegration.esp" destination="" alwaysInstall="true" priority="0"/>
+		<file source="SkyrimNet_AnimationsGS.esp" destination="" alwaysInstall="true" priority="0"/>
+		<file source="SkyrimNet_AcheronIntegration.esp" destination="" alwaysInstall="true" priority="0"/>
+	</requiredInstallFiles>
+	<installSteps order="Explicit">
+	</installSteps>
+</config>

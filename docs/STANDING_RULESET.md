@@ -60,6 +60,16 @@ Diagnose from logs before changing behavior. **Report-only gates**: findings
 and proposals are reported for approval, not built unapproved. User-facing
 strings require user text approval.
 
+**§7 rider — FOMOD/manifest title fields (REV-68 ruling, user-ordered,
+2026-10-02):** all player-facing TITLE fields (FOMOD `info.xml` `<Name>` /
+`ModuleConfig.xml` `<moduleName>` / SkyrimNet manifest `title`, and any future
+player-facing title surface) are authored as **"Delectatio et Dominium"**,
+tagline **"Bedroom drama for SkyrimNet"**. Legacy Beta 25 names are retained
+ONLY in technical path/manifest ids (`{author}.{slug}` ids, e.g.
+`regalrascal.baka-gs-integration`; folder names; esp filenames) — those ids are
+load-bearing and DO NOT change. The title/tagline pair above is
+user-text-approved as of this rider.
+
 ## 8. Honest-assumption audit
 
 Every session ends with an explicit audit of assumptions made — including any
