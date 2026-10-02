@@ -54,6 +54,18 @@ Int _tiedHoursOID
 Int _cumDetectOID
 Int _slProxyOID
 Int _fhuAwareOID
+; REV-68 "Downed State (Acheron Bridge)" section (Plugins page) — consolidated from the
+; bridge's own MCM. Settings stay in StorageUtil (player-keyed, same SNAcheron.* keys and
+; defaults as the bridge MCM — no CK property link, no data migration; the bridge quest
+; reads them each tick via _LoadSettings).
+Int _achEnabledOID
+Int _achCueOID
+Int _achProxOID
+Int _achConfirmOID
+Int _achHandoffOID
+Int _achGetUpKeyOID
+Int _achEngageOID
+Int _achDebugOID
 
 Event OnConfigInit()
     ModName = "Baka SkyrimNet"
@@ -77,11 +89,23 @@ EndEvent
 ; existing save keeps whatever Pages[]/_BuildPages state it last wrote UNLESS the version is
 ; bumped so SkyUI fires OnVersionUpdate. No NEW page this time, but new OPTIONS on an existing
 ; page still need the bump on existing saves (the page content is cached with the save too).
+; REV-68: bumped to 5 -- the "Downed State (Acheron Bridge)" section was consolidated onto the
+; Plugins page (the bridge's own standalone MCM quest remains in its esp but is superseded by
+; this section). Same StorageUtil keys/defaults as the bridge MCM (SNAcheron.*, player-keyed) —
+; NO data migration: a save that used the old MCM reads identical values here.
 Int Function GetVersion()
-    Return 4
+    Return 5
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
+    If aVersion < 5
+        ; REV-68 consolidation marker (one-time, per-player): distinguishes a Hadrian-era save
+        ; (pre-consolidation, bridge MCM era) that has been migrated onto the unified MCM from a
+        ; fresh install. Deliberately NOT read by any code yet — it is the dogfood/headline probe
+        ; key for the migration test (grep SNBaka.MCMConsolidated in Papyrus.0.log).
+        StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMConsolidated", 5)
+        Debug.Trace("[SNBaka] MCM v5: Acheron-bridge settings consolidated onto the Plugins page (SNBaka.MCMConsolidated=5 marker set)")
+    EndIf
     _BuildPages()
 EndEvent
 
@@ -218,6 +242,35 @@ Event OnPageReset(String page)
         Else
             _fhuAwareOID = AddToggleOption("Inflation Level Cues (mod not installed)", False, OPTION_FLAG_DISABLED)
         EndIf
+        ; REV-68: consolidated bridge settings — same SNAcheron.* keys/defaults the bridge MCM
+        ; wrote (player-keyed StorageUtil; the bridge quest re-reads them every tick). Presence-
+        ; gated on the bridge esp exactly like the other plugin sections; the bridge's own MCM
+        ; quest still exists in its esp but this page is now the primary surface (Option-B ruling).
+        AddEmptyOption()
+        AddHeaderOption("Downed State (Acheron Bridge)")
+        Actor _achP = Main.PlayerRef
+        If !_achP
+            _achP = Game.GetPlayer()
+        EndIf
+        If Main.IsAcheronBridgeInstalled()
+            _achEnabledOID  = AddToggleOption("Bridge Enabled",            StorageUtil.GetIntValue(_achP,   "SNAcheron.Enabled",           1) == 1)
+            _achCueOID      = AddSliderOption("Reminder Cue Interval",     StorageUtil.GetFloatValue(_achP, "SNAcheron.CueInterval",       30.0),  "{0} s")
+            _achProxOID     = AddSliderOption("Creature Check Interval",   StorageUtil.GetFloatValue(_achP, "SNAcheron.ProxInterval",      10.0),  "{0} s")
+            _achConfirmOID  = AddSliderOption("Auto Get-Up Timer",         StorageUtil.GetFloatValue(_achP, "SNAcheron.AutoGetUpSeconds",  600.0), "{0} s")
+            _achHandoffOID  = AddToggleOption("Creature Pounce On Recovery", StorageUtil.GetIntValue(_achP, "SNAcheron.CreatureHandoff",    1) == 1)
+            _achGetUpKeyOID = AddKeyMapOption("Get-Up Key (hold 3s)",      StorageUtil.GetIntValue(_achP,   "SNAcheron.GetUpKey",          51))
+            _achEngageOID   = AddSliderOption("Creature Engagement Chance", StorageUtil.GetFloatValue(_achP, "SNAcheron.CreatureEngageChance", 50.0), "{0}%")
+            _achDebugOID    = AddToggleOption("Enable Debug Logging",      StorageUtil.GetIntValue(_achP,   "SNAcheron.DebugLog",          1) == 1)
+        Else
+            _achEnabledOID  = AddToggleOption("Bridge Enabled (Acheron bridge not installed)", False, OPTION_FLAG_DISABLED)
+            _achCueOID      = -1
+            _achProxOID     = -1
+            _achConfirmOID  = -1
+            _achHandoffOID  = -1
+            _achGetUpKeyOID = -1
+            _achEngageOID   = -1
+            _achDebugOID    = -1
+        EndIf
     EndIf
 EndEvent
 
@@ -254,6 +307,35 @@ Event OnOptionSelect(Int option)
         Main.bFHUInflationEnabled = !Main.bFHUInflationEnabled
         SetToggleOptionValue(_fhuAwareOID, Main.bFHUInflationEnabled)
         Main.Setup()   ; re-arms or disarms the level poll right now
+    ElseIf option == _achEnabledOID
+        ; REV-68 bridge master switch — same SNAcheron.Enabled key the bridge MCM wrote; the
+        ; bridge quest re-reads it on its next tick. Nudges the motherboard lifecycle surface
+        ; (per the §68 ruling: toggles nudge Main._ArmModules()) so the bridge picks the change
+        ; up immediately instead of on its own self-heal cadence.
+        Actor achP1 = Main.PlayerRef
+        If !achP1
+            achP1 = Game.GetPlayer()
+        EndIf
+        Int vAch = 1 - StorageUtil.GetIntValue(achP1, "SNAcheron.Enabled", 1)
+        StorageUtil.SetIntValue(achP1, "SNAcheron.Enabled", vAch)
+        SetToggleOptionValue(_achEnabledOID, vAch == 1)
+        Main._ArmModules()
+    ElseIf option == _achHandoffOID
+        Actor achP2 = Main.PlayerRef
+        If !achP2
+            achP2 = Game.GetPlayer()
+        EndIf
+        Int vHand = 1 - StorageUtil.GetIntValue(achP2, "SNAcheron.CreatureHandoff", 1)
+        StorageUtil.SetIntValue(achP2, "SNAcheron.CreatureHandoff", vHand)
+        SetToggleOptionValue(_achHandoffOID, vHand == 1)
+    ElseIf option == _achDebugOID
+        Actor achP3 = Main.PlayerRef
+        If !achP3
+            achP3 = Game.GetPlayer()
+        EndIf
+        Int vDbg = 1 - StorageUtil.GetIntValue(achP3, "SNAcheron.DebugLog", 1)
+        StorageUtil.SetIntValue(achP3, "SNAcheron.DebugLog", vDbg)
+        SetToggleOptionValue(_achDebugOID, vDbg == 1)
     ElseIf option == _animatedTearsOID
         Main.bAnimatedTearsEnabled = !Main.bAnimatedTearsEnabled
         SetToggleOptionValue(_animatedTearsOID, Main.bAnimatedTearsEnabled)
@@ -326,6 +408,20 @@ Event OnOptionSelect(Int option)
     ElseIf option == _humanOnHitOID
         Main.bHumanEscalateOnHit = !Main.bHumanEscalateOnHit
         SetToggleOptionValue(_humanOnHitOID, Main.bHumanEscalateOnHit)
+    EndIf
+EndEvent
+
+; REV-68 — get-up key rebinding for the consolidated bridge section. Writes the same
+; SNAcheron.GetUpKey StorageUtil key the bridge's own MCM used (identical defaults/handling;
+; the bridge quest reads it every tick, so no nudge is needed for a keybind).
+Event OnOptionKeyMapChange(Int option, Int keyCode, String conflictControl, String conflictName)
+    If option == _achGetUpKeyOID
+        Actor achPk = Main.PlayerRef
+        If !achPk
+            achPk = Game.GetPlayer()
+        EndIf
+        StorageUtil.SetIntValue(achPk, "SNAcheron.GetUpKey", keyCode)
+        SetKeyMapOptionValue(_achGetUpKeyOID, keyCode)
     EndIf
 EndEvent
 
@@ -526,6 +622,26 @@ Event OnOptionSliderOpen(Int option)
         SetSliderDialogDefaultValue(25.0)
         SetSliderDialogRange(0.0, 100.0)
         SetSliderDialogInterval(5.0)
+    ElseIf option == _achCueOID
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Main.PlayerRef, "SNAcheron.CueInterval", 30.0))
+        SetSliderDialogDefaultValue(30.0)
+        SetSliderDialogRange(10.0, 120.0)
+        SetSliderDialogInterval(5.0)
+    ElseIf option == _achProxOID
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Main.PlayerRef, "SNAcheron.ProxInterval", 10.0))
+        SetSliderDialogDefaultValue(10.0)
+        SetSliderDialogRange(5.0, 60.0)
+        SetSliderDialogInterval(5.0)
+    ElseIf option == _achConfirmOID
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Main.PlayerRef, "SNAcheron.AutoGetUpSeconds", 600.0))
+        SetSliderDialogDefaultValue(600.0)
+        SetSliderDialogRange(60.0, 3600.0)
+        SetSliderDialogInterval(30.0)
+    ElseIf option == _achEngageOID
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Main.PlayerRef, "SNAcheron.CreatureEngageChance", 50.0))
+        SetSliderDialogDefaultValue(50.0)
+        SetSliderDialogRange(0.0, 100.0)
+        SetSliderDialogInterval(5.0)
     EndIf
 EndEvent
 
@@ -603,6 +719,18 @@ Event OnOptionSliderAccept(Int option, Float value)
     ElseIf option == _creatureGroupSizeOID
         Main.iCreatureGroupMaxSize = value as Int
         SetSliderOptionValue(_creatureGroupSizeOID, value, "{0}")
+    ElseIf option == _achCueOID
+        StorageUtil.SetFloatValue(Main.PlayerRef, "SNAcheron.CueInterval", value)
+        SetSliderOptionValue(_achCueOID, value, "{0} s")
+    ElseIf option == _achProxOID
+        StorageUtil.SetFloatValue(Main.PlayerRef, "SNAcheron.ProxInterval", value)
+        SetSliderOptionValue(_achProxOID, value, "{0} s")
+    ElseIf option == _achConfirmOID
+        StorageUtil.SetFloatValue(Main.PlayerRef, "SNAcheron.AutoGetUpSeconds", value)
+        SetSliderOptionValue(_achConfirmOID, value, "{0} s")
+    ElseIf option == _achEngageOID
+        StorageUtil.SetFloatValue(Main.PlayerRef, "SNAcheron.CreatureEngageChance", value)
+        SetSliderOptionValue(_achEngageOID, value, "{0}%")
     EndIf
 EndEvent
 
@@ -699,5 +827,21 @@ Event OnOptionHighlight(Int option)
         SetOptionHighlightText("A hostile HUMANOID's melee hit on a follower or the player can attempt a Struggle right there, mid-combat — the humanoid counterpart of the creature option above. Uses the normal Struggle rules on top (QTE for the player, sex filter, 'Player Can Be Target', locks). Default OFF.")
     ElseIf option == _humanHitChanceOID
         SetOptionHighlightText("Chance that a hostile humanoid's melee hit attempts the Struggle at all (shares the same 3s per-victim cooldown as the creature version). Lower this if it triggers too often. Default 25%.")
+    ElseIf option == _achEnabledOID
+        SetOptionHighlightText("Master switch for the downed-state bridge (holding, downed cues, recovery).")
+    ElseIf option == _achCueOID
+        SetOptionHighlightText("How often, while an actor is down, we send a short 'still downed' reminder. Purely narrative — does not affect recovery timing. Default 30 s.")
+    ElseIf option == _achProxOID
+        SetOptionHighlightText("How often we check for a nearby CREATURE, purely to give Baka's creature-escalation pipeline a shot. Does not affect recovery — proximity no longer gates getting up at all. Default 10 s.")
+    ElseIf option == _achConfirmOID
+        SetOptionHighlightText("NPCs ONLY: hard ceiling on how long an abandoned, unattended down lasts before they get up on their own — NPCs have no get-up key, so this stands in for it. The PLAYER never auto-recovers: get-up key, being helped, or winning a QTE are the only ways up. Resets to the full duration whenever someone interacts with the victim (a struggle, choke, inspect, escalation, etc.), so it never expires mid-scene. Default 600 s (10 min).")
+    ElseIf option == _achHandoffOID
+        SetOptionHighlightText("When a downed actor is about to recover because nobody's around, give Baka's creature-escalation pipeline one shot at taking them first, instead of just calming the creature and standing them up. Requires Baka's own 'Creature Escalation' switch (and, for the player, 'Can Target the Player') to ALSO be on in Baka's MCM — this only gates the attempt on the Acheron side. Default ON; harmless if Baka is absent or its own switches are off.")
+    ElseIf option == _achGetUpKeyOID
+        SetOptionHighlightText("Hold this key for 3 seconds while downed (by any means) to attempt a struggle QTE and stand up on your own, independent of any NPC or LLM ever helping you up. Winning frees you immediately with a cue; losing fires its own 'tried and failed' cue so the LLM can react. Default: Comma.")
+    ElseIf option == _achEngageOID
+        SetOptionHighlightText("Chance a nearby creature bothers engaging at all once nobody able is around, rolled fresh every confirm cycle — not one-shot. After a scene ends, it can roll again and re-engage. At 100% this can loop indefinitely by design; lower it if you want downed actors to reliably get free. Default 50%.")
+    ElseIf option == _achDebugOID
+        SetOptionHighlightText("Write the Acheron bridge's detailed traces to the Papyrus log. Keep ON while testing/reporting issues; turn OFF for less script-engine load during normal play.")
     EndIf
 EndEvent

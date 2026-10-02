@@ -427,6 +427,10 @@ Function Setup()
     ; Acheron-downed handoff (creature pounce) + AEL/menu events. Re-asserted from OnUpdateGameTime too,
     ; as a backup in case this path is ever skipped.
     _RegisterModEvents()
+    ; REV-68 (Phase B, §67 module contract): module lifecycle arm pass — runs right
+    ; after the forwarding-event surface so every module is armed/handshaken on the
+    ; same paths that re-assert the listeners (Setup + heartbeat, both idempotent).
+    _ArmModules()
     ; REV-63: FHU inflation level poll (soft-optional: armed only when FHU is
     ; actually installed and the toggle is on; multiplexed onto the shared
     ; real-time update slot -- see _ArmRealtimeTimer).
@@ -571,6 +575,15 @@ EndFunction
 ; running and its enslave queue isn't listening). Shared by Setup(), EnslaveFollower_Execute and the MCM.
 Bool Function IsFollowerSlaveryInstalled()
     Return StorageUtil.GetIntValue(None, "fsm_bIsMCMInstalled", 0) == 1
+EndFunction
+
+; Plugin-presence probe for the Acheron bridge (REV-68 MCM "Downed State" section) —
+; reads the bridge's own quest form (SNAcheron_Quest 0x800) exactly like the liveness
+; probes in _DelegateDownToAcheron and _RegisterModEvents. Returns None (with a harmless
+; engine log line) when the bridge esp is absent. Shared by the MCM Plugins page and
+; _ArmModules' nudge path.
+Bool Function IsAcheronBridgeInstalled()
+    Return Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp") != None
 EndFunction
 
 ; ============================================================
@@ -8684,6 +8697,43 @@ Function _RegisterModEvents()
     _Log("[SNBaka] _RegisterModEvents: REV-65 detection triggers armed (OCum x2 [5-arg + 6-arg npc_scene], SL HookStageEnd [2-arg], FHU start [0-arg])")
 EndFunction
 
+; ============================================================
+; MODULE LIFECYCLE SURFACE (REV-68, Phase B — §67 module contract of record)
+; ============================================================
+; The motherboard owns the arm/disarm/handshake sequence for the unified
+; integration's modules. Under the Option-B amendment (fomod.md contract
+; section): BakaSL is a recordless module and gets its handshake here (it
+; registers nothing); the Acheron bridge KEEPS its quest Form + own esp (its raw
+; down/release listeners at bridge L91-92 are a recorded deviation) and receives
+; a presence-gated EnsureAlive() nudge — the bridge's own documented no-op when
+; already ticking; GS Poses self-registers only its own INTERNAL events (not
+; foreign events), so it gets a log-only presence probe. Armed from Setup()
+; right after _RegisterModEvents() and re-asserted from the OnUpdateGameTime
+; heartbeat — the same self-heal cadence that keeps the listeners alive across
+; loads. Idempotent: safe to call as often as the listeners re-register.
+Function _ArmModules()
+    _Log("[SNBaka] module-arm: SexLab handshake — installed=" + SkyrimNet_BakaSL.Installed())
+    SkyrimNet_AcheronIntegration bridge = Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp") as SkyrimNet_AcheronIntegration
+    If bridge
+        _Log("[SNBaka] module-arm: Acheron bridge present — nudging EnsureAlive()")
+        bridge.EnsureAlive()
+    Else
+        _Log("[SNBaka] module-arm: Acheron bridge absent (Option-B clause — keeps own Form/esp until the scheduled esp-unification phase)")
+    EndIf
+    _Log("[SNBaka] module-arm: GS Poses presence=" + (Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None))
+    _Log("[SNBaka] module-arm: arm pass complete")
+EndFunction
+
+; Disarm counterpart (REV-68), reserved by the module contract so later modules
+; never grow ad-hoc teardown elsewhere. Advisory-only at this rev: no Phase-B
+; module requires hard teardown (the bridge's registrations live and die with
+; its own quest Form; BakaSL holds none). NOT wired into Setup()/heartbeat —
+; call sites arrive with the first module that actually needs teardown (e.g. the
+; MCM panic path in a later phase).
+Function _DisarmModules()
+    _Log("[SNBaka] module-disarm: advisory only at REV-68 (no module requires hard teardown)")
+EndFunction
+
 ; Acheron's player self-recovery QTE (hold-key) asks us to force-recover an actor it can't fully clean
 ; up itself (e.g. it was Baka's own local ground window holding them, not an Acheron hold) — same
 ; queue-drain pattern as every other cross-mod request here. _ForceRecover is a no-op if the actor
@@ -8767,6 +8817,10 @@ Event OnUpdateGameTime()
     ; run on reload). This is what keeps the creature hand-off (and AEL/menu events) alive across loads.
     _RegisterDecorators()
     _RegisterModEvents()
+    ; REV-68 (Phase B): module lifecycle re-assert — same self-heal cadence as the
+    ; listeners above (handshakes re-log; EnsureAlive is a no-op when the bridge is
+    ; already ticking).
+    _ArmModules()
     ; REV-65: FHU poll self-healing arming. REV-64 defect of record: the poll
     ; armed ONLY from Setup(), whose MCM OnGameReload chain never executed at
     ; save-load (stale save-bound SKI config instance) -- the poll was dead
