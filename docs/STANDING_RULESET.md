@@ -113,3 +113,20 @@ same opportunity. Rides on §1/§2; the numbered rule count stays 10.
 **Rider (rev-55, user ruling, dated 2026-09-29) — binary-build discipline + feature-doc routing:** the standing no-rebuild convention is RETIRED (user ruling of record, this rev) — the project may modify both DLLs and esps via the real toolchain. Replaced by: (a) DLL/esp changes build from tracked source via the real toolchain; hand-edited binaries remain forbidden; (b) a verified reference build precedes the first modified build of any binary; (c) reference builds are not expected to byte-match shipped binaries — verification = zero-error build + matching exports/entry points + mandatory dogfood; (d) shipped binary hashes are recorded in release manifests. Additionally (documentation-model rider, same ruling): a finding lives in its `docs/features/{feature}.md`; it goes central (PROJECT_STATE.md) ONLY if it concerns multiple features, toolchain, releases, rules, or cross-feature rulings; `docs/features/INDEX.md` rows update on every status change; the ruleset itself never modularizes. Rides on §3/§4/§5; the numbered rule count stays 10.
 
 **Rider (rev-57, approved) — FILE_STRUCTURE path authority:** `docs/FILE_STRUCTURE.md` (GS canonical repo; mirrored here as `docs/FILE_STRUCTURE.md`) is the single path authority for all worktrees, deploy targets, archives, and tool paths. Historical path references in earlier records are superseded by it — historical records are immutable and are corrected only by banner-prepending, never by rewriting. If an audit finding (including this repo's stale-path audits) conflicts with FILE_STRUCTURE design, that conflict is a STOP for planner/user decision, not an improvisation point. Rides on §7/§10; the numbered rule count stays 10.
+
+**Rider (rev-75, user-ordered 2026-10-03) — tool-loop / runaway-batch guards:** after
+three user-interrupted runaway tool loops (latest: a ~180-call batch with duplicates
+and no-op filler commands), the following are STANDING while executing any task:
+(1) **Batch cap:** a single response contains at most **4 tool calls**; larger
+evidence needs are split across responses. (2) **No filler:** every call must have a
+distinct, task-relevant purpose; identical or trivial no-op calls ("echo done") are
+forbidden. (3) **Dedupe:** no command (by text or by intent) is issued twice in a
+session unless its prior result is explicitly noted as unusable and why. (4) **Retry
+budget:** a failing command/tool gets at most **3 attempts** (with a materially
+different fix each time), then it is reported as blocked and the task proceeds by
+other means or stops. (5) **Missing-result halt:** if tool results come back empty,
+duplicated, or "[migration] missing", the agent STOPS issuing calls, states what
+happened, and re-derives the smallest next batch — it never "re-sends everything."
+(6) **Three-strike stop:** after 3 consecutive failed/empty batches, halt and report
+for user decision. Rides on §7/§8 (report what was and wasn't verified); the numbered
+rule count stays 10.

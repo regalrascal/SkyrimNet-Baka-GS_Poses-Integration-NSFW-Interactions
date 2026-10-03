@@ -77,19 +77,23 @@ named folder — `SN AnimationsGS v1.1.0 Build Patch` is a HISTORICAL record onl
 (verified absent from the live modlist on 2026-10-02); it is no longer a deploy
 target and must not be recreated.**
 
-Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-REV-69-deploy-integrity\`
+Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-REV-74-slavetats-service\`
 - THE deploy target (§1) until superseded by a later stamped folder; wins MO2 resolution
   over both base mods. Base-mod trees are never deploy targets; a build landing there is a
   wrong-tree deploy (resync to the stamped folder before the gate closes).
-- **REV-69 deploy-integrity restoration (2026-10-02):** the REV-68 folder (and the fork
-  tree) carried a stale REV-63-shape `SkyrimNet_BakaIntegration.pex` (E537B692FE69) —
-  compile output was never re-committed/deployed after the REV-65/68 source changes. Fixed
-  by a 0/0 recompile from the fixed source (fresh build output hashed
-  `A47D3CCDB975`/`04FDEBBFDEF0`/`1E22B3C2E7E1` for Integration/_MCM/BakaSL) deployed to
-  this fresh REV-69 stamped folder (REV-68 tree + 3 fresh pex; 38/38 Scripts +
-  3/3 esp hash-verified; §1/§2 verification FROM BUILD OUTPUT). The REV-68 folder is
-  retired (user disables it in MO2, retained for rollback). Root cause + lesson in
-  PROJECT_STATE REV-69.
+- **REV-74 deploy (2026-10-02):** full `[REV-74-test]` tree copy (itself the REV-72 tree +
+  alias-fixed esp) + fresh 6 pex (motherboard/BakaSL/MCM/ST module/SNBakaUI/AnimGS_LoadAlias —
+  the LoadAlias pex was missing from EVERY tree incl. workspace, source of the standing
+  FE0B5D64 bind error) + all 20 fresh psc (MCM source-skew fix) + 2 views; 255 files,
+  32/32 hash-verified from build output/repo. `[REV-74-test]` (diagnostic-only, Task-1) is
+  superseded — user disables it in MO2 at the swap. Dist zip `SN-AnimationsGS-Baka-Unified-
+  REV-74-slavetats-service.zip` + downloads copy hash MATCH. Record in slavetats.md.
+- **Prior lineage holders (retired, user disables in MO2, retained for rollback):**
+  `SN-AnimationsGS-Baka-Unified-REV-72-slavetats-module` (rev-72 lineage from Task-1 test era),
+  `SN-AnimationsGS-Baka-Unified-REV-69-deploy-integrity` (rev-69, stale-pex restoration:
+  fresh 0/0 recompile hashed `A47D3CCDB975`/`04FDEBBFDEF0`/`1E22B3C2E7E1` for
+  Integration/_MCM/BakaSL; 38/38 Scripts + 3/3 esp hash-verified; root cause + lesson in
+  PROJECT_STATE REV-69), `SN-AnimationsGS-Baka-Unified-REV-68-module-lifecycle` (rev-68).
 - Deployed patch folders carry revision-stamped names per the rev-42 rider
   (e.g. `SN-AnimationsGS-Baka-Unified-REV-68-module-lifecycle`); renames are MO2 edits
   under a CLOSED MO2. Prior stamped folders (REV-65 detection-fix and earlier) are
@@ -103,6 +107,13 @@ Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-R
   state now lives in the fresh REV-68 stamped folder (full tree copied from the
   REV-65 folder + verified FOMOD `fomod/` + manifest), and the REV-65 folder is
   retired (user disables it). ESPs untouched (Option B, zero esp edits).
+- **REV-76 NEVER-DEPLOY RULE (user ruling 2026-10-03, supersedes §1's Build-Patch
+  deploy convention for all future builds):** Cline NEVER deploys into the modlist.
+  All new revisions land exclusively in the fork's `dist\` (stamped folder + zip +
+  sha256 sidecar per convention). The USER installs everything manually via MO2
+  install-from-archive; the modlist is user-owned state and Cline's surface ends at
+  `dist\`. Every prior modlist-deploy notation above is historical record only —
+  the pattern is retired.
 
 ## 5. DevKit (validation tooling)
 
