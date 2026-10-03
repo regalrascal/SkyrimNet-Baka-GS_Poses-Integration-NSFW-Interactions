@@ -6032,6 +6032,12 @@ Function Release_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     _bReleaseRequested = True
     _Log("[SNBaka] Release_Execute: " + akInitiator.GetDisplayName() + " releases " + akTarget.GetDisplayName())
+    ; REV-74 Task 4 — removal-on-release (MCM "Remove Marks On Release", default ON): strip the
+    ; module's degradation marks when a captive is genuinely freed. Service-delegated, one line,
+    ; absence-safe (module no-ops without SlaveTats / without marks applied).
+    If StorageUtil.GetIntValue(Game.GetPlayer(), "SNBaka.ST.RemoveOnRelease", 1) == 1
+        SNBaka_SlaveTatsModule.RemoveAllFromActor(akTarget, "release")
+    EndIf
     ; If they were defeated by something other than our ground window (Acheron combat bleedout), free
     ; them directly — the ground-window flag alone won't be read by anyone.
     If external
@@ -7085,13 +7091,22 @@ EndFunction
 ; clears the slot. Thin dispatcher only — all state lives in SNBaka_SlaveTatsModule.
 Function _ST_MenuChoice(String asSlot, String asSection, String asName)
     _Log("[SNBaka] _ST_MenuChoice: slot=" + asSlot + " section=" + asSection + " name=" + asName)
-    SNBaka_SlaveTatsModule.SetChoice(asSlot, asSection, asName)
+    ; REV-74 Task 3 — the picker's name subfields ride here untouched (name|loc|color); the
+    ; module owns the parsing. Slot "picker" routes the pick to the actor-bound picker flow
+    ; (downed-menu Apply Tattoo), not the MCM set-slot flow.
+    If asSlot == "picker"
+        SNBaka_SlaveTatsModule.PickerChoice(asSection, asName)
+    Else
+        SNBaka_SlaveTatsModule.SetChoice(asSlot, asSection, asName)
+    EndIf
 EndFunction
 
 ; --- REV-72 SlaveTats LLM actions (external YAML: apply_tattoo / remove_tattoos) ---
 ; Thin executors — the module owns all state/gating. ApplyTattoo uses the spank-slot set
 ; (the natural "mark them" choice); RemoveTattoos strips everything the MODULE applied
-; (never Baka's own "SkyrimNet Spank" heat marks).
+; (never Baka's own "SkyrimNet Spank" heat marks). REV-74: bookkeeping and the
+; sdb_tattoo_applied/removed event fires now live INSIDE the module (single-entry rule —
+; these thin calls no longer duplicate the bookkeeping here).
 Function ApplyTattoo_Execute(Actor akInitiator, Actor akTarget)
     If !akTarget || !SNBaka_SlaveTatsModule.Installed()
         Return
@@ -7102,24 +7117,14 @@ Function ApplyTattoo_Execute(Actor akInitiator, Actor akTarget)
     If section == "" || name == ""
         Return    ; no set configured — action is a silent no-op (MCM/SlaveTats menu sets it)
     EndIf
-    If SNBaka_SlaveTatsModule.ApplyTattoo(akTarget, section, name)
-        StorageUtil.StringListAdd(akTarget, "SNBaka.ST.Applied", section + "|" + name, True)
-        _Log("[SNBaka] ApplyTattoo_Execute: applied '" + name + "' (" + section + ") to " + akTarget.GetDisplayName())
-        SkyrimNetApi.RegisterEvent("baka_tattoo_applied", \
-            akInitiator.GetDisplayName() + " marks " + akTarget.GetDisplayName() + " with a degrading tattoo.", \
-            akInitiator, akTarget)
-    EndIf
+    SNBaka_SlaveTatsModule.ApplyTattoo(akTarget, section, name, -1, True, "llm_action")
 EndFunction
 
 Function RemoveTattoos_Execute(Actor akInitiator, Actor akTarget)
     If !akTarget || !SNBaka_SlaveTatsModule.Installed()
         Return
     EndIf
-    SNBaka_SlaveTatsModule.RemoveAllFromActor(akTarget)
-    _Log("[SNBaka] RemoveTattoos_Execute: removed module-applied tattoos from " + akTarget.GetDisplayName())
-    SkyrimNetApi.RegisterEvent("baka_tattoos_removed", \
-        "The degradation tattoos on " + akTarget.GetDisplayName() + " are wiped away.", \
-        akInitiator, akTarget)
+    SNBaka_SlaveTatsModule.RemoveAllFromActor(akTarget, "llm_action")
 EndFunction
 
 ; --- Downed-victim menu dispatch ---
@@ -7202,6 +7207,18 @@ Function _DispatchDownedAction(Int choice, Actor akCaster, Actor akVictim)
         Return
     ElseIf choice == 7
         Untie_Execute(akCaster, akVictim)
+        Return
+    ElseIf choice == 8
+        ; REV-74 rider 1 — "Apply Tattoo" button on the downed menu. Unconditional affordance
+        ; (ruling ②B, recorded as ARCHITECTURE): the DLL-built button list is host surface and
+        ; stays module-ignorant; absence-handling is the SERVICE's job. The call below is a pure
+        ; service delegation — zero tattoo logic lives in this quest (presence-gated via the
+        ; service registry; the module no-ops gracefully when SlaveTats itself is absent).
+        SNBaka_SlaveTatsModule.OpenPickerFor(akVictim, akCaster)
+        Return
+    ElseIf choice == 9
+        ; REV-74 rider 1 — "Remove Tattoos" on the downed menu, same service-delegation contract.
+        SNBaka_SlaveTatsModule.RemoveAllFromActor(akVictim, "downedmenu")
         Return
     ElseIf choice == 3 && StorageUtil.GetIntValue(akVictim, "SNBaka.Tied", 0) == 1
         ; Stand Back must not quietly free a TIED prisoner — the bindings are the point.
@@ -8771,7 +8788,27 @@ Function _ArmModules()
     EndIf
     _Log("[SNBaka] module-arm: GS Poses presence=" + (Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None))
     SNBaka_SlaveTatsModule.Arm()
+    ; REV-74 rider 1 — motherboard service registry (first service: tattoo.picker). Hosts
+    ; (this quest, the downed menu) presence-probe the registry and CALL the service; the
+    ; module owns all logic. Entry-point services are presence-gated; hosts never contain
+    ; guest logic (module-contract clause, recorded in fomod.md at ship).
+    _RegisterService("tattoo.picker", SNBaka_SlaveTatsModule.Installed())
     _Log("[SNBaka] module-arm: arm pass complete")
+EndFunction
+
+; --- REV-74 rider 1: minimal service registry (register / probe / call) -------------------
+; Contract-shaped and deliberately tiny — this is the mechanism, not a framework: a service
+; id maps to a presence flag on this quest's StorageUtil namespace. The CALL leg stays a
+; direct Papyrus call at the host site (the module's Globals); the registry answers only
+; "is this service present right now?" so hosts never embed guest knowledge. Re-registered
+; on every _ArmModules pass (Setup + heartbeat self-heal) — presence is never stale.
+Function _RegisterService(String asServiceId, Bool abPresent)
+    StorageUtil.SetIntValue(Self, "SNBaka.Svc." + asServiceId, abPresent as Int)
+    _Log("[SNBaka] service-registry: '" + asServiceId + "' present=" + abPresent)
+EndFunction
+
+Bool Function _ProbeService(String asServiceId)
+    Return StorageUtil.GetIntValue(Self, "SNBaka.Svc." + asServiceId, 0) == 1
 EndFunction
 
 ; Disarm counterpart (REV-68), reserved by the module contract so later modules
@@ -8871,6 +8908,12 @@ Event OnUpdateGameTime()
     ; listeners above (handshakes re-log; EnsureAlive is a no-op when the bridge is
     ; already ticking).
     _ArmModules()
+    ; REV-74 rider 3 — SlaveTats ambient observation pass, dispatched from this heartbeat
+    ; (the cadence ruling: ride the existing ~0.5-game-hour ground floor rather than arm a
+    ; second self-renewing update chain — the §91 audit already flagged this file's update
+    ; chains once). Throttled inside the module to its own slower observation cadence;
+    ; idempotent; recordless-safe (a Global call — no alias, no registration).
+    SNBaka_SlaveTatsModule.ObservationPass()
     ; REV-65: FHU poll self-healing arming. REV-64 defect of record: the poll
     ; armed ONLY from Setup(), whose MCM OnGameReload chain never executed at
     ; save-load (stale save-bound SKI config instance) -- the poll was dead

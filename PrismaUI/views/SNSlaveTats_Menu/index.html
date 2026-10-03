@@ -21,6 +21,7 @@
        color: #c4a248; padding: 14px 18px 4px; text-align: center; }
   .hint { font-size: 12px; color: rgba(214,200,168,.55); text-align: center; padding: 0 18px 10px;
           border-bottom: 1px solid rgba(139,105,20,.25); }
+  #mode-banner { color: #c4a248; font-style: italic; }
   .body { padding: 12px 16px; overflow-y: auto; }
   .slot { display: flex; align-items: center; gap: 10px; padding: 7px 10px; margin-bottom: 6px;
           border: 1px solid rgba(139,105,20,.35); border-radius: 3px; cursor: pointer; }
@@ -45,6 +46,11 @@
   .btn { font-size: 13px; letter-spacing: .08em; color: #d6c8a8; padding: 6px 22px; border-radius: 3px;
          border: 1px solid rgba(139,105,20,.5); cursor: pointer; }
   .btn:hover { border-color: #c4a248; color: #e8d5a0; }
+  .swrow { display: flex; flex-wrap: wrap; gap: 5px; }
+  .swatch { font-size: 11px; color: #d6c8a8; text-align: center; padding: 5px 8px; border-radius: 3px;
+            border: 1px solid rgba(139,105,20,.35); cursor: pointer; white-space: nowrap; }
+  .swatch:hover { border-color: rgba(196,162,72,.7); }
+  .swatch.sel { border-color: #c4a248; background: rgba(196,162,72,.12); color: #e8d5a0; }
   .hidden { display: none !important; }
 </style>
 </head>
@@ -52,28 +58,40 @@
 <div id="backdrop">
   <div id="panel">
     <h1>SlaveTats Degradation Sets</h1>
-    <div class="hint">Pick a slot, then a section and a set. Applied alongside Baka's own marks.</div>
+    <div class="hint">Pick a slot, then a section and a set. Color optional.</div>
+    <div id="mode-banner" class="hint hidden"></div>
     <div class="body">
-      <div class="label">Slots</div>
+      <div class="label" id="slots-label">Slots</div>
       <div class="slot" id="slot-spank"><span class="tag">On Spank</span><span class="val"></span><span class="clear">Clear</span></div>
       <div class="slot" id="slot-defeat"><span class="tag">On Defeat</span><span class="val"></span><span class="clear">Clear</span></div>
       <div class="slot" id="slot-escalation"><span class="tag">On Escalation</span><span class="val"></span><span class="clear">Clear</span></div>
       <div class="label">Section</div>
       <div class="grid" id="st-sections"></div>
-      <div class="label hidden" id="names-label">Set</div>
+      <div class="label hidden" id="names-label">Sets in section</div>
       <div class="grid hidden" id="st-names"></div>
+      <div class="label hidden" id="colors-label">Color (optional)</div>
+      <div class="swrow hidden" id="st-colors"></div>
     </div>
     <div class="footer"><div class="btn" id="btn-done">Done</div></div>
   </div>
 </div>
 <script>
 // REV-72 SNSlaveTats_Menu — SlaveTats degradation-set picker.
-// Opened from Papyrus via SNBakaUI.ShowSlaveTatsMenu(json) → window.snbaka_open_slavetats.
+// REV-74 — two modes over the same view:
+//   "slots"  (MCM entry): pick stored sets for the spank/defeat/escalation event slots.
+//   "picker" (downed-menu Apply Tattoo, service tattoo.picker): pick applies IMMEDIATELY
+//            to the bound actor; the mode banner names them. Slot rows are hidden in
+//            picker mode and the pick is sent with slot "picker".
+// Opened from Papyrus via SNBakaUI.ShowSlaveTatsMenu(json) -> window.snbaka_open_slavetats.
 // The pick goes back on the shared snbaka_chose listener as "slot;section;name"
-// ("cancel" on dismiss); the DLL dispatches it to SkyrimNet_BakaIntegration._ST_MenuChoice.
-let g_slot = null;          // "spank" | "defeat" | "escalation"
+// (+ "|hex" color subfield on the name when a swatch is chosen); "cancel" on dismiss;
+// the DLL dispatches it to SkyrimNet_BakaIntegration._ST_MenuChoice unchanged.
+let g_slot = 'spank';       // "spank" | "defeat" | "escalation" | "picker" (sent as slot)
 let g_sections = [];        // [{ n: section, t: [names] }]
 let g_choice = {};          // slot -> "section|name" ("" = empty)
+let g_color = null;         // chosen swatch hex (null = pack default)
+let g_mode = 'slots';       // "slots" | "picker"
+let g_pickerTarget = '';    // display name of the picker-bound actor
 
 function _el(id) { return document.getElementById(id); }
 
@@ -84,14 +102,22 @@ function _sendChoice(value) {
 
 window.snbaka_open_slavetats = function (payload) {
   const data = (typeof payload === 'string') ? JSON.parse(payload || '{}') : (payload || {});
+  g_mode = data.mode || 'slots';
+  g_pickerTarget = data.target || '';
   g_choice = {
     spank:      (data.spank     === undefined) ? '' : String(data.spank),
     defeat:     (data.defeat    === undefined) ? '' : String(data.defeat),
     escalation: (data.escalation === undefined) ? '' : String(data.escalation),
   };
   g_sections = Array.isArray(data.sections) ? data.sections : [];
-  g_slot = null;
+  g_color = null;
+  g_slot = g_mode === 'picker' ? 'picker' : 'spank';
+  // Picker mode: hide the slot rows (nothing is stored).
+  const picker = (g_mode === 'picker');
+  _el('slots-label').classList.toggle('hidden', picker);
+  document.querySelectorAll('.slot').forEach(r => r.classList.toggle('hidden', picker));
   _render();
+  _renderModeBanner();
   _el('backdrop').classList.add('visible');
 };
 
@@ -127,6 +153,8 @@ function _render() {
   namesGrid.innerHTML = '';
   namesGrid.classList.add('hidden');
   _el('names-label').classList.add('hidden');
+  _el('st-colors').classList.add('hidden');
+  _el('colors-label').classList.add('hidden');
 }
 
 function _renderNames(section) {
@@ -144,6 +172,48 @@ function _renderNames(section) {
     t.onclick = () => _pickName(section, nm);
     namesGrid.appendChild(t);
   });
+  _renderColors();
+}
+
+// REV-74 — color swatch row (rider 1 picker upgrades). Rides the 3-string pipe inside
+// the name field: chosen swatch hex appended as "|<hex>" by _pickName. 'Default' = pack
+// default color (no subfield). Swatch set is fixed (SlaveTats packs are recolorable to
+// any 0xRRGGBB; these cover the common degradation-mark palette).
+const ST_COLORS = [
+  { n: 'Default', h: null },
+  { n: 'Black',   h: '1a1a1a' },
+  { n: 'Red',     h: '8b1a1a' },
+  { n: 'Crimson', h: 'b01030' },
+  { n: 'Dark Red',h: '550a0a' },
+  { n: 'Blue',    h: '1a1a8b' },
+  { n: 'Green',   h: '1a6b1a' },
+  { n: 'Purple',  h: '5a1a8b' },
+  { n: 'Pink',    h: 'c05a8b' },
+];
+
+function _renderColors() {
+  const row = _el('st-colors');
+  row.innerHTML = '';
+  row.classList.remove('hidden');
+  _el('colors-label').classList.remove('hidden');
+  ST_COLORS.forEach(c => {
+    const t = document.createElement('div');
+    t.className = 'swatch' + (g_color === c.h ? ' sel' : '');
+    if (c.h) t.style.background = '#' + c.h;
+    t.textContent = c.n;
+    t.onclick = () => { g_color = c.h; _renderColors(); };
+    row.appendChild(t);
+  });
+}
+
+function _renderModeBanner() {
+  const b = _el('mode-banner');
+  if (g_mode === 'picker') {
+    b.textContent = 'Picking for: ' + g_pickerTarget + ' — the choice applies immediately.';
+    b.classList.remove('hidden');
+  } else {
+    b.classList.add('hidden');
+  }
 }
 
 function _pickSection(name) {
@@ -154,7 +224,10 @@ function _pickSection(name) {
 
 function _pickName(section, name) {
   if (!g_slot) return;
-  _sendChoice(g_slot + ';' + section + ';' + name);
+  // REV-74: chosen color rides as a "|hex" subfield on the name (pack default = no
+  // subfield). Papyrus parses it (PickerChoice/SetChoice); location is pack-fixed and
+  // display-only (schema verdict — we do not invent location options).
+  _sendChoice(g_slot + ';' + section + ';' + name + (g_color ? '|' + g_color : ''));
   _close();
 }
 
@@ -180,13 +253,13 @@ _el('backdrop').addEventListener('click', e => { if (e.target.id === 'backdrop')
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') { e.preventDefault(); _sendChoice('cancel'); }
 });
-_el('backdrop').classList.remove('visible');
 function _close() { _el('backdrop').classList.remove('visible'); }
 
 // Browser preview (inert inside Skyrim/PrismaUI).
 (function () {
   if (typeof window.snbaka_chose === 'function') return;
   window.snbaka_open_slavetats({
+    mode: 'picker', target: 'Lydia',
     spank: 'Sluts|cumdump', defeat: '', escalation: '',
     sections: [
       { n: 'Sluts', t: ['cumdump', 'petgirl', 'breeder'] },
@@ -198,3 +271,4 @@ function _close() { _el('backdrop').classList.remove('visible'); }
 </script>
 </body>
 </html>
+

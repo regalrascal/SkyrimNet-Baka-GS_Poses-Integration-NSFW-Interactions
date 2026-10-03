@@ -88,6 +88,15 @@ Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-R
   32/32 hash-verified from build output/repo. `[REV-74-test]` (diagnostic-only, Task-1) is
   superseded — user disables it in MO2 at the swap. Dist zip `SN-AnimationsGS-Baka-Unified-
   REV-74-slavetats-service.zip` + downloads copy hash MATCH. Record in slavetats.md.
+- **REV-76 dist (2026-10-03, FIRST never-deploy-rule build):** `[REV-76] SN-BakaGS-Unified
+  mcm-replacement\` = REV-74 full tree + the REV-76 esp (MCM quest replacement: fresh
+  QUST 04000D99 `SNBaka_MCM` scripted + aliased; old QUST 04000D63 neutered —
+  zero-script VMAD, alias stripped, record kept) + fresh `SNBaka_MCM.pex/.psc`;
+  257 files. Zip `SN-AnimationsGS-Baka-Unified-REV-76-mcm-replacement.zip` (ROOT-level
+  layout per REV-74 precedent) + sidecar
+  `9537FECDF33E1574EB34435D8D180C4B76B9BEF467175DD1372EC4B06D30CB38`. User installs
+  via MO2 install-from-archive; REV-74 folder retires at the swap. DLLs/other esps
+  hash-MATCH REV-74 (untouched). Record in PROJECT_STATE §76.
 - **Prior lineage holders (retired, user disables in MO2, retained for rollback):**
   `SN-AnimationsGS-Baka-Unified-REV-72-slavetats-module` (rev-72 lineage from Task-1 test era),
   `SN-AnimationsGS-Baka-Unified-REV-69-deploy-integrity` (rev-69, stale-pex restoration:

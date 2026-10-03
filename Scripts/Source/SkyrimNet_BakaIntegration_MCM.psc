@@ -77,6 +77,10 @@ Int _stEscalOID
 Int _stRefreshOID
 Int _stStatusOID
 Int _stPickOID
+; REV-74 Task 4 — color / release / observation additions (SNBaka.ST.* keys, module defaults).
+Int _stDefaultColorOID
+Int _stRemoveOnReleaseOID
+Int _stObserveOID
 
 Event OnConfigInit()
     ModName = "Baka SkyrimNet"
@@ -107,8 +111,11 @@ EndEvent
 ; REV-72: bumped to 6 -- the "SlaveTats Degradation Sets" section was added to the Plugins
 ; page (SNBaka_SlaveTatsModule state: SNBaka.ST.* StorageUtil keys, player-keyed, defaults
 ; set in the module). No data migration (new keys only).
+; REV-74: bumped to 7 -- SlaveTats section gained the REV-74 options (module-wide default
+; color, removal-on-release, ambient observation). No data migration (new keys only; the
+; v7 marker distinguishes the crossing save for dogfood).
 Int Function GetVersion()
-    Return 6
+    Return 7
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -126,6 +133,12 @@ Event OnVersionUpdate(Int aVersion)
         ; Papyrus.0.log); not read by code.
         StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.ST.MCMv6", 1)
         Debug.Trace("[SNBaka] MCM v6: SlaveTats degradation-set section added to the Plugins page (SNBaka.ST.MCMv6=1 marker set)")
+    EndIf
+    If aVersion < 7
+        ; REV-74 marker (one-time, per-player): SlaveTats section gained default-color /
+        ; removal-on-release / observation options. Dogfood probe (grep SNBaka.ST.MCMv7).
+        StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.ST.MCMv7", 1)
+        Debug.Trace("[SNBaka] MCM v7: SlaveTats REV-74 options added (SNBaka.ST.MCMv7=1 marker set)")
     EndIf
     _BuildPages()
 EndEvent
@@ -311,6 +324,11 @@ Event OnPageReset(String page)
             _stRefreshOID = AddTextOption("Refresh Pack List",             "Refresh")
             _stStatusOID  = AddTextOption("Discovered Sections",           StorageUtil.GetIntValue(_stP, "SNBaka.ST.SectionCount", 0) + " (sets: choose in SlaveTats menu)")
             _stPickOID    = AddTextOption("Choose Sets (SlaveTats Menu)",  "Open")
+            ; REV-74 Task 4: module-wide default color (picker per-set colors override),
+            ; removal-on-release, and the ambient observation pass toggle.
+            _stDefaultColorOID   = AddTextOption("Default Mark Color",     _ST_ColorLabel(StorageUtil.GetIntValue(_stP, "SNBaka.ST.DefaultColor", 0)))
+            _stRemoveOnReleaseOID = AddToggleOption("Remove Marks On Release", StorageUtil.GetIntValue(_stP, "SNBaka.ST.RemoveOnRelease", 1) == 1)
+            _stObserveOID         = AddToggleOption("Ambient Observation Cues", StorageUtil.GetIntValue(_stP, "SNBaka.ST.Observe", 1) == 1)
         Else
             _stEnabledOID = AddToggleOption("Module Enabled (SlaveTats not installed)", False, OPTION_FLAG_DISABLED)
             _stSpankOID   = -1
@@ -319,6 +337,9 @@ Event OnPageReset(String page)
             _stRefreshOID = -1
             _stStatusOID  = -1
             _stPickOID    = -1
+            _stDefaultColorOID    = -1
+            _stRemoveOnReleaseOID = -1
+            _stObserveOID         = -1
         EndIf
     EndIf
 EndEvent
@@ -405,6 +426,29 @@ Event OnOptionSelect(Int option)
         ; REV-72 dogfood fix: the set picker had no in-game entry point (OpenSetMenu was
         ; dead code). Close the MCM first — PrismaUI modal needs the game input focus.
         SNBaka_SlaveTatsModule.OpenSetMenu()
+    ElseIf option == _stDefaultColorOID
+        ; REV-74: cycle Default -> Black -> Red -> Crimson -> Dark Red -> Blue -> Green
+        ; -> Purple -> Pink -> Default. Stored as the 0xRRGGBB int the module reads
+        ; (SNBaka.ST.DefaultColor; 0 = pack default / no recolor).
+        Actor stP2 = Main.PlayerRef
+        If !stP2
+            stP2 = Game.GetPlayer()
+        EndIf
+        Int[] palette = _ST_ColorPalette()
+        Int cur = StorageUtil.GetIntValue(stP2, "SNBaka.ST.DefaultColor", 0)
+        Int nxt = 0
+        Int ci = palette.Find(cur)
+        If ci < 0 || ci >= palette.Length - 1
+            nxt = palette[0]
+        Else
+            nxt = palette[ci + 1]
+        EndIf
+        StorageUtil.SetIntValue(stP2, "SNBaka.ST.DefaultColor", nxt)
+        SetTextOptionValue(_stDefaultColorOID, _ST_ColorLabel(nxt))
+    ElseIf option == _stRemoveOnReleaseOID
+        _ST_Toggle("SNBaka.ST.RemoveOnRelease", _stRemoveOnReleaseOID, 1)
+    ElseIf option == _stObserveOID
+        _ST_Toggle("SNBaka.ST.Observe", _stObserveOID, 1)
     ElseIf option == _animatedTearsOID
         Main.bAnimatedTearsEnabled = !Main.bAnimatedTearsEnabled
         SetToggleOptionValue(_animatedTearsOID, Main.bAnimatedTearsEnabled)
@@ -926,8 +970,52 @@ Event OnOptionHighlight(Int option)
         SetOptionHighlightText("Open the in-game SlaveTats set picker (choose which degradation set each event applies: spank / defeat / escalation).")
     ElseIf option == _stStatusOID
         SetOptionHighlightText("Number of tattoo sections SlaveTats discovered in the last Refresh. Sets are picked in the SlaveTats menu, not typed here.")
+    ElseIf option == _stDefaultColorOID
+        SetOptionHighlightText("Module-wide default color for applied marks (0xRRGGBB). Used when a path doesn't specify a color (LLM actions, event hooks without a per-channel color). The picker's per-pick and per-slot colors override it. 'Pack Default' = no recolor. Click to cycle.")
+    ElseIf option == _stRemoveOnReleaseOID
+        SetOptionHighlightText("Strip the module's degradation marks when a captive is genuinely released (the Release action). Only marks THIS module applied — Baka's own spank heat marks are untouched. Default ON.")
+    ElseIf option == _stObserveOID
+        SetOptionHighlightText("Periodic ambient cue (~every 4 game hours) that a marked actor still wears their degradation marks, so nearby personas can notice and react without polling. Only fires when module-applied marks exist. Default ON.")
     EndIf
 EndEvent
+
+; REV-74 — default-color palette shared by the MCM cycle and the picker swatches.
+Int[] Function _ST_ColorPalette()
+    Int[] palette = new Int[9]
+    palette[0] = 0x000000      ; sentinel 0 = pack default (stored key value 0)
+    palette[1] = 0x1a1a1a      ; Black
+    palette[2] = 0x8b1a1a      ; Red
+    palette[3] = 0xb01030      ; Crimson
+    palette[4] = 0x550a0a      ; Dark Red
+    palette[5] = 0x1a1a8b      ; Blue
+    palette[6] = 0x1a6b1a      ; Green
+    palette[7] = 0x5a1a8b      ; Purple
+    palette[8] = 0xc05a8b      ; Pink
+    Return palette
+EndFunction
+
+String Function _ST_ColorLabel(Int aiColor)
+    If aiColor == 0
+        Return "Pack Default"
+    ElseIf aiColor == 0x1a1a1a
+        Return "Black"
+    ElseIf aiColor == 0x8b1a1a
+        Return "Red"
+    ElseIf aiColor == 0xb01030
+        Return "Crimson"
+    ElseIf aiColor == 0x550a0a
+        Return "Dark Red"
+    ElseIf aiColor == 0x1a1a8b
+        Return "Blue"
+    ElseIf aiColor == 0x1a6b1a
+        Return "Green"
+    ElseIf aiColor == 0x5a1a8b
+        Return "Purple"
+    ElseIf aiColor == 0xc05a8b
+        Return "Pink"
+    EndIf
+    Return "Custom (0x" + SNBaka_SlaveTatsModule._IntToHex(aiColor) + ")"
+EndFunction
 
 ; REV-72 SlaveTats toggle helper — flips a player-keyed SNBaka.ST.* int between 1 and 0.
 Function _ST_Toggle(String asKey, Int aiOID, Int aiDefault)

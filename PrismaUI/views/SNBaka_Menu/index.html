@@ -455,6 +455,11 @@ const DOWNED_ACTIONS = [
   { id: 5, label: 'Execute'     },
   { id: 6, label: 'Tie Up'      },
   { id: 7, label: 'Untie'       },
+  // REV-74 rider 1 — tattoo service entries. UNCONDITIONAL affordance (ruling ②B): the host
+  // shows them always; the service handles SlaveTats absence gracefully (empty-state picker /
+  // silent no-op). Papyrus handles 8/9; the DLL's numeric pipe is untouched.
+  { id: 8, label: 'Apply Tattoo' },
+  { id: 9, label: 'Remove Tattoos' },
 ];
 
 // In-combat "Grapple" menu — shown instead of the normal interact menu when the target is hostile

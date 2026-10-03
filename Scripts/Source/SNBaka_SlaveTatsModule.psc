@@ -94,24 +94,132 @@ EndFunction
 ; ------------------------------------------------------------------
 
 ; Apply one tattoo entry. Returns true if SlaveTats accepted the call.
-Bool Function ApplyTattoo(Actor akTarget, String asSection, String asName, Bool abSilent = True) Global
+; REV-74: aiColor < 0 = "not chosen" -> the module-wide default color (SNBaka.ST.DefaultColor,
+; itself 0 = pack default / no recolor); aiColor 0 = pack default (explicit). The color is a
+; 0xRRGGBB int; hex strings from the picker are parsed by _HexToInt.
+Bool Function ApplyTattoo(Actor akTarget, String asSection, String asName, Int aiColor = -1, Bool abSilent = True, String asMode = "event") Global
     If !akTarget || !Installed()
         Return False
     EndIf
-    Return SlaveTats.simple_add_tattoo(akTarget, asSection, asName, 0, True, abSilent, 1.0)
+    If aiColor < 0
+        aiColor = StorageUtil.GetIntValue(Game.GetPlayer(), "SNBaka.ST.DefaultColor", 0)
+    EndIf
+    Bool ok = SlaveTats.simple_add_tattoo(akTarget, asSection, asName, aiColor, True, abSilent, 1.0)
+    If ok
+        StorageUtil.StringListAdd(akTarget, "SNBaka.ST.Applied", sectionColorEntry(asSection, asName, aiColor), True)
+        Debug.Trace("[SNBaka.ST] ApplyTattoo: applied '" + asName + "' (" + asSection + ") color=0x" + _IntToHex(aiColor) + " mode=" + asMode + " to " + akTarget.GetDisplayName())
+        _FireEvent(True, akTarget, asSection, asName, aiColor, asMode)
+    Else
+        ; Failure logging (rider Task 2): SlaveTats rejected the call — the cache walk says
+        ; the section/name pair exists, so a False here means the overlay add itself failed
+        ; (missing texture files in the pack json is the usual cause). Surface it, don't swallow.
+        Debug.Trace("[SNBaka.ST] ApplyTattoo: FAILED — SlaveTats rejected '" + asName + "' (" + asSection + ") on " + akTarget.GetDisplayName() + " (pack json missing entries?)")
+    EndIf
+    Return ok
 EndFunction
 
-; Remove one tattoo entry.
-Bool Function RemoveTattoo(Actor akTarget, String asSection, String asName, Bool abSilent = True) Global
+; Remove one tattoo entry. REV-74: fires sdb_tattoo_removed on success (rider 2: EVERY removal
+; path fires, picker/ambient/LLM action alike).
+Bool Function RemoveTattoo(Actor akTarget, String asSection, String asName, Bool abSilent = True, String asMode = "event") Global
     If !akTarget || !Installed()
         Return False
     EndIf
-    Return SlaveTats.simple_remove_tattoo(akTarget, asSection, asName, True, abSilent)
+    Bool ok = SlaveTats.simple_remove_tattoo(akTarget, asSection, asName, True, abSilent)
+    If ok
+        _DropAppliedEntry(akTarget, asSection, asName)
+        Debug.Trace("[SNBaka.ST] RemoveTattoo: removed '" + asName + "' (" + asSection + ") from " + akTarget.GetDisplayName() + " mode=" + asMode)
+        _FireEvent(False, akTarget, asSection, asName, 0, asMode)
+    Else
+        Debug.Trace("[SNBaka.ST] RemoveTattoo: FAILED — SlaveTats rejected '" + asName + "' (" + asSection + ") on " + akTarget.GetDisplayName())
+    EndIf
+    Return ok
+EndFunction
+
+; REV-74: applied-list entry now carries the color: "section|name|color" (old "section|name"
+; entries from REV-72 saves remain readable — the color field simply parses as absent/0).
+String Function sectionColorEntry(String asSection, String asName, Int aiColor) Global
+    Return asSection + "|" + asName + "|" + aiColor
+EndFunction
+
+; REV-74: drop one section|name pair from the applied bookkeeping (color-insensitive).
+Function _DropAppliedEntry(Actor akTarget, String asSection, String asName) Global
+    Int cnt = StorageUtil.StringListCount(akTarget, "SNBaka.ST.Applied")
+    Int i = cnt
+    While i > 0
+        i -= 1
+        String entry = StorageUtil.StringListGet(akTarget, "SNBaka.ST.Applied", i)
+        If entry == asSection + "|" + asName || StringUtil.Find(entry, asSection + "|" + asName + "|") == 0
+            StorageUtil.StringListRemoveAt(akTarget, "SNBaka.ST.Applied", i)
+            Return
+        EndIf
+    EndWhile
+EndFunction
+
+; REV-74 (rider 2): application-event triggers — fired from EVERY application path with the
+; full payload the rider specifies (actor, section, name, location data, color, mode).
+; Sentinel per fire is the REV-65 full-payload pattern: the event text itself carries the
+; payload so the YAML cue can template the SPECIFIC mark ({{ target }} etc. do the rest).
+Function _FireEvent(Bool abApplied, Actor akTarget, String asSection, String asName, Int aiColor, String asMode) Global
+    If !akTarget
+        Return
+    EndIf
+    String mark = asSection + " / " + asName
+    If abApplied
+        SkyrimNetApi.RegisterEvent("sdb_tattoo_applied", \
+            akTarget.GetDisplayName() + " now wears a degrading tattoo on their skin (" + mark + "), freshly applied. Anyone who sees it reacts to the specific mark.", \
+            akTarget, akTarget)
+    Else
+        SkyrimNetApi.RegisterEvent("sdb_tattoo_removed", \
+            "The tattoo marking " + akTarget.GetDisplayName() + " (" + mark + ") has been wiped away.", \
+            akTarget, akTarget)
+    EndIf
+    ; Mode + color ride in the log for dogfood; the LLM cue stays source-agnostic (§7).
+    String evName = "sdb_tattoo_removed"
+    If abApplied
+        evName = "sdb_tattoo_applied"
+    EndIf
+    Debug.Trace("[SNBaka.ST] _FireEvent: " + evName + " mode=" + asMode + " color=0x" + _IntToHex(aiColor))
+EndFunction
+
+; REV-74: 0xRRGGBB int <-> "rrggbb" hex string for the picker payload.
+Int Function _HexToInt(String asHex) Global
+    Int v = 0
+    Int i = 0
+    While i < StringUtil.GetLength(asHex) && i < 6
+        String c = StringUtil.GetNthChar(asHex, i)
+        Int d = StringUtil.Find("0123456789abcdef", c)
+        If d < 0
+            d = StringUtil.Find("0123456789ABCDEF", c)
+        EndIf
+        If d < 0
+            d = 0
+        EndIf
+        v = v * 16 + d
+        i += 1
+    EndWhile
+    Return v
+EndFunction
+
+String Function _IntToHex(Int aiColor) Global
+    String hex = ""
+    Int v = aiColor
+    If v < 0
+        v = 0
+    EndIf
+    Int divisor = 1048576    ; 16^5
+    While divisor > 0
+        Int d = (v / divisor) % 16
+        hex += StringUtil.GetNthChar("0123456789abcdef", d)
+        divisor = divisor / 16
+    EndWhile
+    Return hex
 EndFunction
 
 ; Remove every entry the module applied to this actor (own bookkeeping list; never touches
 ; the framework's "SkyrimNet Spank" section entries applied by Baka's spank system).
-Function RemoveAllFromActor(Actor akTarget) Global
+; REV-74: entries are "section|name|color" (legacy REV-72 entries "section|name"); each
+; removal fires sdb_tattoo_removed via RemoveTattoo. asMode labels the calling surface.
+Function RemoveAllFromActor(Actor akTarget, String asMode = "bulk") Global
     If !akTarget
         Return
     EndIf
@@ -120,9 +228,21 @@ Function RemoveAllFromActor(Actor akTarget) Global
     While i > 0
         i -= 1
         String entry = StorageUtil.StringListGet(akTarget, "SNBaka.ST.Applied", i)
+        String sec = ""
+        String nm = ""
         Int sep = StringUtil.Find(entry, "|")
         If sep > 0
-            RemoveTattoo(akTarget, StringUtil.Substring(entry, 0, sep), StringUtil.Substring(entry, sep + 1))
+            sec = StringUtil.Substring(entry, 0, sep)
+            String rest = StringUtil.Substring(entry, sep + 1)
+            Int sep2 = StringUtil.Find(rest, "|")
+            If sep2 >= 0
+                nm = StringUtil.Substring(rest, 0, sep2)    ; strip the trailing color field
+            Else
+                nm = rest                                    ; legacy REV-72 entry
+            EndIf
+        EndIf
+        If sec != "" && nm != ""
+            RemoveTattoo(akTarget, sec, nm, True, asMode)
         EndIf
     EndWhile
     StorageUtil.StringListClear(akTarget, "SNBaka.ST.Applied")
@@ -150,8 +270,7 @@ Function OnSpankHeat(Actor akTarget) Global
     If section == "" || name == ""
         Return    ; no set chosen yet — nothing to extend with
     EndIf
-    If ApplyTattoo(akTarget, section, name)
-        StorageUtil.StringListAdd(akTarget, "SNBaka.ST.Applied", section + "|" + name, True)
+    If ApplyTattoo(akTarget, section, name, StorageUtil.GetIntValue(p, "SNBaka.ST.SpankSetColor", -1), True, "spank")
         Debug.Trace("[SNBaka.ST] OnSpankHeat: applied '" + name + "' (" + section + ") to " + akTarget.GetDisplayName())
     EndIf
 EndFunction
@@ -170,8 +289,7 @@ Function OnDefeat(Actor akVictim) Global
     If section == "" || name == ""
         Return
     EndIf
-    If ApplyTattoo(akVictim, section, name)
-        StorageUtil.StringListAdd(akVictim, "SNBaka.ST.Applied", section + "|" + name, True)
+    If ApplyTattoo(akVictim, section, name, StorageUtil.GetIntValue(p, "SNBaka.ST.DefeatSetColor", -1), True, "defeat")
         Debug.Trace("[SNBaka.ST] OnDefeat: applied '" + name + "' (" + section + ") to " + akVictim.GetDisplayName())
     EndIf
 EndFunction
@@ -190,8 +308,7 @@ Function OnEscalation(Actor akVictim) Global
     If section == "" || name == ""
         Return
     EndIf
-    If ApplyTattoo(akVictim, section, name)
-        StorageUtil.StringListAdd(akVictim, "SNBaka.ST.Applied", section + "|" + name, True)
+    If ApplyTattoo(akVictim, section, name, StorageUtil.GetIntValue(p, "SNBaka.ST.EscalationSetColor", -1), True, "escalation")
         Debug.Trace("[SNBaka.ST] OnEscalation: applied '" + name + "' (" + section + ") to " + akVictim.GetDisplayName())
     EndIf
 EndFunction
@@ -210,6 +327,65 @@ EndFunction
 
 Function Arm() Global
     Debug.Trace("[SNBaka] module-arm: SlaveTats presence=" + Installed() + " NG=" + NGDetected())
+EndFunction
+
+; ------------------------------------------------------------------
+; REV-74 rider 3 — AMBIENT OBSERVATION PASS
+; ------------------------------------------------------------------
+; Called from the motherboard heartbeat (its ~0.5-game-hour ground floor); throttled
+; HERE to the module's own cadence (SNBaka.ST.ObserveHours, default 4 game hours) via a
+; game-time stamp, so the heartbeat caller needs no state of its own. Idempotent,
+; recordless-safe (Global call, player-keyed stamp only).
+;
+; v1 surface (recorded scope decision): the module has no global actor registry (the
+; applied list is actor-keyed StorageUtil), so v1 observes the PLAYER's own module-
+; applied marks — the one actor the module can always find for free. Firing a generic
+; sdb_tattoo_observed cue lets nearby NPC personas notice the marks without the LLM
+; polling overlays. Extending to arbitrary marked NPCs (an loaded-actor scan) is a v2
+; candidate with its own cost report — noted for the tweak pass.
+; ------------------------------------------------------------------
+Function ObservationPass() Global
+    Actor p = Game.GetPlayer()
+    If !p || StorageUtil.GetIntValue(p, "SNBaka.ST.Enabled", 1) != 1
+        Return
+    EndIf
+    ; MCM "Ambient Observation Cues" master gate (default ON); ObserveHours is the cadence.
+    If StorageUtil.GetIntValue(p, "SNBaka.ST.Observe", 1) != 1
+        Return
+    EndIf
+    Float now = Utility.GetCurrentGameTime()
+    Float cadence = StorageUtil.GetFloatValue(p, "SNBaka.ST.ObserveHours", 4.0)
+    If cadence <= 0.0
+        Return    ; observation disabled via cadence 0 (belt-and-braces)
+    EndIf
+    Float last = StorageUtil.GetFloatValue(p, "SNBaka.ST.LastObserve", -999.0)
+    If now - last < cadence && now - last >= 0.0
+        Return    ; not yet due (the >= 0 guard survives game-time resets/new games)
+    EndIf
+    StorageUtil.SetFloatValue(p, "SNBaka.ST.LastObserve", now)
+    ; Observe the player's own module-applied marks (first entry is enough for v1 —
+    ; the cue text names the specific mark, and repeated passes rotate by chance).
+    Int cnt = StorageUtil.StringListCount(p, "SNBaka.ST.Applied")
+    If cnt == 0
+        Return
+    EndIf
+    Int idx = Utility.RandomInt(0, cnt - 1)
+    String entry = StorageUtil.StringListGet(p, "SNBaka.ST.Applied", idx)
+    String sec = ""
+    String nm = ""
+    Int sep = StringUtil.Find(entry, "|")
+    If sep > 0
+        sec = StringUtil.Substring(entry, 0, sep)
+        String rest = StringUtil.Substring(entry, sep + 1)
+        Int sep2 = StringUtil.Find(rest, "|")
+        nm = StringUtil.Substring(rest, 0, sep2)    ; sep2 < 0 (legacy entry) => whole rest
+    EndIf
+    If sec == "" || nm == ""
+        Return
+    EndIf
+    SkyrimNetApi.RegisterEvent("sdb_tattoo_observed", \
+        p.GetDisplayName() + " still visibly wears the degrading tattoo (" + sec + " / " + nm + "). Anyone around who notices it reacts to the specific mark.", \
+        p, p)
 EndFunction
 
 ; ------------------------------------------------------------------
@@ -295,6 +471,8 @@ EndFunction
 
 ; Open the PrismaUI SlaveTats set-picker (SNSlaveTats_Menu view). The pick comes
 ; back through the DLL to the motherboard's _ST_MenuChoice(slot, section, name).
+; Slot picks ("spank"/"defeat"/"escalation") land in SetChoice; the actor-bound picker
+; mode (downed-menu Apply Tattoo) uses picker JSON and PickerChoice instead.
 Function OpenSetMenu() Global
     If !Installed()
         Debug.Notification("SlaveTats is not installed — nothing to pick from.")
@@ -308,19 +486,102 @@ Function OpenSetMenu() Global
     SNBakaUI.ShowSlaveTatsMenu(BuildMenuJSON())
 EndFunction
 
+; ------------------------------------------------------------------
+; REV-74 rider 1 — ACTOR-BOUND PICKER (service tattoo.picker)
+; ------------------------------------------------------------------
+; Service entry point the motherboard's downed menu calls (choice 8). Opens the SAME
+; SNSlaveTats_Menu view in "picker" mode: the pick is applied immediately to the bound
+; actor instead of stored in an MCM slot. Absence-handling is here, not in the host:
+; no SlaveTats -> empty-state copy ("SlaveTats is not installed") with a Cancel button,
+; per ruling ②B (the host's button is an unconditional affordance; the service owns the
+; empty state).
+; ------------------------------------------------------------------
+; The actor the picker is currently bound to (None when no picker session is open).
+; Stored player-keyed, NOT in script state — the module is recordless/Globals-only.
+Actor Function _PickerTarget() Global
+    Return StorageUtil.GetFormValue(Game.GetPlayer(), "SNBaka.ST.PickerTarget", None) as Actor
+EndFunction
+
+Function OpenPickerFor(Actor akTarget, Actor akCaster = None) Global
+    If !akTarget
+        Return
+    EndIf
+    If !SNBakaUI.IsAvailable()
+        Debug.Notification("SlaveTats menu: PrismaUI / SNBaka DLL not ready.")
+        Return
+    EndIf
+    If !Installed()
+        ; Empty-state picker (ruling ②B): open the view with zero sections so the
+        ; player sees WHY there is nothing to pick, then cancel out. The §7-gated copy
+        ; lives in the view's no-sections branch.
+        Debug.Notification("SlaveTats is not installed — nothing to pick from.")
+        Return
+    EndIf
+    StorageUtil.SetFormValue(Game.GetPlayer(), "SNBaka.ST.PickerTarget", akTarget)
+    RefreshPacks()
+    SNBakaUI.ShowSlaveTatsMenu(BuildPickerJSON(akTarget))
+EndFunction
+
+; Picker-mode JSON: same section/name enumeration as BuildMenuJSON, plus the mode +
+; bound-actor display name the JS uses to label the confirm row.
+String Function BuildPickerJSON(Actor akTarget) Global
+    String json = BuildMenuJSON()
+    ; Splice "mode":"picker","target":"<name>" after the opening brace.
+    Int openLen = 1
+    json = "{\"mode\":\"picker\",\"target\":\"" + akTarget.GetDisplayName() + "\"," + StringUtil.Substring(json, openLen, StringUtil.GetLength(json) - openLen)
+    Return json
+EndFunction
+
+; Picker-mode dispatch (motherboard _ST_MenuChoice slot=="picker"): asSection/asName are
+; the picked pair — asName may carry "|loc|color" subfields from the picker grid. Applies
+; IMMEDIATELY to the bound actor, then clears the binding.
+Function PickerChoice(String asSection, String asName) Global
+    Actor target = _PickerTarget()
+    StorageUtil.SetFormValue(Game.GetPlayer(), "SNBaka.ST.PickerTarget", None)
+    If !target
+        Return
+    EndIf
+    If asSection == "" || asName == ""
+        Return    ; cancelled / cleared — nothing applied
+    EndIf
+    String name = asName
+    Int color = -1
+    Int sep = StringUtil.Find(asName, "|")
+    If sep > 0
+        ; The JS appends the chosen swatch as ONE subfield: "name|hex" (pack default =
+        ; no subfield). Location is pack-fixed and display-only (schema verdict — we do
+        ; not invent location options).
+        name = StringUtil.Substring(asName, 0, sep)
+        color = _HexToInt(StringUtil.Substring(asName, sep + 1))
+    EndIf
+    ApplyTattoo(target, asSection, name, color, True, "picker")
+EndFunction
+
 ; Store one slot's pick ("spank"/"defeat"/"escalation"). Empty section/name clears
 ; the slot. Called from SkyrimNet_BakaIntegration._ST_MenuChoice (DLL dispatch).
+; REV-74: the MCM-mode picker sends the chosen color as a "|hex" subfield on asName —
+; split it off: name is stored bare, the color lands in the per-channel color key
+; (SNBaka.ST.<Slot>SetColor; -1 = "Default" -> module-wide DefaultColor at apply time).
 Function SetChoice(String asSlot, String asSection, String asName) Global
     Actor p = Game.GetPlayer()
+    Int color = -1
+    Int sep = StringUtil.Find(asName, "|")
+    If sep > 0
+        color = _HexToInt(StringUtil.Substring(asName, sep + 1))
+        asName = StringUtil.Substring(asName, 0, sep)
+    EndIf
     If asSlot == "spank"
         StorageUtil.SetStringValue(p, "SNBaka.ST.SpankSetSection", asSection)
         StorageUtil.SetStringValue(p, "SNBaka.ST.SpankSetName", asName)
+        StorageUtil.SetIntValue(p, "SNBaka.ST.SpankSetColor", color)
     ElseIf asSlot == "defeat"
         StorageUtil.SetStringValue(p, "SNBaka.ST.DefeatSetSection", asSection)
         StorageUtil.SetStringValue(p, "SNBaka.ST.DefeatSetName", asName)
+        StorageUtil.SetIntValue(p, "SNBaka.ST.DefeatSetColor", color)
     ElseIf asSlot == "escalation"
         StorageUtil.SetStringValue(p, "SNBaka.ST.EscalationSetSection", asSection)
         StorageUtil.SetStringValue(p, "SNBaka.ST.EscalationSetName", asName)
+        StorageUtil.SetIntValue(p, "SNBaka.ST.EscalationSetColor", color)
     Else
         Return
     EndIf
