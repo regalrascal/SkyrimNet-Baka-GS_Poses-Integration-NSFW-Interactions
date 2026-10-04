@@ -22,7 +22,10 @@ this design is a STOP for planner/user decision.
 
 ## 2. Project home "1a" (the fork — active worktree)
 
-`D:\Modding\Skyrim\Workspace\SkyrimNet-Baka-GS_Poses-Integration-NSFW-Interactions\`
+`D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\` (local folder
+renamed REV-82, 2026-10-04 — was
+`SkyrimNet-Baka-GS_Poses-Integration-NSFW-Interactions`; git identity,
+remotes, and branch verified intact at the new path)
 - Role: single active project repo (fork of upstream Baka mod; consolidated fork).
   Branch `new-features` (working branch since REV-59; `main` lags at REV-58 —
   verified 2026-10-02 REV-69 audit); origin
@@ -33,6 +36,12 @@ this design is a STOP for planner/user decision.
     stamped zip artifacts — not partial staging.
   - **Stamped names** carry the revision gate, bracket-prefixed per rev-42 rider,
     e.g. `dist\[REV-56] SN-BakaGS-Unified reference build\`.
+  - **Stamp convention OF RECORD (REV-82 ruling, 2026-10-04):** stamped folders
+    `[REV-NN] Delectatio-et-Dominium <desc>` and zips
+    `Delectatio-et-Dominium-<revNN>-<desc>.zip` — clean break, first live use
+    = the REV-82 cue-build package. All earlier `SN-BakaGS-Unified` /
+    `SN-AnimationsGS-Baka-Unified` stamps are HISTORICAL and never renamed
+    (the archive documents the transition).
   - **v1.4.1 pdb location — debug-only:** `dist\SkyrimNet_BakaIntegration-v1.4.1\SKSE\Plugins\SkyrimNet_BakaIntegration.pdb`
     is reference-build debug symbols; it is never shipped, never zipped into an
     installable tree (0 pdb in every release zip).
@@ -180,7 +189,8 @@ Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-R
 
 ## 7. D&D Features Planner (design authority — fork root; REV-81)
 
-`D:\Modding\Skyrim\Workspace\SkyrimNet-Baka-GS_Poses-Integration-NSFW-Interactions\D&D Features Planner.md`
+`D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\D&D Features Planner.md`
+(fork root, path updated at the REV-82 rename)
 - Role: the project's design-authority planner (feature pipeline, tiering
   semantics, cue-wording tiers — e.g. the arousal 3-tier: >=75% enthusiastic /
   25-75% fascinated / <=25% shocked). New design work cites it as the design
@@ -188,6 +198,7 @@ Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-R
   with this registry and the digestion session that owns restructuring.
 - Location: fork root (rides the repo tree, not a deploy artifact);
   registered here per REV-81 (2026-10-04).
-- REV-81 rename-map watch item: the fork-root cover artifact
-  `Delecatio_et_Dominium_Cover.jpg` is misspelled ("Delecatio" for
-  "Delectatio"); its rename joins the pending project-rename map (§82 Task 2).
+- REV-82 rename EXECUTED (2026-10-04): the fork-root cover artifact
+  `Delecatio_et_Dominium_Cover.jpg` (misspelled "Delecatio") renamed to
+  `Delectatio_et_Dominium_Cover.jpg` in the repo-folder rename pass;
+  local repo folder is now `D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium`.

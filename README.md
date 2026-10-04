@@ -2,7 +2,7 @@
   <img src="logo.png" alt="SkyrimNet Baka Integration + Animations GS" width="640">
 </p>
 
-<h1 align="center">SkyrimNet Baka Integration + Animations GS — NSFW Interactions</h1>
+<h1 align="center">Delectatio et Dominium — NSFW Interactions</h1>
 
 <p align="center">
   <em>LLM-driven physical &amp; intimate interactions and facial expressions for
