@@ -154,6 +154,12 @@ the REV-79 restructure shipped and is asserted at ship time.
   rides at ship time.
 
 Rides on §3/§5; the numbered rule count stays 10.
+  Checklist v4 (REV-82, 2026-10-04): 4. REV-82 zip contains both
+  witness-cue trigger YAMLs (`sdb_tattoo_applied` / `sdb_tattoo_removed`
+  in `regalrascal.baka-gs-integration\triggers\`), the observable-only
+  event texts in `_FireEvent`, and the `_ArousalClause` string in the
+  module pex — the §7 cue layer ships asserted (self-keyed arousal
+  tiering, neutral = silence). Rides on §3/§5; the count stays 10.
 [appended at REV-79: this rider was missing from the fork mirror — resynced
 from GS canonical with the checklist already at v2; see PROJECT_STATE §80 5b.]
 

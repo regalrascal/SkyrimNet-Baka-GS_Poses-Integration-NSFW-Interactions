@@ -158,27 +158,63 @@ EndFunction
 ; REV-74 (rider 2): application-event triggers — fired from EVERY application path with the
 ; full payload the rider specifies (actor, section, name, location data, color, mode).
 ; Sentinel per fire is the REV-65 full-payload pattern: the event text itself carries the
-; payload so the YAML cue can template the SPECIFIC mark ({{ target }} etc. do the rest).
+; payload so the YAML cue can react to the SPECIFIC mark ({{ target }} etc. do the rest).
+; REV-82 (§7 approved, ruling 3c): base text is OBSERVABLE-ONLY ("a fresh mark on their
+; skin" — the §7 payload-reachability finding: response.content templates only player_name /
+; event_json / time_desc / location / gameTimeStr and our 4-arg RegisterEvent fires no
+; extraData, so section/name is NOT templateable in the YAML layer; the specific mark rides
+; in THIS event text and the YAML points the LLM at it). The applied event appends an
+; arousal-tier clause read on the MARKED ACTOR's own arousal (self-keyed ruling of record);
+; neutral = SILENCE (base text alone, no invented state). The removed event ships base text
+; only — the approved clause wording is application-reaction text; removal tiers are a v2
+; item unless re-ruled.
 Function _FireEvent(Bool abApplied, Actor akTarget, String asSection, String asName, Int aiColor, String asMode) Global
     If !akTarget
         Return
     EndIf
     String mark = asSection + " / " + asName
-    If abApplied
-        SkyrimNetApi.RegisterEvent("sdb_tattoo_applied", \
-            akTarget.GetDisplayName() + " now wears a degrading tattoo on their skin (" + mark + "), freshly applied. Anyone who sees it reacts to the specific mark.", \
-            akTarget, akTarget)
-    Else
-        SkyrimNetApi.RegisterEvent("sdb_tattoo_removed", \
-            "The tattoo marking " + akTarget.GetDisplayName() + " (" + mark + ") has been wiped away.", \
-            akTarget, akTarget)
-    EndIf
-    ; Mode + color ride in the log for dogfood; the LLM cue stays source-agnostic (§7).
     String evName = "sdb_tattoo_removed"
+    String evText = "The mark on " + akTarget.GetDisplayName() + "'s skin (" + mark + ") has been wiped away."
     If abApplied
         evName = "sdb_tattoo_applied"
+        evText = akTarget.GetDisplayName() + " now wears a fresh mark on their skin (" + mark + "), freshly applied. Anyone who sees it reacts to the specific mark." + _ArousalClause(akTarget)
     EndIf
+    SkyrimNetApi.RegisterEvent(evName, evText, akTarget, akTarget)
+    ; Mode + color ride in the log for dogfood; the LLM cue stays source-agnostic (§7).
     Debug.Trace("[SNBaka.ST] _FireEvent: " + evName + " mode=" + asMode + " color=0x" + _IntToHex(aiColor))
+EndFunction
+
+; REV-82 (§7, Draft C approved): arousal tier for the applied-event clause, read on the
+; MARKED ACTOR's own arousal (self-keyed interpretation of record — cumflation's matrix
+; already conforms). Primary: OSL Aroused Reborn pure read via its SKSE plugin
+; (GetArousal has time-update side effects — NEVER at fire time; the plugin-version gate
+; keeps us off the native binding when the DLL is absent). Fallback: SLO Aroused NG via
+; the "sla_Framework" quest (both NG and Reborn ship that quest/script pair; Reborn is
+; caught by the primary, NG only by this). Neither readable -> "" (neutral = SILENCE,
+; no invented state). Thresholds per the D&D Features Planner: >=75 / 25–75 / <=25.
+; Clause wording standard OF RECORD (ratified §7, REV-82): OBSERVABLE BEHAVIOR ONLY —
+; describe what shows, never assert an internal state. This standard generalizes to
+; every planner matrix implementation.
+String Function _ArousalClause(Actor akTarget) Global
+    Float arousal = -1.0
+    If SKSE.GetPluginVersion("OSLAroused") > 0
+        arousal = OSLArousedNative.GetArousalNoSideEffects(akTarget)
+    Else
+        slaFrameworkScr sla = Quest.GetQuest("sla_Framework") as slaFrameworkScr
+        If sla
+            arousal = sla.GetActorArousal(akTarget) as Float
+        EndIf
+    EndIf
+    If arousal < 0.0
+        Return ""
+    EndIf
+    If arousal >= 75.0
+        Return " Their own reaction betrays them: skin flushing, breath quickening, a heat in their eyes that the fresh ink has stoked rather than shamed."
+    ElseIf arousal > 25.0
+        Return " Their own reaction is unsettled: a held breath, a glance down at the fresh ink, fascination and scandal warring plainly on their face."
+    Else
+        Return " Their own reaction is raw: a strangled sound, hands pressing over the mark, horror and disgust plain for anyone to see."
+    EndIf
 EndFunction
 
 ; REV-74: 0xRRGGBB int <-> "rrggbb" hex string for the picker payload.

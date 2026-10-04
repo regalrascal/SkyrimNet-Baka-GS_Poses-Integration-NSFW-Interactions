@@ -171,6 +171,10 @@ Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-R
   gate manifest's runtime paths encode the LoreRim install and the
   **Ultra-profile winners** (SexLab = `SexLab Framework PPLUS - V2.18.1`;
   Acheron = the `[NoDelete]` copy) — update on any modlist/profile change.
+- **REV-82 stub-pack additions:** `OSLArousedNative.psc` + `slaFrameworkScr.psc`
+  (fork `tools\compile\local\`; runtime sources = OSL Aroused Reborn and SLO
+  Aroused NG installs — both carriers ship both scripts, so either profile
+  resolves). Gate = 16 surfaces. GS mirror: `SkyrimNet-Animations-GS\tools\compile\stubs\local\`.
   Both files are ASCII-only.
 
 ---
