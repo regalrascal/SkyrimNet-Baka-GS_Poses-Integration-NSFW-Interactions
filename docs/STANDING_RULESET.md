@@ -173,3 +173,17 @@ scripts and build bats are ASCII-only — no em-dashes (PowerShell 5.1 +
 no-BOM UTF-8 + em-dash = parse breakage). (2) The Papyrus script log
 lives under `Documents\My Games\Skyrim Special Edition\Logs\Script\`,
 NOT under the SKSE dir. Rides on §3/§5; the numbered rule count stays 10.
+
+**Rider (REV-81, user-approved 2026-10-04) — external-trigger overlap
+governance:** before this project registers or ships any SkyrimNet trigger
+(event type or YAML cue), the installed runtime's OTHER SkyrimNet plugin
+surfaces (core library, OStimNet, SexLab integration, Devious Awareness,
+any newly installed plugin) are audited for a competing trigger on the same
+observable. A true overlap (same event type or same observable cue) is a
+STOP for user decision — never silently deduped, shadowed, or renamed
+around; near-misses (adjacent observables, different event types) are
+recorded in the feature doc. The audit is re-run whenever a new SkyrimNet
+plugin is installed at runtime. First application: the REV-81 tattoo-cue
+audit (sdb_tattoo_applied/removed vs tton_* / goodprovider.sexlab /
+telord.dd-sn-database surfaces — zero overlaps found, 2026-10-04). Rides
+on §3/§5; the numbered rule count stays 10.

@@ -174,4 +174,20 @@ Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-R
   `[REV-NN] <descriptive name>` (rev-42 rider adapted for dist).
 - Deployed MO2 patch folders: `(<rev-NN>)` suffix.
 - Repo folder names follow the GitHub repo (`GS_Poses`, underscore — NOT the
-  legacy `GS-_Poses` hyphen variant; that spelling marks quarantined trees only).
+  legacy `GS-_Poses` hyphen variant; that spelling marks quarantined trees only).
+
+---
+
+## 7. D&D Features Planner (design authority — fork root; REV-81)
+
+`D:\Modding\Skyrim\Workspace\SkyrimNet-Baka-GS_Poses-Integration-NSFW-Interactions\D&D Features Planner.md`
+- Role: the project's design-authority planner (feature pipeline, tiering
+  semantics, cue-wording tiers — e.g. the arousal 3-tier: >=75% enthusiastic /
+  25-75% fascinated / <=25% shocked). New design work cites it as the design
+  input of record; it does NOT restructure anything — structure changes stay
+  with this registry and the digestion session that owns restructuring.
+- Location: fork root (rides the repo tree, not a deploy artifact);
+  registered here per REV-81 (2026-10-04).
+- REV-81 rename-map watch item: the fork-root cover artifact
+  `Delecatio_et_Dominium_Cover.jpg` is misspelled ("Delecatio" for
+  "Delectatio"); its rename joins the pending project-rename map (§82 Task 2).
