@@ -201,7 +201,7 @@ runtimes. (VR additionally needs SkyrimNet and PrismaUI themselves to work in VR
 ## Requirements
 
 ### Hard (must have)
-- [SkyrimNet](https://goncalo22.github.io/SkyrimNet-GamePlugin/Installation%20Guide/skyrimnet-installation/) (+ SKSE64, [Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/32444))
+- [SkyrimNet](https://github.com/MinLL/SkyrimNet-GamePlugin) (+ SKSE64, [Address Library](https://www.nexusmods.com/skyrimspecialedition/mods/32444))
 - [PrismaUI](https://www.nexusmods.com/skyrimspecialedition/mods/148718)
 - [PapyrusUtil](https://www.nexusmods.com/skyrimspecialedition/mods/13048), [MfgFix](https://www.nexusmods.com/skyrimspecialedition/mods/11669), [powerofthree's Papyrus Extender](https://www.nexusmods.com/skyrimspecialedition/mods/22854)
 - [SlaveTatsNG](https://www.loverslab.com/files/file/35989-slavetatsng/) (or classic [SlaveTats](https://www.loverslab.com/files/file/619-slavetats/)) — for spank marks &amp; the sex-tear overlay. This mod bundles the `blank.dds` clear-texture, so SlaveTatsNG works without the old SlaveTats SE installed.
@@ -219,9 +219,9 @@ runtimes. (VR additionally needs SkyrimNet and PrismaUI themselves to work in VR
 ### Flavor (optional, each degrades gracefully if absent)
 - [OCreatures Revived](https://www.loverslab.com/files/file/49059-ocreatures-revived/) — needed for the creature escalation feature to actually produce a scene. Without it, creature escalation can still trigger narratively but the scene may not work correctly. You also need creature animation packs (e.g. Billyy's, Anub's) covering each creature type.
 - **Escalate to Sex After Win — male-victim coverage (SexLab P+ users).** When a male NPC ends up the victim at the escalation handoff, the mod applies a temporary SexLab `TreatAsFemale` override at handoff (rolled back at scene end) so female-authored aggressive scenes match. On **P+ (SexLab Framework PPLUS)** this works out of the box. On base SexLab (no P+) the override is skipped as inert. Optional coverage enhancement for P+ users: installing an animation pack that marks male-eligibility in its animation definitions widens the scene pool.
-- [Simple Slavery Plus Plus (SS++)](https://www.loverslab.com/files/file/13674-simple-slavery-plus-plus/) — required for the `SellToSlavery` action (targets the defeated **player** only)
-- [Follower Slavery Mod (FSM)](https://www.loverslab.com/files/file/30956-follower-slavery-mod-/) — required for the `EnslaveFollower` action (OFF by default in MCM)
-- [SkyrimNet Acheron Integration](https://github.com/Around906/SkyrimNet-Acheron-Integration) — optional companion that coordinates defeat/recovery states. Works fully standalone without it.
+- [Simple Slavery Plus Plus (SS++)](https://www.loverslab.com/files/file/13531-simple-slavery-plus-plus/) — required for the `SellToSlavery` action (targets the defeated **player** only)
+- [Follower Slavery Mod (FSM)](https://www.loverslab.com/files/file/23032-follower-slavery-mod-fsm-14122025/) — required for the `EnslaveFollower` action (OFF by default in MCM)
+
 ## Installation
 
 **Single-mod install.** This fork ships both mods' assets in one deploy tree. If you were running
