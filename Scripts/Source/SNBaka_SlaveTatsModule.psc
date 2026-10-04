@@ -391,9 +391,18 @@ EndFunction
 ; ------------------------------------------------------------------
 ; SET PICKING (PrismaUI SNSlaveTats_Menu, REV-72 Task 3)
 ; ------------------------------------------------------------------
-; The cache groups tattoos as cache -> domain("default") -> area -> section -> name,
-; and one section can span several areas (e.g. face + body entries of the same pack
-; section). Enumeration therefore unions across areas.
+; The cache groups tattoos as cache -> domain("default") -> area -> section, and one
+; section can span several areas (e.g. face + body entries of the same pack section).
+; Enumeration therefore unions across areas.
+;
+; REV-76-b — SECTION-NODE SHAPE (SE vs NG, the REV-77 discovery root cause):
+;   SE 1.3.x: the section node is a JMap KEYED BY TATTOO NAME (names = map keys).
+;   NG 0.8.x: the section node is a JArray OF ENTRY OBJECTS; each entry JMap carries
+;   "name" (and "section") as values — cf. NG's own SlaveTatsMCMMenu.psc _setup_sections.
+;   GetSetNames dispatches on JValue.isArray/JValue.isMap so both frameworks enumerate
+;   (the dual-flavor install is the worst case and must work). GetSections and
+;   _EnumerateSections need no dispatch: they walk area-map KEYS only, identical shape
+;   in both frameworks (proven by the healthy "18 sections discovered" count under NG).
 ; ------------------------------------------------------------------
 
 ; Unique section names discovered in the current cache (deduped across areas).
@@ -611,14 +620,30 @@ String[] Function GetSetNames(String asSection) Global
             If area != 0
                 Int sec = JMap.getObj(area, asSection)
                 If sec != 0
-                    String[] names = JMap.allKeysPArray(sec)
-                    Int n = 0
-                    While n < names.Length
-                        If result.Find(names[n]) < 0
-                            result = PapyrusUtil.PushString(result, names[n])
-                        EndIf
-                        n += 1
-                    EndWhile
+                    If JValue.isArray(sec)
+                        ; NG 0.8.x shape: JArray of entry objects; the name is a VALUE
+                        ; ("name" key) on each entry, not a map key. getObj on a
+                        ; non-container entry returns 0 -> getStr yields "" -> skipped.
+                        Int c = JArray.count(sec)
+                        Int n = 0
+                        While n < c
+                            String nm = JMap.getStr(JArray.getObj(sec, n), "name")
+                            If nm != "" && result.Find(nm) < 0
+                                result = PapyrusUtil.PushString(result, nm)
+                            EndIf
+                            n += 1
+                        EndWhile
+                    Else
+                        ; SE 1.3.x shape: JMap keyed by tattoo name (legacy path).
+                        String[] names = JMap.allKeysPArray(sec)
+                        Int n = 0
+                        While n < names.Length
+                            If result.Find(names[n]) < 0
+                                result = PapyrusUtil.PushString(result, names[n])
+                            EndIf
+                            n += 1
+                        EndWhile
+                    EndIf
                 EndIf
             EndIf
             a += 1
