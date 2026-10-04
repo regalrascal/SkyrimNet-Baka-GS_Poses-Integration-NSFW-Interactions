@@ -169,7 +169,7 @@ Bool Property bSellToSlavery       = True  Auto  ; allow the Sell-to-Slavery act
 Bool  Property bFollowerSlavery       = False  Auto
 Float Property fSlaveryPlayerDistance = 1500.0 Auto  ; player must be at least this far (or downed too) for EnslaveFollower to fire
 ; ===== Plugin: Immersive Lap Sitting (less dialogue) =====
-; Soft integration (autodetected, MCM > Plugins): lets the LLM have a speaker settle onto the lap of
+; Soft integration (autodetected, MCM > Lap Sitting page): lets the LLM have a speaker settle onto the lap of
 ; a currently-SEATED actor (player or NPC) by driving that mod's own quest/spell machinery.
 Bool Property bLapSitEnabled = True Auto
 ; TIED prisoners: a tied victim stays down in the captured pose for this many GAME hours — the
@@ -544,7 +544,7 @@ Function Setup()
         SkyrimNetApi.UnregisterAction("EnslaveFollower")
         _Log("[SNBaka] Setup: bFollowerSlavery is OFF — EnslaveFollower action unregistered")
     EndIf
-    ; Same gate for the Immersive Lap Sitting plugin action (MCM > Plugins).
+    ; Same gate for the Immersive Lap Sitting plugin action (MCM > Lap Sitting).
     If !IsLapSitInstalled()
         SkyrimNetApi.UnregisterAction("SitOnLap")
         _Log("[SNBaka] Setup: Lap Sitting.esp not installed — SitOnLap action unregistered")
@@ -580,7 +580,7 @@ EndFunction
 ; Plugin-presence probe for the Acheron bridge (REV-68 MCM "Downed State" section) —
 ; reads the bridge's own quest form (SNAcheron_Quest 0x800) exactly like the liveness
 ; probes in _DelegateDownToAcheron and _RegisterModEvents. Returns None (with a harmless
-; engine log line) when the bridge esp is absent. Shared by the MCM Plugins page and
+; engine log line) when the bridge esp is absent. Shared by the Acheron MCM page and
 ; _ArmModules' nudge path.
 Bool Function IsAcheronBridgeInstalled()
     Return Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp") != None
@@ -6577,7 +6577,7 @@ Function _DoLapSit(Actor akSitter, Actor akSeated, Bool abPlayerSitter)
     _Log("[SNBakaACT] SitOnLap ENTER (playerSitter=" + abPlayerSitter + ")")
     If !bEnabled || !bLapSitEnabled || !akSitter || !akSeated || akSitter == akSeated
         If abPlayerSitter && !bLapSitEnabled
-            _Notify("Lap Sitting is disabled in the Baka MCM (Plugins page).")
+            _Notify("Lap Sitting is disabled in the Baka MCM (Lap Sitting page).")
         EndIf
         Return
     EndIf

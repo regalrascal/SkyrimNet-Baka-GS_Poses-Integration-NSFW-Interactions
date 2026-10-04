@@ -146,6 +146,13 @@ Checklist v2 (REV-79, 2026-10-04): 2. REV-79 zip contains the 8-page
 MCM (8 `Pages[]` entries in `SNBaka_MCM.psc`: General / Timing /
 Resist / Spank / Scenes & FX / Plugins / Acheron / SlaveTats) —
 the REV-79 restructure shipped and is asserted at ship time.
+  Checklist v3 (REV-80, 2026-10-04): 3. REV-80 zip contains the
+  10-page MCM (10 `Pages[]` entries in `SNBaka_MCM.psc`: General /
+  Timing / Resist / Spank / Scenes & FX / Lap Sitting / Cum Effects /
+  Fill Her Up / Acheron / SlaveTats) — the Plugins page is dissolved;
+  every integration is a top-level page; the count-plus-names guard
+  rides at ship time.
+
 Rides on §3/§5; the numbered rule count stays 10.
 [appended at REV-79: this rider was missing from the fork mirror — resynced
 from GS canonical with the checklist already at v2; see PROJECT_STATE §80 5b.]
