@@ -156,6 +156,13 @@ Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-R
   **Standing maintenance rule:** any fork stub change (e.g., the REV-68 `Acheron.psc`
   signature extension) must be mirrored to the GS copy in the same session, hash-verified,
   or the GS copy is stale and must be re-synced before the next compile gate run.
+- **REV-79 stub-parity gate:** `tools\compile\stub_parity.ps1` (GS private home,
+  beside the bat) runs as its BLOCKING pre-step (any signature delta between a local
+  stub and the installed runtime aborts the build; ruleset REV-79 rider). The
+  gate manifest's runtime paths encode the LoreRim install and the
+  **Ultra-profile winners** (SexLab = `SexLab Framework PPLUS - V2.18.1`;
+  Acheron = the `[NoDelete]` copy) — update on any modlist/profile change.
+  Both files are ASCII-only.
 
 ---
 
@@ -167,6 +174,4 @@ Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-R
   `[REV-NN] <descriptive name>` (rev-42 rider adapted for dist).
 - Deployed MO2 patch folders: `(<rev-NN>)` suffix.
 - Repo folder names follow the GitHub repo (`GS_Poses`, underscore — NOT the
-  legacy `GS-_Poses` hyphen variant; that spelling marks quarantined trees only).
-
-- [pointer] `../GSA/case-redress/` — REV-69 case-isolated records (Incident #2 redress investigation): quarantined outside tracked roots; excluded from project records/pushes; promotion is the user's ruling only. See `case-redress/CASE_FILE.md`.
+  legacy `GS-_Poses` hyphen variant; that spelling marks quarantined trees only).

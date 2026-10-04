@@ -146,7 +146,18 @@ function _render() {
     const t = document.createElement('div');
     t.className = 'tile';
     t.style.gridColumn = '1 / -1';
-    t.textContent = 'No SlaveTats sections discovered — enable a pack and Refresh in the MCM.';
+    // REV-79 counted, honest empty state (§80 UX lie fixed): distinguish
+    // NOTHING discovered from DISCOVERED-BUT-DROPPED using the payload's
+    // disc/emit counts (added in BuildMenuJSON this rev).
+    const disc = (typeof data.disc === 'number') ? data.disc : -1;
+    const emit = (typeof data.emit === 'number') ? data.emit : -1;
+    if (disc === 0) {
+      t.textContent = 'No SlaveTats packs discovered — enable a pack in MO2, then Refresh in the MCM.';
+    } else if (disc > 0 && emit === 0) {
+      t.textContent = disc + ' section(s) discovered, 0 listed — the set reader dropped them (see Papyrus log).';
+    } else {
+      t.textContent = 'No SlaveTats sections discovered — enable a pack and Refresh in the MCM.';
+    }
     secGrid.appendChild(t);
   }
   const namesGrid = _el('st-names');

@@ -130,3 +130,39 @@ happened, and re-derives the smallest next batch — it never "re-sends everythi
 (6) **Three-strike stop:** after 3 consecutive failed/empty batches, halt and report
 for user decision. Rides on §7/§8 (report what was and wasn't verified); the numbered
 rule count stays 10.
+
+**Rider (REV-77 close, user-ordered 2026-10-04) — shipping-features checklist
+(reconciliation-gate guard, generalized):** the dist-build reconciliation gate
+now runs THE SHIPPING-FEATURES CHECKLIST — a maintained list where every
+persistent, user-facing feature of the package gets a guard line **at ship
+time, not at discovery time**. File-set consistency alone is not completeness:
+**a reconciliation gate inherits the blind spots of its first manifest —
+consistency is not completeness** (the fomod/ lesson: fomod/ vanished from
+dist zips at REV-72 and the gate stayed green for four builds because no
+checklist line asserted the feature). Checklist v1:
+1. `fomod/` present at zip root; `ModuleConfig.xml` parses as XML (REV-76-b).
+Pending future entries (append at their ship): real module toggles.
+Checklist v2 (REV-79, 2026-10-04): 2. REV-79 zip contains the 8-page
+MCM (8 `Pages[]` entries in `SNBaka_MCM.psc`: General / Timing /
+Resist / Spank / Scenes & FX / Plugins / Acheron / SlaveTats) —
+the REV-79 restructure shipped and is asserted at ship time.
+Rides on §3/§5; the numbered rule count stays 10.
+[appended at REV-79: this rider was missing from the fork mirror — resynced
+from GS canonical with the checklist already at v2; see PROJECT_STATE §80 5b.]
+
+**Rider (REV-79, user-approved 2026-10-04) — stub-parity build gate +
+Papyrus log location (§3/§5 riders):** (1) `tools\compile\stub_parity.ps1`
+runs as a BLOCKING pre-step of `compile_baka.bat` (exit 1 aborts the
+build): every local compile-stub signature must parity-match the
+INSTALLED runtime source, defaults included, with inherited members
+resolved (the gate walks `extends` chains on the runtime side; stubs
+stay flat); and shipped pex must not call any function the runtime
+lacks (SkyUI truth = the `SkyUI_SE.bsa` name table). Motivating class:
+`JArray.getObj` 2-vs-3 args (PROJECT_STATE §80; 294 runtime aborts) and
+`Acheron.AddOption` 3-arg-void vs 4-arg-int (caught by the gate's first
+live run, same class). Any stub change must be mirrored to the GS
+`tools\compile\stubs\` copy in the same session, hash-verified. Gate
+scripts and build bats are ASCII-only — no em-dashes (PowerShell 5.1 +
+no-BOM UTF-8 + em-dash = parse breakage). (2) The Papyrus script log
+lives under `Documents\My Games\Skyrim Special Edition\Logs\Script\`,
+NOT under the SKSE dir. Rides on §3/§5; the numbered rule count stays 10.

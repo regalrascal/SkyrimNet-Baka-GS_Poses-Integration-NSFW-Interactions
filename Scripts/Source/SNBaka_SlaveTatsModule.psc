@@ -436,13 +436,18 @@ String[] Function GetSections() Global
         EndWhile
     EndIf
     SlaveTats.release_cache()
+    ; REV-79 menu-path sentinel (§5): GetSections was one of the four silent functions
+    ; on the picker path — the §80 diagnosis had to infer its health from side effects.
+    Debug.Trace("[SNBaka.ST] GetSections: " + result.Length + " sections")
     Return result
 EndFunction
 
 ; Build the SNSlaveTats_Menu JSON payload: current chosen sets + every discovered
 ; section with its tattoo names. Capped (60 sections / 30 names) so the JS payload
 ; stays sane for big installs; escaping is minimal (| and quotes are not expected in
-; SlaveTats section/name keys).
+; SlaveTats section/name keys). REV-79: payload carries "disc"/"emit" counts so the
+; view's empty state can distinguish NOTHING-DISCOVERED from DISCOVERED-BUT-DROPPED
+; (the §80 UX lie), and the build itself traces the sections/listed/dropped triple.
 String Function BuildMenuJSON() Global
     Actor p = Game.GetPlayer()
     String curSpank = StorageUtil.GetStringValue(p, "SNBaka.ST.SpankSetSection", "") + "|" + StorageUtil.GetStringValue(p, "SNBaka.ST.SpankSetName", "")
@@ -474,7 +479,11 @@ String Function BuildMenuJSON() Global
         EndIf
         s += 1
     EndWhile
-    json += "]}"
+    json += "]"
+    ; REV-79 counted empty-state: the view gets discovery-vs-listed counts so it can
+    ; tell "nothing discovered" from "discovered but dropped at render" (§80 UX lie).
+    json += ",\"disc\":" + sections.Length + ",\"emit\":" + emitted + "}"
+    Debug.Trace("[SNBaka.ST] BuildMenuJSON: sections=" + sections.Length + " listed=" + emitted + " dropped=" + (sections.Length - emitted))
     Return json
 EndFunction
 
@@ -492,6 +501,8 @@ Function OpenSetMenu() Global
         Return
     EndIf
     RefreshPacks()
+    ; REV-79 menu-path sentinel (§5): OpenSetMenu was silent on the MCM path.
+    Debug.Trace("[SNBaka.ST] Picker: open path=MCM sections=" + StorageUtil.GetIntValue(Game.GetPlayer(), "SNBaka.ST.SectionCount", -1))
     SNBakaUI.ShowSlaveTatsMenu(BuildMenuJSON())
 EndFunction
 
@@ -528,6 +539,8 @@ Function OpenPickerFor(Actor akTarget, Actor akCaster = None) Global
     EndIf
     StorageUtil.SetFormValue(Game.GetPlayer(), "SNBaka.ST.PickerTarget", akTarget)
     RefreshPacks()
+    ; REV-79 menu-path sentinel (§5): OpenPickerFor was silent on the event path.
+    Debug.Trace("[SNBaka.ST] Picker: open path=event sections=" + StorageUtil.GetIntValue(Game.GetPlayer(), "SNBaka.ST.SectionCount", -1))
     SNBakaUI.ShowSlaveTatsMenu(BuildPickerJSON(akTarget))
 EndFunction
 
@@ -604,6 +617,8 @@ EndFunction
 ; Tattoo names inside one section (unioned across all areas that carry it).
 String[] Function GetSetNames(String asSection) Global
     String[] result = Utility.CreateStringArray(0)
+    ; REV-79: shape sentinel for the exit trace below -- "none" = section not found.
+    String shp = "none"
     If !Installed() || asSection == ""
         Return result
     EndIf
@@ -620,14 +635,19 @@ String[] Function GetSetNames(String asSection) Global
             If area != 0
                 Int sec = JMap.getObj(area, asSection)
                 If sec != 0
+                    shp = "map"
                     If JValue.isArray(sec)
+                        shp = "array"
                         ; NG 0.8.x shape: JArray of entry objects; the name is a VALUE
                         ; ("name" key) on each entry, not a map key. getObj on a
                         ; non-container entry returns 0 -> getStr yields "" -> skipped.
                         Int c = JArray.count(sec)
                         Int n = 0
                         While n < c
-                            String nm = JMap.getStr(JArray.getObj(sec, n), "name")
+                            ; REV-79 arity fix (§80 root cause): 3-arg call — the installed
+                            ; JContainers native is getObj(object, index, default=0); the old
+                            ; 2-arg call aborted to None on every entry read (294 errors).
+                            String nm = JMap.getStr(JArray.getObj(sec, n, 0), "name")
                             If nm != "" && result.Find(nm) < 0
                                 result = PapyrusUtil.PushString(result, nm)
                             EndIf
@@ -650,5 +670,8 @@ String[] Function GetSetNames(String asSection) Global
         EndWhile
     EndIf
     SlaveTats.release_cache()
+    ; REV-79 menu-path sentinel (§5, per §80 spec): one line per section call —
+    ; shape names which enumeration branch ran; count is the unioned result.
+    Debug.Trace("[SNBaka.ST] GetSetNames: " + asSection + " shape=" + shp + " count=" + result.Length)
     Return result
 EndFunction
