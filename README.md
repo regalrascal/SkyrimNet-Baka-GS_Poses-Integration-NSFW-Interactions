@@ -214,7 +214,7 @@ runtimes. (VR additionally needs SkyrimNet and PrismaUI themselves to work in VR
 - [Flash Games – Struggling QTE](https://www.nexusmods.com/skyrimspecialedition/mods/121909) — blocking-based QTE for grab/choke holds
 - [Dynamic Feminine Female Modesty Animations OAR](https://www.nexusmods.com/skyrimspecialedition/mods/104374) — cover-self reaction (this mod doesn't bundle animations)
 - [Additional Expressions Project](https://www.nexusmods.com/skyrimspecialedition/mods/72337) — facial-expression morph values (the values are baked in; the mod itself isn't required at runtime)
-- [SeverActions – SkyrimNet Action Pack](https://www.loverslab.com/files/file/34312-severactions-skyrimnet-action-pack/) — enriches the LLM's downed/capture options (cease fighting, adjust relationship, take prisoner/arrest, ransom, dismiss/recruit). Baka downed cues invite these outcomes, so they "just work."
+- [SeverActions – SkyrimNet Action Pack](https://github.com/Severause/SeverActions) — enriches the LLM's downed/capture options (cease fighting, adjust relationship, take prisoner/arrest, ransom, dismiss/recruit). Baka downed cues invite these outcomes, so they "just work."
 
 ### Flavor (optional, each degrades gracefully if absent)
 - [OCreatures Revived](https://www.loverslab.com/files/file/49059-ocreatures-revived/) — needed for the creature escalation feature to actually produce a scene. Without it, creature escalation can still trigger narratively but the scene may not work correctly. You also need creature animation packs (e.g. Billyy's, Anub's) covering each creature type.
