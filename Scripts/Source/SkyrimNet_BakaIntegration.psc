@@ -5636,10 +5636,14 @@ Function DrugFood_Execute(Actor akInitiator, Actor akTarget)
     _DefeatGroundWindow(akInitiator, akTarget)
 EndFunction
 
-; --- ShowingOffBody ---
-; A1=BaboShowingOffBodyA2 (the one being shown off / posed), A2=BaboShowingOffBodyA1 (observer).
-; Inverted naming: A1 role plays the A2 animation, A2 role plays the A1 animation.
-; No body-sex gate — Baka uses role-based A1/A2 naming so any character can perform the pose.
+; --- ShowingOffBody ---  [REV-84 UI label: "Ogle Body"; YAML name/id unchanged]
+; OBSERVED BEHAVIOR (dogfood-verified REV-84): the INITIATOR ogles; the TARGET poses
+; ostentatiously and the beat ends with a slap. Anim names are doubly role-inverted
+; (Babo A1/A2 naming vs. who performs): the initiator (first arg) plays
+; BaboShowingOffBodyA2 = the OGLER; the target (second arg) plays BaboShowingOffBodyA1
+; = the POSER. Do not "fix" the pairing — it renders correctly as shipped.
+; No body-sex gate — Baka uses role-based A1/A2 naming so any character can perform
+; either side.
 ; (HasFemaleBody on the player is unreliable with RaceMenu presets — male base, female appearance.)
 Function ShowingOffBody_Execute(Actor akInitiator, Actor akTarget)
     _Log("[SNBakaACT] ShowingOffBody ENTER")
@@ -5652,7 +5656,7 @@ Function ShowingOffBody_Execute(Actor akInitiator, Actor akTarget)
     RecordAnimation(akInitiator, "ShowingOffBody", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "ShowingOffBody", akInitiator.GetDisplayName())
     _CueOngoing("baka_intimate", \
-        akInitiator.GetDisplayName() + " shows off their body to " + akTarget.GetDisplayName() + ".", \
+        akInitiator.GetDisplayName() + " ogles " + akTarget.GetDisplayName() + " while they pose ostentatiously.", \
         akInitiator, akTarget)
 
     _ClearTearsForAffection(akInitiator, akTarget)
@@ -5662,7 +5666,7 @@ Function ShowingOffBody_Execute(Actor akInitiator, Actor akTarget)
         fMolestLoopDuration)
 
     _CueOutcome("baka_intimate", \
-        akInitiator.GetDisplayName() + " showed off their body to " + akTarget.GetDisplayName() + ".", \
+        akInitiator.GetDisplayName() + " ogled " + akTarget.GetDisplayName() + "'s ostentatious posing; it ended with a slap.", \
         akInitiator, akTarget)
     UnlockBoth(akInitiator, akTarget)
 EndFunction
@@ -5750,13 +5754,13 @@ EndFunction
 ;   InteractMenuAffectionate : 0=Back Hug  1=Front Hug  2=Kiss  3=Flirt  4=Cancel
 ;   InteractMenuAggressive   : 0=Grab Hold  1=Struggle  2=Choke  3=Womb Hit  4=Cancel
 ;   InteractMenuAggPhysical  : [Sexual submenu]   0=Forced Kiss  1=Spank  2=Touch Breasts  3=Examine  4=Cancel
-;   InteractMenuAggSexual    : [Devious submenu]  0=Show Off Body  1=Drunk Exploit  2=Drug Food  3=Fondle  4=Cancel
+;   InteractMenuAggSexual    : [Devious submenu]  0=Ogle Body  1=Drunk Exploit  2=Drug Food  3=Fondle  4=Cancel
 ;
 ;   CK records to update (button text only — FormIDs unchanged):
 ;     SNBaka_InteractMenuMain:       was 3 buttons, now 5: Affectionate/Aggressive/Sexual/Devious/Cancel
 ;     SNBaka_InteractMenuAggressive: was Physical/Sexual/Cancel, now: Grab Hold/Struggle/Choke/Womb Hit/Cancel
 ;     SNBaka_InteractMenuAggPhysical: relabel to Sexual actions: Forced Kiss/Spank/Touch Breasts/Examine/Cancel
-;     SNBaka_InteractMenuAggSexual:   relabel to Devious actions: Show Off Body/Drunk Exploit/Drug Food/Fondle/Cancel
+;     SNBaka_InteractMenuAggSexual:   relabel to Devious actions: Ogle Body/Drunk Exploit/Drug Food/Fondle/Cancel
 ;     SNBaka_InteractMenuAffectionate: NO CHANGE
 Function Interact_ShowMenu(Actor akTarget, Actor akCaster)
     If !akTarget || !akCaster

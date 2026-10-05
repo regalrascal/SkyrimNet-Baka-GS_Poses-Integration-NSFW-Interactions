@@ -20,7 +20,7 @@ Bool Function IsAvailable() Global Native
 ;   0=BackHug  1=FrontHug  2=Kiss  3=Flirt
 ;   4=GrabHold 5=Struggle  6=Choke  7=WombHit
 ;   8=ForcedKiss 9=Spank 10=TouchChest 11=Examine
-;  12=ShowOffBody 13=DrunkExploit 14=DrugFood 15=Fondle
+;  12=ShowOffBody [REV-84 UI label: "Ogle Body"] 13=DrunkExploit 14=DrugFood 15=Fondle
 ;  -1=Cancel
 Function ShowInteractMenu(Actor akCaster, Actor akTarget) Global Native
 
