@@ -6719,6 +6719,51 @@ Function Untie_Execute(Actor akCutter, Actor akTarget)
     _Log("[SNBaka] Untie: " + akTarget.GetDisplayName() + " untied (still downed, fresh timer)")
 EndFunction
 
+; --- Execute ---
+; EXECUTE — a deliberate killing blow on a downed (or tied) victim, the guaranteed alternative to the
+; hit-based execution (which depends on hit events surviving Acheron's hooks). Entry for BOTH the LLM
+; action (execute.yaml) and the PrismaUI downed-menu's choice 5 -- before this existed the kill lived
+; only inside _DispatchDownedAction, so the README's "LLM-callable" Execute never reached the model.
+; Same rules as the hit path: essential/protected actors survive Actor.Kill; victims mid-scene are
+; untouchable; our claim is released first so nothing fights the corpse. Never the player (their
+; defeat IS the death alternative).
+Function Execute_Execute(Actor akInitiator, Actor akTarget)
+    _Log("[SNBakaACT] Execute ENTER")
+    If !bEnabled || !akInitiator || !akTarget
+        Return
+    EndIf
+    If akTarget == PlayerRef || akTarget.IsDead()
+        _Log("[SNBaka] Execute: blocked — target is the player or already dead")
+        Return
+    EndIf
+    If _IsDownedAny(akInitiator) || akInitiator.IsDead()
+        _Log("[SNBaka] Execute: blocked — initiator downed/dead")
+        Return
+    EndIf
+    If !_IsDownedAny(akTarget) && StorageUtil.GetIntValue(akTarget, "SNBaka.Tied", 0) != 1
+        _Log("[SNBaka] Execute: blocked — target is not downed or tied")
+        Return
+    EndIf
+    If IsInSexAnimation(akTarget)
+        _Log("[SNBaka] Execute: blocked — target mid-scene")
+        Return
+    EndIf
+    _Log("[SNBaka] Execute: " + akInitiator.GetDisplayName() + " finishes " + akTarget.GetDisplayName())
+    ; Visual cue: the executor swings their equipped weapon at the body before it dies —
+    ; attackStart drives a real attack animation for player and NPC alike; if the graph
+    ; rejects it in some stance, the kill still lands, just without the flourish.
+    Debug.SendAnimationEvent(akInitiator, "attackStart")
+    Utility.Wait(0.6)
+    SkyrimNetApi.RegisterEvent("baka_execution", \
+        akInitiator.GetDisplayName() + " finishes the helpless " + akTarget.GetDisplayName() + " with a deliberate killing blow.", \
+        akInitiator, akTarget)
+    StorageUtil.SetIntValue(akTarget, "SNAcheron.Held", 0)
+    StorageUtil.SetIntValue(akTarget, "SNBaka.OnGround", 0)
+    akTarget.Kill(akInitiator)
+    Utility.Wait(0.5)
+    _Log("[SNBaka] Execute: post-kill IsDead=" + akTarget.IsDead() + " (False = an essential flag blocked it)")
+EndFunction
+
 ; --- Escalate ---
 ; Entry for BOTH the LLM action path (DLL action execution) AND the PrismaUI downed-menu's
 ; choice 0 (line ~6649 dispatch) -- both land here and both are covered by the retry window.
@@ -6958,27 +7003,7 @@ Function _DispatchDownedAction(Int choice, Actor akCaster, Actor akVictim)
         Return
     EndIf
     If choice == 5
-        ; EXECUTE — a deliberate killing blow on the downed victim, the guaranteed alternative to the
-        ; hit-based execution (which depends on hit events surviving Acheron's hooks). Same rules:
-        ; essential/protected actors survive Actor.Kill; our claim is released first so nothing
-        ; fights the corpse. Never the player (their defeat IS the death alternative).
-        If akVictim == PlayerRef || akVictim.IsDead()
-            Return
-        EndIf
-        _Log("[SNBaka] _DispatchDownedAction: EXECUTE — " + akCaster.GetDisplayName() + " finishes " + akVictim.GetDisplayName())
-        ; Visual cue: the executor swings their equipped weapon at the body before it dies —
-        ; attackStart drives a real attack animation for player and NPC alike; if the graph
-        ; rejects it in some stance, the kill still lands, just without the flourish.
-        Debug.SendAnimationEvent(akCaster, "attackStart")
-        Utility.Wait(0.6)
-        SkyrimNetApi.RegisterEvent("baka_execution", \
-            akCaster.GetDisplayName() + " finishes the helpless " + akVictim.GetDisplayName() + " with a deliberate killing blow.", \
-            akCaster, akVictim)
-        StorageUtil.SetIntValue(akVictim, "SNAcheron.Held", 0)
-        StorageUtil.SetIntValue(akVictim, "SNBaka.OnGround", 0)
-        akVictim.Kill(akCaster)
-        Utility.Wait(0.5)
-        _Log("[SNBaka] _DispatchDownedAction: post-execute IsDead=" + akVictim.IsDead() + " (False = an essential flag blocked it)")
+        Execute_Execute(akCaster, akVictim)
         Return
     ElseIf choice == 6
         TieUp_Execute(akCaster, akVictim)

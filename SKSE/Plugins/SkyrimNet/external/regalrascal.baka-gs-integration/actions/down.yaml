@@ -17,5 +17,5 @@
 # cost than losing the entire action group, so we accept it and leave this enabled.
 customCategory: SNBaka_Downed
 name: Down
-description: "Actions taken on a character who is DOWNED, defeated, and helpless on the ground (a Baka defeat or anything left bleeding out): force themselves on them, help them back up, release them, harass or grope them. Valid even while still nominally in combat, because the victim is alive and helpless."
+description: "Actions taken on a character who is DOWNED, defeated, and helpless on the ground (a Baka defeat or anything left bleeding out): force themselves on them, help them back up, release them, harass or grope them, or execute them with a killing blow. Valid even while still nominally in combat, because the victim is alive and helpless."
 enabled: true
