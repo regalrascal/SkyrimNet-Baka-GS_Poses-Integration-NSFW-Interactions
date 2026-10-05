@@ -205,4 +205,12 @@ Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-R
 - REV-82 rename EXECUTED (2026-10-04): the fork-root cover artifact
   `Delecatio_et_Dominium_Cover.jpg` (misspelled "Delecatio") renamed to
   `Delectatio_et_Dominium_Cover.jpg` in the repo-folder rename pass;
-  local repo folder is now `D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium`.
+  local repo folder is now `D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium`.
+- REV-83 (2026-10-04): the planner is NOW SHARED (user-moved to the fork
+  root; git-untracked user artifact by standing precedent). Digested IN
+  FULL (PROJECT_STATE §84 gap map). Its working projection = the GS
+  `docs/features/` checklist tree (INDEX master checklist + module docs:
+  cum-effects, cumflation, dirty-talk, baka-module, gs-poses, slavetats
+  REV-83 §). ONE-WAY FLOW of record: planner -> checklist, never silently
+  back (planner edits are the user's; checklist edits cite, never rewrite,
+  planner intent). The planner file itself is NEVER edited by sessions.
