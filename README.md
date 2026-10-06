@@ -36,9 +36,11 @@ and react with facial expressions during roleplay. It hooks into SkyrimNet throu
 - **Player pose grid** — a PrismaUI panel that pauses the game, lets you browse 19 pose
   categories (each with multiple variants) on a scrollable grid, and fires the chosen
   animation on yourself or any crosshair-targeted NPC
-- **LLM-driven NPC posing** — the AI puts nearby female NPCs into mood-fitting solo poses
+- **LLM-driven NPC posing** — the AI puts nearby NPCs into mood-fitting solo poses
   contextually (seductive, dancing, submissive, hard-working, playful, etc.) through the
-  **Muse** background daemon, with **Overdrive Mode** to double the rate
+  **Muse** background daemon, with **Overdrive Mode** to double the rate; a
+  **pose gender policy** MCM setting (female-only / curated / all-poses) controls who may
+  be posed, and high-arousal NPCs lean toward the sensual poses
 - **Crosshair targeting** — cast the GS Pose Selector at any NPC to pose them instead of
   yourself; refusal feedback if the target can't comply
 - An **LLM consideration prompt** grounds every pose in the current scene context, NPC

@@ -79,8 +79,8 @@ window.GS_POSES = {
     ]},
     { "id":"idle", "name":"Idle / Waiting", "poses":[
       {"e":"GS131","n":131,"d":"support / friendship gesture"},{"e":"GS135","n":135,"d":"shy, nervous, contained"},{"e":"GS147","n":147,"d":"hands behind, slightly sexy"},
-      {"e":"GS177","n":177,"d":"arms crossed, suggesting"},{"e":"GS196","n":196,"d":"victory pose (≤5s)"},{"e":"GS624","n":624,"d":"idle female"},
-      {"e":"GS628","n":628,"d":"idle female"},{"e":"GS629","n":629,"d":"fist battle prep"},{"e":"GS632","n":632,"d":"mad, arms crossed"},{"e":"GS639","n":639,"d":"shy waiting"}
+      {"e":"GS177","n":177,"d":"arms crossed, suggesting"},{"e":"GS196","n":196,"d":"victory pose (≤5s)"},{"e":"GS624","n":624,"d":"idle"},
+      {"e":"GS628","n":628,"d":"idle"},{"e":"GS629","n":629,"d":"fist battle prep"},{"e":"GS632","n":632,"d":"mad, arms crossed"},{"e":"GS639","n":639,"d":"shy waiting"}
     ]},
     { "id":"situational", "name":"Situational (needs prop)", "poses":[
       {"e":"GS290","n":290,"d":"on furniture (table/barrel) — needs actor on top"},{"e":"GS291","n":291,"d":"on furniture — needs actor on top"},{"e":"GS292","n":292,"d":"on furniture — needs actor on top"},

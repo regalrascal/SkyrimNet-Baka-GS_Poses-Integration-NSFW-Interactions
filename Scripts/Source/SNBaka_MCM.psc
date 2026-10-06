@@ -110,6 +110,9 @@ Int _stPickOID
 Int _stDefaultColorOID
 Int _stRemoveOnReleaseOID
 Int _stObserveOID
+; REV-85 Phase B — GS Poses top-level page: the gender policy mode selector
+; (GSAnim.GenderPolicy StorageUtil int on None; 0 = female-only default).
+Int _gsGenderPolicyOID
 
 Event OnConfigInit()
     ModName = "Delectatio et Dominium"
@@ -157,7 +160,9 @@ Int Function GetVersion()
     ; each integration becomes its own top-level page (user ruling); the
     ; SlaveTats page's set-assignment section is retitled "Auto-Apply Sets"
     ; (configuration-vs-picker clarity, §7-approved copy).
-    Return 3
+    ; REV-85: THIRD canonical bump (v3 -> v4) — the "GS Poses" top-level page
+    ; joins (gender policy home, posing-gender.md §2b; page-count 10 -> 11).
+    Return 4
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -173,8 +178,11 @@ Event OnVersionUpdate(Int aVersion)
     ; the stale cached count on existing saves — flaw noted at dogfood).
     StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v3", 1)
     StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.ST.MCMv9", 1)
+    ; REV-85 v4 (GS Poses page): canary marker — pages rebuilt FIRST so the
+    ; canary reports the NEW page count (the v2 lesson, applied by convention).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v4", 1)
     _BuildPages()
-    Debug.Trace("[SNBaka] MCM canary: v3 OnVersionUpdate (integrations as top-level pages: " + Pages.Length + ")")
+    Debug.Trace("[SNBaka] MCM canary: v4 OnVersionUpdate (GS Poses page: " + Pages.Length + ")")
 EndEvent
 
 ; ============================================================================
@@ -200,7 +208,9 @@ EndEvent
 Function _BuildPages()
     ; REV-80: 10 pages — the Plugins page is dissolved; every integration is
     ; a top-level left-pane page (one integration, one page, expandable later).
-    Pages    = new String[10]
+    ; REV-85: 11 pages — "GS Poses" joins as a top-level page (gender policy
+    ; home, posing-gender.md §2b ruling: MCM-page home, page-count bump).
+    Pages    = new String[11]
     Pages[0] = "General"
     Pages[1] = "Timing"
     Pages[2] = "Resist"
@@ -211,6 +221,7 @@ Function _BuildPages()
     Pages[7] = "Fill Her Up"
     Pages[8] = "Acheron"
     Pages[9] = "SlaveTats"
+    Pages[10] = "GS Poses"
 EndFunction
 
 Event OnPageReset(String page)
@@ -422,6 +433,15 @@ Event OnPageReset(String page)
             _stRemoveOnReleaseOID = -1
             _stObserveOID         = -1
         EndIf
+    ElseIf page == "GS Poses"
+        ; REV-85 Phase B: the gender policy home (posing-gender.md §2b). One menu
+        ; option, three modes; the GS script reads the key on every gate (no nudge
+        ; needed — every check is a fresh StorageUtil read). Mode names mirror the
+        ; policy vocabulary of record.
+        SetCursorFillMode(TOP_TO_BOTTOM)
+        AddHeaderOption("GSPoses — Pose Gender Policy")
+        AddTextOption("Who may be posed, by body: female-only keeps the shipped behavior; curated admits men to the neutral set; all-poses opens the whole library.", "", OPTION_FLAG_DISABLED)
+        _gsGenderPolicyOID = AddMenuOption("Pose Gender Policy", _gsGenderPolicyName(StorageUtil.GetIntValue(None, "GSAnim.GenderPolicy", 0)))
     EndIf
 EndEvent
 
@@ -636,6 +656,10 @@ Event OnOptionMenuOpen(Int option)
         SetMenuDialogOptions(_targetSexNames())
         SetMenuDialogStartIndex(Main.iTargetSex)
         SetMenuDialogDefaultIndex(0)
+    ElseIf option == _gsGenderPolicyOID
+        SetMenuDialogOptions(_gsGenderPolicyNames())
+        SetMenuDialogStartIndex(StorageUtil.GetIntValue(None, "GSAnim.GenderPolicy", 0))
+        SetMenuDialogDefaultIndex(0)
     EndIf
 EndEvent
 
@@ -652,6 +676,16 @@ Event OnOptionMenuAccept(Int option, Int index)
     ElseIf option == _femaleOnlyOID
         Main.iTargetSex = index
         SetMenuOptionValue(_femaleOnlyOID, _targetSexName(index))
+    ElseIf option == _gsGenderPolicyOID
+        ; REV-85 Phase B: write GSAnim.GenderPolicy (StorageUtil int on None, the
+        ; GS script's own key style; save-persisted, no migration — 0 is shipped
+        ; default). The GS gates read it fresh on every check, so this is live.
+        If index < 0 || index > 2
+            index = 0
+        EndIf
+        StorageUtil.SetIntValue(None, "GSAnim.GenderPolicy", index)
+        SetMenuOptionValue(_gsGenderPolicyOID, _gsGenderPolicyName(index))
+        Debug.Notification("GS Poses: pose gender policy set — " + _gsGenderPolicyName(index))
     EndIf
 EndEvent
 
@@ -689,6 +723,25 @@ String[] Function _backendNames()
     a[1] = "SexLab"
     a[2] = "OStim"
     Return a
+EndFunction
+
+; REV-85 Phase B — GS Poses page: gender policy mode names (GSAnim.GenderPolicy).
+; The default index is 0 everywhere (female-only = shipped default, no migration).
+String[] Function _gsGenderPolicyNames()
+    String[] a = new String[3]
+    a[0] = "Female only"
+    a[1] = "Curated (men: neutral set)"
+    a[2] = "All poses"
+    Return a
+EndFunction
+
+String Function _gsGenderPolicyName(Int i)
+    If i == 1
+        Return "Curated (men: neutral set)"
+    ElseIf i == 2
+        Return "All poses"
+    EndIf
+    Return "Female only"
 EndFunction
 
 String Function _backendName(Int i)

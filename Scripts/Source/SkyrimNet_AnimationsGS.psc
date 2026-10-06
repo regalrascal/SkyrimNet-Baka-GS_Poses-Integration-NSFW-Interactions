@@ -39,6 +39,55 @@ Int Function _SexOf(Actor akActor) Global
     Return bse.GetSex()
 EndFunction
 
+; ── REV-85 Phase B: gender policy (posing-gender.md §2a/§2b, rulings A/B) ───
+; One StorageUtil int on None, the proven GSAnim.Muse/Overdrive pattern:
+;   GSAnim.GenderPolicy  0 = female-only (shipped default, no behavior change)
+;                         1 = curated    (the _VibeMaleOK 11-vibe male-safe set)
+;                         2 = all-poses  (no gender gate anywhere)
+; Save-persisted, MCM-owned (SNBaka_MCM "GS Poses" page). Every gender gate in
+; this script routes through _GenderPolicy() — the 7-site rewire (crosshair
+; validation, _PoseVibe, _DaemonScan, muse fire veto, muse context sex field).
+; Unknown/clamped values read as 0: never a silent behavior change on an
+; unread value (the 6a discipline).
+Int Function _GenderPolicy()
+    Int iMode = StorageUtil.GetIntValue(None, "GSAnim.GenderPolicy", 0)
+    If iMode < 0 || iMode > 2
+        Return 0
+    EndIf
+    Return iMode
+EndFunction
+
+; REV-85 Phase B: the central admission question — "may THIS actor pose on a
+; vibe from the library at all, gender-wise?" Mode 0: females only (shipped
+; behavior; males refused, unknown-sex stays blocked — the 6a leveled edge).
+; Mode 1: males admitted only for curated (_VibeMaleOK) vibes. Mode 2: no
+; gender gate (sex is never a refusal reason). Replaces the per-site female
+; tests; the sole authority for every site so the modes can never disagree.
+Bool Function _GenderAdmits(Actor ak, String vibe)
+    Int iMode = _GenderPolicy()
+    If iMode == 2
+        Return True
+    EndIf
+    Int iSex = _SexOf(ak)
+    If iSex == 1
+        Return True
+    EndIf
+    If iMode == 1 && iSex == 0 && _VibeMaleOK(vibe)
+        Return True
+    EndIf
+    Return False
+EndFunction
+
+; REV-85 Phase B: per-mode refusal strings (§7 ruling B). Mode 0 keeps the
+; shipped string verbatim; mode 1 carries the approved curated line; mode 2
+; has no gender refusal by construction (callers skip the leg entirely).
+String Function _GenderRefusal(Actor ak, Int iMode)
+    If iMode == 1
+        Return ak.GetDisplayName() + " isn't the type for that pose."
+    EndIf
+    Return ak.GetDisplayName() + " can't pose: female poses only."
+EndFunction
+
 ; ── Phase 4: muse daemon + performance mode (overdrive) state ──────────────
 ; Flags are StorageUtil ints on None (this mod's existing key style). BOTH are flipped by
 ; grid footer buttons (OVERDRIVE_TOGGLE / MUSE_TOGGLE sentinels). The Muse button was the
@@ -332,8 +381,11 @@ Event OnPoseSelected(String asEventName, String asPose, Float afNum, Form akSend
             Debug.Notification(akTarget.GetDisplayName() + " can't pose: dead.")
             Return
         EndIf
-        If _SexOf(akTarget) != 1     ; female only -- same rule as _PoseVibe (leveled-safe, 6a)
-            Debug.Notification(akTarget.GetDisplayName() + " can't pose: female poses only.")
+        ; REV-85 Phase B: the L335 female test is replaced by the central policy
+        ; admission (posing-gender.md §2c) — dead/busy legs unchanged above/below.
+        ; Mode 2 loses the leg entirely; 0/1 keep per-mode refusal strings.
+        If _GenderPolicy() != 2 && !_GenderAdmits(akTarget, "")
+            Debug.Notification(_GenderRefusal(akTarget, _GenderPolicy()))
             Return
         EndIf
         If _IsBusyElsewhere(akTarget)   ; mid-scene/combat/seated -- reason stays vague on purpose
@@ -498,11 +550,11 @@ Function _PoseVibe(Actor ak, String vibe, String label)
     If !ak || ak == PlayerRef
         Return
     EndIf
-    ; REV-26 Task 1b: gender gate per the approved vibe-level split — females pass as
-    ; before; males pass ONLY for _VibeMaleOK vibes; unknown sex (-1, leveled edge) stays
-    ; blocked exactly as before (never a silent behavior change on an unread value).
-    Int iSex = _SexOf(ak)
-    If (iSex != 1 && iSex != 0) || (iSex == 0 && !_VibeMaleOK(vibe))
+    ; REV-85 Phase B: gender gate routes through _GenderAdmits (the rev-26 vibe-level
+    ; split is now mode-aware: mode 0 keeps it exactly — females pass, males only via
+    ; _VibeMaleOK, unknown sex stays blocked, never a silent change on an unread value;
+    ; mode 1 is the same table as the crosshair admission; mode 2 drops the gate).
+    If !_GenderAdmits(ak, vibe)
         Return
     EndIf
     ; Don't pose someone already busy elsewhere (Baka paired anim/struggle/downed, Acheron hold,
@@ -719,6 +771,11 @@ Actor   _musePendingActor = None
 ; nudge pack); None when OStim is absent — arousal then drops out of the pack gracefully.
 Faction _kMuseArousalFaction = None
 Bool    _bMuseArousalResolved = False
+; REV-85 aroused-lean: the tier label of the CURRENT in-flight consideration
+; (set in _MusePackContext at ask time, read at fire time for the [arousal lean]
+; sentinel) — the single-in-flight pattern of _musePendingActor (one ask, one
+; callback; never multi-set).
+String  _sMuseArous = ""
 ; Phase 4c rider: heartbeat rate-limit clock for the one-shot muse debug window. Member,
 ; not StorageUtil: diagnostic-only precision — a script reload mid-window at worst resets
 ; the 30s beat spacing; the window BOUNDS are StorageUtil so saves keep them.
@@ -846,7 +903,7 @@ Int Function _DaemonScan(Bool bAllowMales = False)
     While i < akAll.Length && n < _DaemonPool.Length
         Actor ak = akAll[i]
         If ak && ak != PlayerRef && !ak.IsDead() \
-           && (_SexOf(ak) == 1 || (bAllowMales && _SexOf(ak) == 0)) \
+           && (_SexOf(ak) == 1 || _GenderPolicy() == 2 || (bAllowMales && _SexOf(ak) == 0)) \
            && ak.GetDistance(PlayerRef) <= fDaemonRadius \
            && StorageUtil.GetStringValue(ak, "GSAnim.Pose", "") == "" \
            && !ak.IsInCombat() \
@@ -1034,7 +1091,13 @@ String Function _MusePackContext(Actor ak, Int anPool)
     If sNear == ""
         sNear = "nobody else in particular"
     EndIf
-    ; Arousal: OStimExcitementFaction rank, resolved once (graceful None when OStim absent).
+    ; Arousal (REV-85 aroused-lean leg 1, posing-gender.md §2d): the REV-82 tiering
+    ; chain replaces the OStim-only read (which rendered "unknown" outside OStim
+    ; scenes, leaving the muse arousal-blind — the bland-picks root cause). Primary
+    ; Reborn GetArousalNoSideEffects gated on the plugin (side-effect-free at fire
+    ; time by design), fallback sla_FrameworkScr.GetActorArousal, neutral "unknown".
+    ; OStim excitement, when present, is MORE precise than the 0-100 tier — keep it
+    ; as the first branch. Self-keyed: the candidate NPC's own arousal.
     String sArous = "unknown"
     If !_bMuseArousalResolved
         _kMuseArousalFaction = PO3_SKSEFunctions.GetFormFromEditorID("OStimExcitementFaction") as Faction
@@ -1042,6 +1105,27 @@ String Function _MusePackContext(Actor ak, Int anPool)
     EndIf
     If _kMuseArousalFaction && ak.IsInFaction(_kMuseArousalFaction)
         sArous = "excitement rank " + ak.GetFactionRank(_kMuseArousalFaction)
+    ElseIf SKSE.GetPluginVersion("OSLAroused") > 0
+        Float fArous = OSLArousedNative.GetArousalNoSideEffects(ak)
+        If fArous >= 75.0
+            sArous = "high (arousal " + (fArous as Int) + ")"
+        ElseIf fArous > 25.0
+            sArous = "stirring (arousal " + (fArous as Int) + ")"
+        Else
+            sArous = "low (arousal " + (fArous as Int) + ")"
+        EndIf
+    Else
+        slaFrameworkScr kNG = Quest.GetQuest("sla_Framework") as slaFrameworkScr
+        If kNG
+            Int iArous = kNG.GetActorArousal(ak)
+            If iArous >= 75
+                sArous = "high (arousal " + iArous + ")"
+            ElseIf iArous > 25
+                sArous = "stirring (arousal " + iArous + ")"
+            Else
+                sArous = "low (arousal " + iArous + ")"
+            EndIf
+        EndIf
     EndIf
     ; Time-of-day register from the game clock (Papyrus % is int-only — cast first).
     Int iHour = (Utility.GetCurrentGameTime() * 24.0) as Int % 24
@@ -1086,10 +1170,36 @@ String Function _MusePackContext(Actor ak, Int anPool)
         Debug.Trace("[SNAnimGS] muse npcName fallback engaged: race=\"" + sRace \
             + "\" resolved=\"" + sName + "\" for actor " + ak)
     EndIf
+    ; REV-85 aroused-lean: stash the tier for the fire-time [arousal lean] sentinel
+    ; (single-in-flight member — cleared by the next pack, harmless when stale).
+    _sMuseArous = sArous
+    ; REV-85 Phase B: two new context fields for the prompt's Jinja gates. posePolicy:
+    ; the scene's gender policy mode (female-only / curated / all-poses) — the male-safe
+    ; split text and the all-poses override both key on it. arousalTier: the bare tier
+    ; word (high/stirring/low) for the arousal-scoped preference weighting; "unknown"
+    ; renders no weighting line (silence about the unknown).
+    String sTier = "unknown"
+    If StringUtil.Find(sArous, "high") != -1
+        sTier = "high"
+    ElseIf StringUtil.Find(sArous, "stirring") != -1
+        sTier = "stirring"
+    ElseIf StringUtil.Find(sArous, "low") != -1
+        sTier = "low"
+    ElseIf StringUtil.Find(sArous, "excitement") != -1
+        sTier = "high"    ; an OStim scene IS the aroused context
+    EndIf
+    String sPolicy = "female-only"
+    If _GenderPolicy() == 1
+        sPolicy = "curated"
+    ElseIf _GenderPolicy() == 2
+        sPolicy = "all-poses"
+    EndIf
     Return "{\"npcName\":\"" + sName + "\",\"npcRace\":\"" + sRace \
         + "\",\"npcSex\":\"" + sSex \
         + "\",\"location\":\"" + sLoc + "\",\"nearby\":\"" + sNear \
-        + "\",\"arousal\":\"" + sArous + "\",\"timeOfDay\":\"" + sTod \
+        + "\",\"arousal\":\"" + sArous \
+        + "\",\"arousalTier\":\"" + sTier + "\",\"posePolicy\":\"" + sPolicy \
+        + "\",\"timeOfDay\":\"" + sTod \
         + "\",\"maxRecentEvents\":12}"
 EndFunction
 
@@ -1344,12 +1454,13 @@ Function OnMuseConsideration(String response, Int success)
         String sFireVibe = _MuseFireVibe(sPose)
         If sFireVibe == ""
             Debug.Trace("[SNAnimGS] muse direct fire skipped: not allowlisted (" + sPose + ") — seed-only")
-        ElseIf _SexOf(ak) == 0 && !_VibeMaleOK(sFireVibe)
-            ; REV-26 Task 1b: fire-time male veto — defense in depth. The prompt's split
-            ; guidance and this backstop both constrain male picks to the male-ok table;
-            ; _PoseVibe re-runs the gate live as the third layer. Sentinel per §5 so the
-            ; male-veto rate is measurable (prompt-guidance misses show up here).
-            Debug.Trace("[SNAnimGS] muse direct fire skipped: male veto (" + sPose + " not male-ok) — seed-only")
+        ElseIf !_GenderAdmits(ak, sFireVibe)
+            ; REV-85 Phase B: the fire-time veto is now policy-mode-aware (was the rev-26
+            ; flat male veto) — mode 0/1 constrain picks exactly as the prompt's split
+            ; guidance does (mode 1: male picks to the male-ok table; mode 0: males out
+            ; entirely); mode 2 admits everyone. _PoseVibe re-runs the gate live as the
+            ; third layer. Sentinel per §5 so the veto rate stays measurable.
+            Debug.Trace("[SNAnimGS] muse direct fire skipped: gender policy veto (" + sPose + " not admitted, mode " + _GenderPolicy() + ") — seed-only")
         ElseIf StorageUtil.GetIntValue(None, "GSAnim.Overdrive", 0) == 1
             Debug.Trace("[SNAnimGS] muse direct fire skipped: overdrive running — seed-only")
         ElseIf _IsBusyElsewhere(ak)
@@ -1362,6 +1473,14 @@ Function OnMuseConsideration(String response, Int success)
                 Debug.Trace("[SNAnimGS] muse direct fire: " + ak.GetDisplayName() + " (" + sPose + ") [male vocab]")
             Else
                 Debug.Trace("[SNAnimGS] muse direct fire: " + ak.GetDisplayName() + " (" + sPose + ")")
+            EndIf
+            ; REV-85 aroused-lean leg 3 (§2d): the [arousal lean] sentinel — extends the
+            ; [male vocab] tag pattern so the lean's live effect is measurable (§5): the
+            ; bland-picks rate (neutral-family fire share at high arousal) is the funnel
+            ; metric. High-tier = the REV-82 chain's >=75 leg (OStim rank is its own
+            ; signal; unknown arousal is NOT lean-flagged — silence about the unknown).
+            If StringUtil.Find(_sMuseArous, "high") != -1
+                Debug.Trace("[SNAnimGS] muse direct fire: high-arousal seed — [arousal lean] applies")
             EndIf
             ; REV-25 Task 2e (user spec): on-screen notification ONLY on actual fires —
             ; paired message+pose, always. ASCII-only (4f glyph rule).
