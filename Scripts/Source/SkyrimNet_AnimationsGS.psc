@@ -481,14 +481,17 @@ String Function _VibeCSV(String vibe)
     ; REV-20 muse direct-fire additions: single-actor Babo idle EVENTS, fired only from
     ; the muse rider (_MuseFireVibe -> _PoseVibe) under full GS bookkeeping — never a
     ; Baka two-actor action or scene, never an LLM path (no Pose*_Execute wrapper maps
-    ; to these vibes, so the action pipeline can't reach them). "aroused" carries the
-    ; female variants only: muse candidates are female (DaemonScan) and _PoseVibe's own
-    ; _SexOf==1 guard re-checks live (a male slips through -> silent return, no fire).
+    ; to these vibes, so the action pipeline can't reach them). "aroused" returns the
+    ; FEMALE pair as the pool DEFAULT; REV-85c A.3 sex-splits the draw at the single
+    ; consumer (_VibeEventsFor, used by _PoseVibe): a male target draws
+    ; BaboArousedMale01/02 — Baka's own sex-selecting exec path (BakaIntegration
+    ; L8657-8663) is the precedent. Females unchanged.
     ElseIf vibe == "handonchin"
         Return "BaboHandonChin"
     ElseIf vibe == "handonface"
         Return "BaboHandonFace"
     ElseIf vibe == "aroused"
+        ; REV-85c A.3: female pool default; the male draw is _VibeEventsFor's split.
         Return "BaboArousedFemale01,BaboArousedFemale02"
     ; REV-24 Task 3 (approved tiers: Tier 1 + Drink): four more single-actor Babo idle EVENTS
     ; under the same muse-rider discipline — GS bookkeeping only, no Baka *_Execute wrapper,
@@ -522,6 +525,27 @@ String Function _VibeCSV(String vibe)
         Return "BaboDroolingFace"
     EndIf
     Return ""
+EndFunction
+
+; REV-85c A.3 (user ruling 2026-10-07, posing-gender.md): aroused-pool sex-split.
+; "aroused" is male-admitted (_VibeMaleOK) but its pool was female-only clips — a male
+; admitted to the vibe drew female clips (the Addendum A gap). Split at the SINGLE
+; consumer of vibe pools: _PoseVibe's draw (grid picks fire exact events via
+; _PoseDirect and never map to "aroused"; the T-initiator legs fire no "aroused"
+; vibe; the muse fire L1478 is the sole "aroused" supplier). Males draw
+; BaboArousedMale01/02 — Baka's own exec (BakaIntegration L8657-8663) is the
+; precedent; females (and unknown sex, already blocked at admission upstream) keep
+; the female pair. Every other vibe passes through _VibeCSV unchanged. Sentinel per
+; §5 so the split's live effect is greppable in the funnel.
+String Function _VibeEventsFor(Actor ak, String vibe)
+    If vibe == "aroused"
+        If _SexOf(ak) == 0
+            Debug.Trace("[SNAnimGS] aroused pool split: " + ak.GetDisplayName() + " draws male clips (A.3)")
+            Return "BaboArousedMale01,BaboArousedMale02"
+        EndIf
+        Return "BaboArousedFemale01,BaboArousedFemale02"
+    EndIf
+    Return _VibeCSV(vibe)
 EndFunction
 
 Function _PacifyGS(Actor ak, Bool on)
@@ -568,7 +592,9 @@ Function _PoseVibe(Actor ak, String vibe, String label)
     If _IsBusyElsewhere(ak)
         Return
     EndIf
-    String csv = _VibeCSV(vibe)
+    ; REV-85c A.3: the draw routes through _VibeEventsFor (the A.3 sex-split for
+    ; "aroused"; every other vibe unchanged from _VibeCSV).
+    String csv = _VibeEventsFor(ak, vibe)
     If csv == ""
         Return
     EndIf

@@ -540,6 +540,13 @@ Function OpenSetMenu() Global
     ; REV-79 menu-path sentinel (§5): OpenSetMenu was silent on the MCM path.
     Debug.Trace("[SNBaka.ST] Picker: open path=MCM sections=" + StorageUtil.GetIntValue(Game.GetPlayer(), "SNBaka.ST.SectionCount", -1))
     SNBakaUI.ShowSlaveTatsMenu(BuildMenuJSON())
+    ; REV-85c §5 rider (picker defect, view-render class): the REV-79 sentinel fires
+    ; BEFORE the show call, so the log could not distinguish "show issued" from
+    ; "view actually became visible" — a silently-dead view leg (the stale-DLL case)
+    ; logs healthy. This POST-show trace is issued right after the bridge call; it
+    ; proves the script leg ran to completion, and pairs with the DLL's own SKSE-log
+    ; error line when the view cannot be created/shown (check skse64.log on defect).
+    Debug.Trace("[SNBaka.ST] Picker: show issued path=MCM (post-call)")
 EndFunction
 
 ; ------------------------------------------------------------------
@@ -578,6 +585,9 @@ Function OpenPickerFor(Actor akTarget, Actor akCaster = None) Global
     ; REV-79 menu-path sentinel (§5): OpenPickerFor was silent on the event path.
     Debug.Trace("[SNBaka.ST] Picker: open path=event sections=" + StorageUtil.GetIntValue(Game.GetPlayer(), "SNBaka.ST.SectionCount", -1))
     SNBakaUI.ShowSlaveTatsMenu(BuildPickerJSON(akTarget))
+    ; REV-85c §5 rider (picker defect): POST-show trace, same as the MCM path —
+    ; proves the event leg ran to the bridge call (see OpenSetMenu note above).
+    Debug.Trace("[SNBaka.ST] Picker: show issued path=event (post-call)")
 EndFunction
 
 ; Picker-mode JSON: same section/name enumeration as BuildMenuJSON, plus the mode +

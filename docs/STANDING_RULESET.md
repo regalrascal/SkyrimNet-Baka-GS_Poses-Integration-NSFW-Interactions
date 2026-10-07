@@ -8,6 +8,13 @@ list. The gate report confirms compliance: **"ruleset: read, 10 rules checked."*
 **Precedence:** on any conflict with a brief, instruction set, or chat memory,
 THIS RULESET WINS.
 
+**Precedence:** on any conflict with a brief, instruction set, or chat memory,
+THIS RULESET WINS.
+
+**Reading sequence (rider, user-ruled 2026-10-07; 4.1 records item):** every
+session reads, in order — (1) this ruleset, (2) `docs/FILE_STRUCTURE.md`,
+(3) `docs/features/INDEX.md` — before any task executes. The gate report
+confirms all three.
 ---
 
 ## 1. Deploy target
@@ -219,3 +226,31 @@ retained). Rides on §3/§5; the count stays 10. EXECUTED against
 `Delectatio-et-Dominium-rev85b-dogfood-fixes.zip` (2026-10-07): PASS — 259
 entries == 259 files, fomod/ present (v1), 11 Pages[] (v3), both witness
 YAMLs + cue strings in the ST module source (v4), v5 scoped scan 0 hits.
+
+**Checklist v6 (REV-85c, 2026-10-07 — 6th entry of THE SHIPPING-FEATURES
+CHECKLIST, REV-77 rider):** 6. BINARY-LINEAGE TRUTH — every dist carries the
+build-output artifact, never a workspace copy: the [REV-85c] zip's
+`SKSE\\Plugins\\SkyrimNet_BakaIntegration.dll` hashes `55D98572...` (the
+`dll-source\\build\\release` output, byte-identical to the REV-72..82
+lineage) and its bytes carry the ST view bridge strings
+(`SNSlaveTats_Menu/index.html`, `snbaka_open_slavetats`);
+`PrismaUI/views/SNSlaveTats_Menu/index.html` entry present; the aroused
+surface ships `BaboArousedMale01/02` via the `_VibeEventsFor` sex-split
+(REV-85c A.3, `SkyrimNet_AnimationsGS.psc/.pex`); zip entries == staged
+files. Grounds: the [REV-84]/[REV-85]/[REV-85b] dists staged the STALE
+pre-REV-72 workspace DLL (`42A0771F...`, byte-identical to the REV-68
+binary) — the silently-dead picker view-leg class (a folder that looks
+like the lineage is not the lineage). Rides on §3/§5; the count stays 10.
+EXECUTED against `Delectatio-et-Dominium-rev85c-aroused-split.zip`
+(2026-10-07): PASS — 260 entries == 260 files (incl. the
+`SkyrimNet_AnimGS_LoadAlias.pex` completeness restore 85b had omitted),
+DLL hash + bridge strings verified IN-ZIP, ST view entry present,
+sex-split psc/pex hash-matched to build output, content-parity 260/260.
+
+
+Rider (REV-85c, user-ruled 2026-10-07) — stale-artifact closure: any session
+that identifies a stale or incorrect artifact in any tree (binary, script,
+content file) either CORRECTS it or adds a shipping-checklist guard line in the
+SAME session; a stale-state warning that lives only in documentation is a
+scheduled regression (origin: the 42A0771F workspace DLL — flagged stale at
+REV-74, re-entered dists at REV-84, user-visible defect 2026-10-07).
