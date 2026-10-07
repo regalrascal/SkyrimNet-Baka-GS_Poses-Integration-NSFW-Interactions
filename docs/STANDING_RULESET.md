@@ -142,26 +142,22 @@ dist zips at REV-72 and the gate stayed green for four builds because no
 checklist line asserted the feature). Checklist v1:
 1. `fomod/` present at zip root; `ModuleConfig.xml` parses as XML (REV-76-b).
 Pending future entries (append at their ship): real module toggles.
-Checklist v2 (REV-79, 2026-10-04): 2. REV-79 zip contains the 8-page
-MCM (8 `Pages[]` entries in `SNBaka_MCM.psc`: General / Timing /
-Resist / Spank / Scenes & FX / Plugins / Acheron / SlaveTats) —
-the REV-79 restructure shipped and is asserted at ship time.
+  Checklist v2 (REV-79, 2026-10-04): 2. REV-79 zip contains the 8-page
+  MCM (8 `Pages[]` entries in `SNBaka_MCM.psc`: General / Timing /
+  Resist / Spank / Scenes & FX / Plugins / Acheron / SlaveTats) —
+  the REV-79 restructure shipped and is asserted at ship time.
   Checklist v3 (REV-80, 2026-10-04): 3. REV-80 zip contains the
   10-page MCM (10 `Pages[]` entries in `SNBaka_MCM.psc`: General /
   Timing / Resist / Spank / Scenes & FX / Lap Sitting / Cum Effects /
   Fill Her Up / Acheron / SlaveTats) — the Plugins page is dissolved;
   every integration is a top-level page; the count-plus-names guard
-  rides at ship time.
-
-Rides on §3/§5; the numbered rule count stays 10.
+  rides at ship time. Rides on §3/§5; the numbered rule count stays 10.
   Checklist v4 (REV-82, 2026-10-04): 4. REV-82 zip contains both
   witness-cue trigger YAMLs (`sdb_tattoo_applied` / `sdb_tattoo_removed`
   in `regalrascal.baka-gs-integration\triggers\`), the observable-only
   event texts in `_FireEvent`, and the `_ArousalClause` string in the
   module pex — the §7 cue layer ships asserted (self-keyed arousal
   tiering, neutral = silence). Rides on §3/§5; the count stays 10.
-[appended at REV-79: this rider was missing from the fork mirror — resynced
-from GS canonical with the checklist already at v2; see PROJECT_STATE §80 5b.]
 
 **Rider (REV-79, user-approved 2026-10-04) — stub-parity build gate +
 Papyrus log location (§3/§5 riders):** (1) `tools\compile\stub_parity.ps1`
@@ -193,3 +189,33 @@ plugin is installed at runtime. First application: the REV-81 tattoo-cue
 audit (sdb_tattoo_applied/removed vs tton_* / goodprovider.sexlab /
 telord.dd-sn-database surfaces — zero overlaps found, 2026-10-04). Rides
 on §3/§5; the numbered rule count stays 10.
+
+**Rider (REV-85 Phase C, user-ruled 2026-10-05, executed 2026-10-07) —
+runtime-string ASCII rule (§7 rider):** user-facing runtime strings are
+ASCII-ONLY: every literal surfaced to the player at runtime —
+`Debug.Notification` / message-box forms, `Message` forms, MCM
+`SetInfoText` / `SetOptionText` / option and header text — uses plain ASCII
+(" - " for dashes, "->" for arrows). Origin, user's sentence verbatim:
+"Debug.Notification strings must be pure ASCII; Skyrim's vanilla UI font
+renders em-dashes and rich characters as garbage." Grounds on record: second
+occurrence of the class (the muse-activation mojibake precedent + the planner
+MCM-characters ticket); the REV-79 rider covers gate scripts/bats only —
+this rider extends the class to runtime strings. Non-user-facing surfaces
+(comments, `Debug.Trace`, internal `RegisterEvent` narration) are
+deliberately out of scope. First application: the REV-85b ASCII sweep
+(MCM 22 + ST module 2 + `_Notify` 3 sites). Rides on §7; the numbered rule
+count stays 10.
+
+**Checklist v5 (REV-85b, 2026-10-07 — 5th entry of THE SHIPPING-FEATURES
+CHECKLIST, REV-77 rider):** 5. the [REV-85b] zip contains the three
+fixed/edited scripts with ASCII-only user-facing literals —
+`Scripts\Source\SkyrimNet_AnimationsGS.psc` (sCat fix + curated-12 +
+`_VibeMaleOK` plead line), `Scripts\Source\SNBaka_MCM.psc` and
+`Scripts\Source\SNBaka_SlaveTatsModule.psc` (ASCII sweep), plus the
+`gsanim_muse_consideration.prompt` PosePlead line — verified scoped to
+user-facing surfaces (Notification/SetInfoText/SetOptionText/option/header
+text): 0 non-ASCII hits in the staged tree (comment/Trace class deliberately
+retained). Rides on §3/§5; the count stays 10. EXECUTED against
+`Delectatio-et-Dominium-rev85b-dogfood-fixes.zip` (2026-10-07): PASS — 259
+entries == 259 files, fomod/ present (v1), 11 Pages[] (v3), both witness
+YAMLs + cue strings in the ST module source (v4), v5 scoped scan 0 hits.

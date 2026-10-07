@@ -58,7 +58,7 @@
     — pick the best-fitting one for this moment, whatever its register.
     {% else %}If {{ npcName }} is a MAN, choose ONLY from the male-safe half of the library:
     PoseStretch, PoseWorkout, PoseDrink, PoseScratchHead, PoseBraceArm, PoseMeditate,
-    PoseHandOnChin, PoseHandOnFace, PoseDance, PoseAroused, PoseGroundIdle.
+    PoseHandOnChin, PoseHandOnFace, PoseDance, PoseAroused, PoseGroundIdle, PosePlead.
     The remaining poses are the sensual half of this scene's library — the scene's pose
     policy keeps them closed to men.{% endif %}
 

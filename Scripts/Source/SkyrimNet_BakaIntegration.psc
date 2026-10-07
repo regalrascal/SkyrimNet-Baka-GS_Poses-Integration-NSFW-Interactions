@@ -6640,7 +6640,7 @@ Function _DoLapSit(Actor akSitter, Actor akSeated, Bool abPlayerSitter)
     If sitterAlias.GetReference() != None || (lapOwnerAlias && lapOwnerAlias.GetReference() != None)
         _Log("[SNBaka] SitOnLap: blocked — a lap-sit is already in progress (mod supports one at a time)")
         If abPlayerSitter
-            _Notify("Someone is already sitting on a lap — one at a time.")
+            _Notify("Someone is already sitting on a lap - one at a time.")
         EndIf
         Return
     EndIf
@@ -6778,7 +6778,7 @@ Function _DoLapSit(Actor akSitter, Actor akSeated, Bool abPlayerSitter)
         chair.Disable()
         chair.Delete()
         If abPlayerSitter
-            _Notify("Couldn't sit — try standing right in front of " + akSeated.GetDisplayName() + " and using it again.")
+            _Notify("Couldn't sit - try standing right in front of " + akSeated.GetDisplayName() + " and using it again.")
         EndIf
         Return
     EndIf
@@ -7227,7 +7227,7 @@ Function _DispatchDownedAction(Int choice, Actor akCaster, Actor akVictim)
     ElseIf choice == 3 && StorageUtil.GetIntValue(akVictim, "SNBaka.Tied", 0) == 1
         ; Stand Back must not quietly free a TIED prisoner — the bindings are the point.
         _Log("[SNBaka] _DispatchDownedAction: Stand Back refused — " + akVictim.GetDisplayName() + " is TIED (untie them first)")
-        _Notify(akVictim.GetDisplayName() + " is tied — cut them loose first.")
+        _Notify(akVictim.GetDisplayName() + " is tied - cut them loose first.")
         Return
     EndIf
     If ours

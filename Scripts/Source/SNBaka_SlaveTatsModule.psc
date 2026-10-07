@@ -529,7 +529,7 @@ EndFunction
 ; mode (downed-menu Apply Tattoo) uses picker JSON and PickerChoice instead.
 Function OpenSetMenu() Global
     If !Installed()
-        Debug.Notification("SlaveTats is not installed — nothing to pick from.")
+        Debug.Notification("SlaveTats is not installed - nothing to pick from.")
         Return
     EndIf
     If !SNBakaUI.IsAvailable()
@@ -570,7 +570,7 @@ Function OpenPickerFor(Actor akTarget, Actor akCaster = None) Global
         ; Empty-state picker (ruling ②B): open the view with zero sections so the
         ; player sees WHY there is nothing to pick, then cancel out. The §7-gated copy
         ; lives in the view's no-sections branch.
-        Debug.Notification("SlaveTats is not installed — nothing to pick from.")
+        Debug.Notification("SlaveTats is not installed - nothing to pick from.")
         Return
     EndIf
     StorageUtil.SetFormValue(Game.GetPlayer(), "SNBaka.ST.PickerTarget", akTarget)

@@ -165,16 +165,16 @@ Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-R
   **Standing maintenance rule:** any fork stub change (e.g., the REV-68 `Acheron.psc`
   signature extension) must be mirrored to the GS copy in the same session, hash-verified,
   or the GS copy is stale and must be re-synced before the next compile gate run.
-- **REV-79 stub-parity gate:** `tools\compile\stub_parity.ps1` (GS private home,
-  beside the bat) runs as its BLOCKING pre-step (any signature delta between a local
+- **REV-79 stub-parity gate:** `tools\compile\stub_parity.ps1` lives beside the
+  bat and runs as its BLOCKING pre-step (any signature delta between a local
   stub and the installed runtime aborts the build; ruleset REV-79 rider). The
   gate manifest's runtime paths encode the LoreRim install and the
   **Ultra-profile winners** (SexLab = `SexLab Framework PPLUS - V2.18.1`;
   Acheron = the `[NoDelete]` copy) — update on any modlist/profile change.
 - **REV-82 stub-pack additions:** `OSLArousedNative.psc` + `slaFrameworkScr.psc`
-  (fork `tools\compile\local\`; runtime sources = OSL Aroused Reborn and SLO
-  Aroused NG installs — both carriers ship both scripts, so either profile
-  resolves). Gate = 16 surfaces. GS mirror: `SkyrimNet-Animations-GS\tools\compile\stubs\local\`.
+  (fork `tools\compile\local\` + mirrored in GS `tools\compile\stubs\local\`;
+  runtime sources = OSL Aroused Reborn and SLO Aroused NG installs — both
+  carriers ship both scripts, so either profile resolves). Gate = 16 surfaces.
   Both files are ASCII-only.
 
 ---
@@ -208,9 +208,9 @@ Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-R
   local repo folder is now `D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium`.
 - REV-83 (2026-10-04): the planner is NOW SHARED (user-moved to the fork
   root; git-untracked user artifact by standing precedent). Digested IN
-  FULL (PROJECT_STATE §84 gap map). Its working projection = the GS
+  FULL (PROJECT_STATE §84 gap map). Its working projection = the
   `docs/features/` checklist tree (INDEX master checklist + module docs:
   cum-effects, cumflation, dirty-talk, baka-module, gs-poses, slavetats
   REV-83 §). ONE-WAY FLOW of record: planner -> checklist, never silently
   back (planner edits are the user's; checklist edits cite, never rewrite,
-  planner intent). The planner file itself is NEVER edited by sessions.
+  planner intent). The planner file itself is NEVER edited by sessions.

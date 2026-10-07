@@ -414,7 +414,7 @@ Event OnPageReset(String page)
             AddEmptyOption()
             AddHeaderOption("Packs & Marks")
             _stRefreshOID = AddTextOption("Refresh Pack List",             "Refresh")
-            _stStatusOID  = AddTextOption("Sections Available",             StorageUtil.GetIntValue(_stP, "SNBaka.ST.SectionCount", 0) + " — pick sets in the Tattoo menu")
+            _stStatusOID  = AddTextOption("Sections Available",             StorageUtil.GetIntValue(_stP, "SNBaka.ST.SectionCount", 0) + " - pick sets in the Tattoo menu")
             _stPickOID    = AddTextOption("Open Set Picker (In-Game)",     "Open")
             ; REV-74 Task 4: module-wide default color (picker per-set colors override),
             ; removal-on-release, and the ambient observation pass toggle.
@@ -439,7 +439,7 @@ Event OnPageReset(String page)
         ; needed — every check is a fresh StorageUtil read). Mode names mirror the
         ; policy vocabulary of record.
         SetCursorFillMode(TOP_TO_BOTTOM)
-        AddHeaderOption("GSPoses — Pose Gender Policy")
+        AddHeaderOption("GSPoses - Pose Gender Policy")
         AddTextOption("Who may be posed, by body: female-only keeps the shipped behavior; curated admits men to the neutral set; all-poses opens the whole library.", "", OPTION_FLAG_DISABLED)
         _gsGenderPolicyOID = AddMenuOption("Pose Gender Policy", _gsGenderPolicyName(StorageUtil.GetIntValue(None, "GSAnim.GenderPolicy", 0)))
     EndIf
@@ -451,7 +451,7 @@ Event OnOptionSelect(Int option)
         SetToggleOptionValue(_enabledOID, Main.bEnabled)
     ElseIf option == _panicOID
         Int stuck = Main.PanicReset()
-        Debug.Notification("Baka: emergency reset done — " + stuck + " actor(s) had a stuck state.")
+        Debug.Notification("Baka: emergency reset done - " + stuck + " actor(s) had a stuck state.")
     ElseIf option == _lapSitOID
         Main.bLapSitEnabled = !Main.bLapSitEnabled
         SetToggleOptionValue(_lapSitOID, Main.bLapSitEnabled)
@@ -521,8 +521,8 @@ Event OnOptionSelect(Int option)
         If !stP1
             stP1 = Game.GetPlayer()
         EndIf
-        SetTextOptionValue(_stStatusOID, StorageUtil.GetIntValue(stP1, "SNBaka.ST.SectionCount", 0) + " — pick sets in the Tattoo menu")
-        Debug.Notification("SlaveTats: pack list refreshed — " + StorageUtil.GetIntValue(stP1, "SNBaka.ST.SectionCount", 0) + " sections visible.")
+        SetTextOptionValue(_stStatusOID, StorageUtil.GetIntValue(stP1, "SNBaka.ST.SectionCount", 0) + " - pick sets in the Tattoo menu")
+        Debug.Notification("SlaveTats: pack list refreshed - " + StorageUtil.GetIntValue(stP1, "SNBaka.ST.SectionCount", 0) + " sections visible.")
     ElseIf option == _stPickOID
         ; REV-72 dogfood fix: the set picker had no in-game entry point (OpenSetMenu was
         ; dead code). Close the MCM first — PrismaUI modal needs the game input focus.
@@ -685,7 +685,7 @@ Event OnOptionMenuAccept(Int option, Int index)
         EndIf
         StorageUtil.SetIntValue(None, "GSAnim.GenderPolicy", index)
         SetMenuOptionValue(_gsGenderPolicyOID, _gsGenderPolicyName(index))
-        Debug.Notification("GS Poses: pose gender policy set — " + _gsGenderPolicyName(index))
+        Debug.Notification("GS Poses: pose gender policy set - " + _gsGenderPolicyName(index))
     EndIf
 EndEvent
 
@@ -1019,7 +1019,7 @@ Event OnOptionHighlight(Int option)
     ElseIf option == _spankPlayerOID
         SetInfoText("Allow the player character to be spanked by NPCs.")
     ElseIf option == _spankMaleOID
-        SetInfoText("Allow male actors to be spanked. Off by default — moans and marks are female-only, so male spank is just the impact sound.")
+        SetInfoText("Allow male actors to be spanked. Off by default - moans and marks are female-only, so male spank is just the impact sound.")
     ElseIf option == _spankFurnitureOID
         SetInfoText("Enable special reactions when the target is using furniture (alchemy lab, forge, etc).")
     ElseIf option == _spankTatIntensityOID
@@ -1029,11 +1029,11 @@ Event OnOptionHighlight(Int option)
     ElseIf option == _sellSlaveryOID
         SetInfoText("ON offers the Sell-to-Slavery action (Simple Slavery Plus Plus hand-off; no-ops without SS++). Targets the DEFEATED PLAYER only. OFF removes it from the LLM's menu entirely.")
     ElseIf option == _followerSlaveryOID
-        SetInfoText("ON lets NPCs enslave a DOWNED FOLLOWER via the Follower Slavery Mod — only while the player is downed too or farther than the distance slider. Never targets the player (that's Sell to Slavery). PERMANENT until freed through FSM; default OFF.")
+        SetInfoText("ON lets NPCs enslave a DOWNED FOLLOWER via the Follower Slavery Mod - only while the player is downed too or farther than the distance slider. Never targets the player (that's Sell to Slavery). PERMANENT until freed through FSM; default OFF.")
     ElseIf option == _slaveryDistOID
-        SetInfoText("Follower Enslavement only fires if the player is at least this far from the downed follower (or downed themselves) — close enough to intervene means it never happens. Default 1500 (~21m).")
+        SetInfoText("Follower Enslavement only fires if the player is at least this far from the downed follower (or downed themselves) - close enough to intervene means it never happens. Default 1500 (~21m).")
     ElseIf option == _tiedHoursOID
-        SetInfoText("How many GAME hours a tied prisoner stays bound on the ground. While tied they cannot get up on their own — only Help Up (which cuts them loose) or the bindings lapsing frees them. Default 12 h.")
+        SetInfoText("How many GAME hours a tied prisoner stays bound on the ground. While tied they cannot get up on their own - only Help Up (which cuts them loose) or the bindings lapsing frees them. Default 12 h.")
     ElseIf option == _sexBackendOID
         SetInfoText("Which framework plays escalation sex scenes: Auto (SexLab if present, else OStim), or force one. Neither is required; without one, escalation just narrates.")
     ElseIf option == _expressionsOID
@@ -1049,11 +1049,11 @@ Event OnOptionHighlight(Int option)
     ElseIf option == _creatureFollowerHitOID
         SetInfoText("A creature's own melee hit on a follower or the player can attempt the struggle directly, mid-combat, without waiting for them to go down first. Player also needs 'Can Target the Player' on. Requires Allow Mid-Combat and Creature Escalation too.")
     ElseIf option == _creatureSceneOID
-        SetInfoText("ON: a creature winning its struggle claims the victim in a sex scene (needs matching animations installed). OFF: struggles still happen — read as a beast mauling its prey — but a win just leaves the victim downed; no scene ever starts.")
+        SetInfoText("ON: a creature winning its struggle claims the victim in a sex scene (needs matching animations installed). OFF: struggles still happen - read as a beast mauling its prey - but a win just leaves the victim downed; no scene ever starts.")
     ElseIf option == _llmGateOID
         SetInfoText("Before a creature claims a DOWNED victim, ask the SkyrimNet LLM a yes/no ('should this escalation happen right now?'). NO backs that victim off ~30s; any LLM error counts as YES. On-hit mid-combat grapples are not gated (an LLM round-trip is too slow for live melee).")
     ElseIf option == _notifyOID
-        SetInfoText("Show this mod's top-left corner messages ('X collapses...', 'What will you do to...', etc.). Turn OFF for a clean HUD — narration, dialogue and log traces are unaffected.")
+        SetInfoText("Show this mod's top-left corner messages ('X collapses...', 'What will you do to...', etc.). Turn OFF for a clean HUD - narration, dialogue and log traces are unaffected.")
     ElseIf option == _debugLogOID
         SetInfoText("Write this mod's detailed traces to the Papyrus log. Keep ON while testing/reporting issues (the log is how problems get diagnosed); turn OFF for less script-engine load during normal play.")
     ElseIf option == _creatureVictimSexOID
@@ -1067,33 +1067,33 @@ Event OnOptionHighlight(Int option)
     ElseIf option == _creatureStruggleDurOID
         SetInfoText("How long the mid-combat struggle animation holds before the outcome is decided. Default 20s.")
     ElseIf option == _creatureGraceOID
-        SetInfoText("After a victim loses a struggle, how many seconds creatures leave them alone before reconsidering them — ends early if real combat resumes. Default 100s.")
+        SetInfoText("After a victim loses a struggle, how many seconds creatures leave them alone before reconsidering them - ends early if real combat resumes. Default 100s.")
     ElseIf option == _creatureGroupSizeOID
         SetInfoText("Once a scene is actually starting, look for up to this many creatures of the same kind nearby to join in (2v1/3v1). 1 = always solo. Decided fresh each time, after the outcome is known.")
     ElseIf option == _humanOnHitOID
-        SetInfoText("A hostile HUMANOID's melee hit on a follower or the player can attempt a Struggle right there, mid-combat — the humanoid counterpart of the creature option above. Uses the normal Struggle rules on top (QTE for the player, sex filter, 'Player Can Be Target', locks). Default OFF.")
+        SetInfoText("A hostile HUMANOID's melee hit on a follower or the player can attempt a Struggle right there, mid-combat - the humanoid counterpart of the creature option above. Uses the normal Struggle rules on top (QTE for the player, sex filter, 'Player Can Be Target', locks). Default OFF.")
     ElseIf option == _humanHitChanceOID
         SetInfoText("Chance that a hostile humanoid's melee hit attempts the Struggle at all (shares the same 3s per-victim cooldown as the creature version). Lower this if it triggers too often. Default 25%.")
     ElseIf option == _achEnabledOID
         SetInfoText("Master switch for the downed-state bridge (holding, downed cues, recovery).")
     ElseIf option == _achCueOID
-        SetInfoText("How often, while an actor is down, we send a short 'still downed' reminder. Purely narrative — does not affect recovery timing. Default 30 s.")
+        SetInfoText("How often, while an actor is down, we send a short 'still downed' reminder. Purely narrative - does not affect recovery timing. Default 30 s.")
     ElseIf option == _achProxOID
-        SetInfoText("How often we check for a nearby CREATURE, purely to give Baka's creature-escalation pipeline a shot. Does not affect recovery — proximity no longer gates getting up at all. Default 10 s.")
+        SetInfoText("How often we check for a nearby CREATURE, purely to give Baka's creature-escalation pipeline a shot. Does not affect recovery - proximity no longer gates getting up at all. Default 10 s.")
     ElseIf option == _achConfirmOID
-        SetInfoText("NPCs ONLY: hard ceiling on how long an abandoned, unattended down lasts before they get up on their own — NPCs have no get-up key, so this stands in for it. The PLAYER never auto-recovers: get-up key, being helped, or winning a QTE are the only ways up. Resets to the full duration whenever someone interacts with the victim (a struggle, choke, inspect, escalation, etc.), so it never expires mid-scene. Default 600 s (10 min).")
+        SetInfoText("NPCs ONLY: hard ceiling on how long an abandoned, unattended down lasts before they get up on their own - NPCs have no get-up key, so this stands in for it. The PLAYER never auto-recovers: get-up key, being helped, or winning a QTE are the only ways up. Resets to the full duration whenever someone interacts with the victim (a struggle, choke, inspect, escalation, etc.), so it never expires mid-scene. Default 600 s (10 min).")
     ElseIf option == _achHandoffOID
-        SetInfoText("When a downed actor is about to recover because nobody's around, give Baka's creature-escalation pipeline one shot at taking them first, instead of just calming the creature and standing them up. Requires Baka's own 'Creature Escalation' switch (and, for the player, 'Can Target the Player') to ALSO be on in Baka's MCM — this only gates the attempt on the Acheron side. Default ON; harmless if Baka is absent or its own switches are off.")
+        SetInfoText("When a downed actor is about to recover because nobody's around, give Baka's creature-escalation pipeline one shot at taking them first, instead of just calming the creature and standing them up. Requires Baka's own 'Creature Escalation' switch (and, for the player, 'Can Target the Player') to ALSO be on in Baka's MCM - this only gates the attempt on the Acheron side. Default ON; harmless if Baka is absent or its own switches are off.")
     ElseIf option == _achGetUpKeyOID
         SetInfoText("Hold this key for 3 seconds while downed (by any means) to attempt a struggle QTE and stand up on your own, independent of any NPC or LLM ever helping you up. Winning frees you immediately with a cue; losing fires its own 'tried and failed' cue so the LLM can react. Default: Comma.")
     ElseIf option == _achEngageOID
-        SetInfoText("Chance a nearby creature bothers engaging at all once nobody able is around, rolled fresh every confirm cycle — not one-shot. After a scene ends, it can roll again and re-engage. At 100% this can loop indefinitely by design; lower it if you want downed actors to reliably get free. Default 50%.")
+        SetInfoText("Chance a nearby creature bothers engaging at all once nobody able is around, rolled fresh every confirm cycle - not one-shot. After a scene ends, it can roll again and re-engage. At 100% this can loop indefinitely by design; lower it if you want downed actors to reliably get free. Default 50%.")
     ElseIf option == _achDebugOID
         SetInfoText("Write the Acheron bridge's detailed traces to the Papyrus log. Keep ON while testing/reporting issues; turn OFF for less script-engine load during normal play.")
     ElseIf option == _stEnabledOID
         SetInfoText("Master switch for the SlaveTats degradation-set module. When off, no event applies any set. The spank-heat marks Baka itself applies are separate and unaffected.")
     ElseIf option == _stSpankOID
-        SetInfoText("Apply your chosen degradation set alongside Baka's own spank-heat marks when an actor is spanked. Choose the set in the SlaveTats menu (MCM → Plugins → Refresh, then in-game SlaveTats menu). Default ON once a set is chosen.")
+        SetInfoText("Apply your chosen degradation set alongside Baka's own spank-heat marks when an actor is spanked. Choose the set in the SlaveTats menu (MCM -> Plugins -> Refresh, then in-game SlaveTats menu). Default ON once a set is chosen.")
     ElseIf option == _stDefeatOID
         SetInfoText("Apply your chosen degradation set when an actor is downed/defeated. Default ON once a set is chosen.")
     ElseIf option == _stEscalOID
@@ -1107,7 +1107,7 @@ Event OnOptionHighlight(Int option)
     ElseIf option == _stDefaultColorOID
         SetInfoText("Module-wide default color for applied marks (0xRRGGBB). Used when a path doesn't specify a color (LLM actions, event hooks without a per-channel color). The picker's per-pick and per-slot colors override it. 'Pack Default' = no recolor. Click to cycle.")
     ElseIf option == _stRemoveOnReleaseOID
-        SetInfoText("Strip the module's degradation marks when a captive is genuinely released (the Release action). Only marks THIS module applied — Baka's own spank heat marks are untouched. Default ON.")
+        SetInfoText("Strip the module's degradation marks when a captive is genuinely released (the Release action). Only marks THIS module applied - Baka's own spank heat marks are untouched. Default ON.")
     ElseIf option == _stObserveOID
         SetInfoText("Periodic ambient cue (~every 4 game hours) that a marked actor still wears their degradation marks, so nearby personas can notice and react without polling. Only fires when module-applied marks exist. Default ON.")
     EndIf

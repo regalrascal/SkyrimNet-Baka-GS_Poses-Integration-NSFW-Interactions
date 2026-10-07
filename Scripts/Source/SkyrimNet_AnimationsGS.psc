@@ -384,7 +384,11 @@ Event OnPoseSelected(String asEventName, String asPose, Float afNum, Form akSend
         ; REV-85 Phase B: the L335 female test is replaced by the central policy
         ; admission (posing-gender.md §2c) — dead/busy legs unchanged above/below.
         ; Mode 2 loses the leg entirely; 0/1 keep per-mode refusal strings.
-        If _GenderPolicy() != 2 && !_GenderAdmits(akTarget, "")
+        ; REV-85b fix: pass sCat (the pick's category) — the shipped call passed an
+        ; empty vibe, so curated mode refused EVERY male pick here regardless of pose
+        ; (the "curated no better than female-only" dogfood finding; grid cats are
+        ; the _VibeMaleOK vibe names).
+        If _GenderPolicy() != 2 && !_GenderAdmits(akTarget, sCat)
             Debug.Notification(_GenderRefusal(akTarget, _GenderPolicy()))
             Return
         EndIf
@@ -1209,18 +1213,23 @@ EndFunction
 ; _PoseVibe now admits males ONLY for vibes in this set; the crosshair path is untouched
 ; (ruling: male refusal STAYS at the crosshair — the muse alone gains males) and T3 keeps
 ; female-only candidates (scan default), so no T3 behavior change.
-; Male-ok (11): the 8 approved neutrals (Stretch, Workout, Drink, ScratchHead, BraceArm,
+; REV-85b (dogfood closure, curated-12 ruling): Plead joins the male-ok set — the begging
+; register reads on any body (distress, not sensuality), closing the "curated no better
+; than female-only" crosshair finding together with the sCat fix at the validation leg.
+; Male-ok (12): the 8 approved neutrals (Stretch, Workout, Drink, ScratchHead, BraceArm,
 ; Meditate, HandOnChin, HandOnFace) + Dance (celebration register is genderless — the male
 ; vocabulary must express joy, user ruling) + Aroused (Baka's own BaboArousedMale01/02
 ; clips = authored male support) + GroundIdle (FULL 18-event pool, graded live — the two
-; "(M ok)" poses.js events are known-good; the jank watch is the gate, narrow if needed).
-; Female-only (8): Seduce, SelfTouch, Present, DanceSexy, GroundSexy, Submission, Plead,
-; Drool — the sensual set stays single-register by the settled principle.
+; "(M ok)" poses.js events are known-good; the jank watch is the gate, narrow if needed)
+; + Plead (REV-85b, curated-12).
+; Female-only (7): Seduce, SelfTouch, Present, DanceSexy, GroundSexy, Submission, Drool —
+; the sensual set stays single-register by the settled principle.
 Bool Function _VibeMaleOK(String vibe)
     If vibe == "stretch" || vibe == "workout" || vibe == "drink" \
        || vibe == "scratchhead" || vibe == "bracearm" || vibe == "meditate" \
        || vibe == "handonchin" || vibe == "handonface" \
-       || vibe == "dance" || vibe == "aroused" || vibe == "ground_idle"
+       || vibe == "dance" || vibe == "aroused" || vibe == "ground_idle" \
+       || vibe == "plead"
         Return True
     EndIf
     Return False
