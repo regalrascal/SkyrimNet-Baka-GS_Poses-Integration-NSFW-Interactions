@@ -254,3 +254,10 @@ content file) either CORRECTS it or adds a shipping-checklist guard line in the
 SAME session; a stale-state warning that lives only in documentation is a
 scheduled regression (origin: the 42A0771F workspace DLL — flagged stale at
 REV-74, re-entered dists at REV-84, user-visible defect 2026-10-07).
+
+Rider (REV-87, user-ruled 2026-10-08) — investigation log-reads: sentinel-list
+greps never constitute a "zero errors" claim; every investigation log-read
+also sweeps generic engine error lines within the event window (origin: 24
+untagged "Unbound native function" errors invisible to two sentinel-scoped
+reads during the picker investigation). Rides §5; the numbered rule count
+stays 10.

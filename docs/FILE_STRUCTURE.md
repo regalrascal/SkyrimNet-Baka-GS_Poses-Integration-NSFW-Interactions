@@ -47,6 +47,12 @@ remotes, and branch verified intact at the new path)
     installable tree (0 pdb in every release zip).
   - Current reference artifact: `dist\SN-AnimationsGS-Baka-Unified-REV-56-reference.zip`
     (237 entries; DLLs `8BE130F8`/`9BD281E6`) + `.sha256`.
+    **REV-87 annotation (dated note, 2026-10-08):** the SNAnimGS_UI `9BD281E6`
+    value in this line is a REV-56-ERA REFERENCE-RECORD value, superseded —
+    the SNAnimGS_UI lineage-of-record is `7D2641C7`, verified across the REV-68
+    through REV-85c dists (2026-10-07 audit, PROJECT_STATE §91). The REV-56
+    zip's own bytes are unchanged (historical artifact, never edited); only
+    the lineage-of-record reading is corrected here.
   - **`releases\archive\` model:** superseded release zips+sha256 move to
     `releases\archive\`; the archive is append-only history.
   - **Current-zip-loose rule:** exactly ONE current release zip (+ its sha256)
