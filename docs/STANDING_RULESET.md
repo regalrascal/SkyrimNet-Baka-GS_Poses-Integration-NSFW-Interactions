@@ -227,6 +227,23 @@ retained). Rides on §3/§5; the count stays 10. EXECUTED against
 entries == 259 files, fomod/ present (v1), 11 Pages[] (v3), both witness
 YAMLs + cue strings in the ST module source (v4), v5 scoped scan 0 hits.
 
+**Checklist v7 (REV-90, 2026-10-07 — 7th entry of THE SHIPPING-FEATURES
+CHECKLIST, REV-77 rider):** 7. EXECUTE-LANE + SENTINEL TRUTH — the LLM
+Execute action ships as a YAML lane (execute.yaml, `Execute_Execute`
+delegating to the choice-5 kill path) and its dist carries (a) the yaml in
+the actions dir, (b) a BakaIntegration pex whose bytes carry
+`Execute_Execute` (verified pre-zip, 264759 B), and the GS-side §5 sentinels
+are log-distinguishable in the AnimationsGS pex (crosshair refuse/admit,
+muse-walk reason-coded skip) so §5 investigation reads can tell refusal
+reasons apart. Grounds: INDEX row 14 — the LLM had NO Execute action, so it
+substituted capture-family ("just grabbed them"), the first external-user
+defect class. Rides §3/§5; the count stays 10. EXECUTED against
+`Delectatio-et-Dominium-rev90-execute-action.good.zip` (2026-10-07): PASS —
+261 manifest entries == 261 staged files (assertion in the assembler),
+execute.yaml sha 515A98D4... recorded, 8 priority-1 build outputs beat the
+STALE-TREE fork pex, fresh pex byte-verified for the new function and
+sentinel strings before staging.
+
 **Checklist v6 (REV-85c, 2026-10-07 — 6th entry of THE SHIPPING-FEATURES
 CHECKLIST, REV-77 rider):** 6. BINARY-LINEAGE TRUTH — every dist carries the
 build-output artifact, never a workspace copy: the [REV-85c] zip's

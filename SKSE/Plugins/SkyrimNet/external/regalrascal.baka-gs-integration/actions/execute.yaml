@@ -1,0 +1,48 @@
+name: Execute
+description: |
+  The initiator finishes a downed victim with a deliberate killing blow. Cold, final, and
+  deliberate — not a wild swing in the heat of a fight, but the considered act of someone
+  who has already won, looking down at what they have won, and choosing that it ends here.
+
+  THE MOMENT: the victim is downed and helpless — beaten, pinned, past resisting — and the
+  initiator has decided they are not worth keeping. What a captor does when mercy has no
+  place in the arithmetic: a rival silenced, a witness erased, a body too broken to sell,
+  or simply a killer who never intended to leave anyone standing.
+
+  WHEN A CHARACTER WOULD DO THIS:
+  - A captor who has decided the victim is worth more dead than alive
+  - A rival or enemy ensuring the fight is truly over — permanently
+  - A witness or liability being erased, quietly and deliberately
+  - A cruel or Molag Bal-touched character savoring total power over the helpless
+
+  Only on a target already downed — if they're still on their feet, this is not the action.
+  Essential or protected characters survive the blow (the kill is released cleanly; nothing
+  fights the corpse). Never the player. If you kill, own it — this fires a visible event
+  the world reacts to.
+
+questEditorId: SkyrimNet_BakaIntegration
+scriptName: SkyrimNet_BakaIntegration
+executionFunctionName: Execute_Execute
+
+parameterMapping:
+  - type: speaker
+    name: akInitiator
+    description: The NPC choosing to execute the downed target.
+  - type: dynamic
+    name: akTarget
+    description: The defeated, helpless character being finished off.
+
+enabled: true
+defaultPriority: 10
+customCategory: SNBaka_Downed
+# Same shape as Escalate/HelpUp (REV-90): scene-block eligibility only — no combat gate
+# (acting on a downed victim is exactly what happens in/right after a fight) and the
+# target-down check is enforced in Execute_Execute, not a decorator (helpup.yaml ruling).
+eligibilityRules:
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "OStimExcitementFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true

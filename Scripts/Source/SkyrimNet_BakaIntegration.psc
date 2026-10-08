@@ -6338,6 +6338,50 @@ Function HelpUp_Execute(Actor akInitiator, Actor akTarget)
     EndIf
 EndFunction
 
+; REV-90 (roadmap item 3 / INDEX row 14): EXECUTE — the LLM-facing killing blow on a downed
+; victim. A pure delegation to _DispatchDownedAction's choice-5 leg (the same guaranteed-
+; alternative execute the interact menu offers): no gate-stack rewrite, the dispatch's own
+; ours/external bookkeeping + release-then-Kill sequence runs unmodified. The downed recheck
+; lives HERE (LLM decisions are a snapshot; the state can change before this runs) — same
+; settle-wait pattern as HelpUp_Execute for the two late-landing races. Target-down is
+; deliberately NOT an eligibilityRules decorator — same ruling as HelpUp (helpup.yaml): the
+; executor is the enforcement point. §5 sentinels: the _Log lines below fire unconditionally.
+Function Execute_Execute(Actor akInitiator, Actor akTarget)
+    _Log("[SNBakaACT] Execute ENTER")
+    If !akInitiator || !akTarget
+        Return
+    EndIf
+    If _IsCreatureActor(akInitiator) || _IsCreatureActor(akTarget)
+        _Log("[SNBaka] Execute_Execute: blocked — creature actor (use CreatureEscalate)")
+        Return
+    EndIf
+    If _IsDownedAny(akInitiator)
+        _Log("[SNBaka] Execute_Execute: blocked — initiator is downed")
+        Return
+    EndIf
+    If akTarget == PlayerRef
+        ; Never the player — the player's defeat IS the death alternative (choice-5 rule).
+        _Log("[SNBaka] Execute_Execute: blocked — the player is never the execute target")
+        Return
+    EndIf
+    If !_IsDownedAny(akTarget)
+        ; Same two late-landing races as HelpUp_Execute: native bleedout not yet adopted by
+        ; the Acheron bridge, or a creature pin temporarily rescuing the victim out of Acheron.
+        Float settle = 0.0
+        While settle < 15.0 && !_IsDownedAny(akTarget) && (IsActorLocked(akTarget) || akTarget.IsBleedingOut()) && !akTarget.IsDead()
+            Utility.Wait(0.5)
+            settle += 0.5
+        EndWhile
+        If !_IsDownedAny(akTarget)
+            _Log("[SNBaka] Execute_Execute: target not downed (waited " + settle + "s) — refusing")
+            Return
+        EndIf
+        _Log("[SNBaka] Execute_Execute: down state landed after " + settle + "s — proceeding")
+    EndIf
+    _Log("[SNBaka] Execute_Execute: " + akInitiator.GetDisplayName() + " executes " + akTarget.GetDisplayName() + " — delegating to dispatch choice 5")
+    _DispatchDownedAction(5, akInitiator, akTarget)
+EndFunction
+
 ; --- Capture ---
 ; The captor takes a DOWNED victim prisoner instead of killing/looting/leaving. This RESOLVES the
 ; encounter: the captor stops fighting (so combat does NOT resume), the victim is brought out of the
