@@ -5904,7 +5904,11 @@ EndFunction
 
 Event OnSNBakaMenuChoice(String eventName, String strArg, Float numArg, Form sender)
     Int choice = numArg as Int
-    If strArg == "sexspank"
+    If strArg == "execconfirm"
+        ; REV-92 Task 2.3: Execute-gate popup answer (DLL ExecuteConfirm mode -> normal-path
+        ; SendEvent). 0 = accept, -1 = decline/timeout/moot close.
+        _ExecuteGateAnswer(choice == 0, "popup")
+    ElseIf strArg == "sexspank"
         _DispatchSexSpankAction(choice)
     Else
         _DispatchInteractAction(choice)
@@ -6378,8 +6382,143 @@ Function Execute_Execute(Actor akInitiator, Actor akTarget)
         EndIf
         _Log("[SNBaka] Execute_Execute: down state landed after " + settle + "s — proceeding")
     EndIf
-    _Log("[SNBaka] Execute_Execute: " + akInitiator.GetDisplayName() + " executes " + akTarget.GetDisplayName() + " — delegating to dispatch choice 5")
-    _DispatchDownedAction(5, akInitiator, akTarget)
+    ; REV-92 Task 2.2: execution gate - MCM "Execution Action Use" levels checked BEFORE the
+    ; dispatch (the LLM path's only entry point; the player's own downed-menu choice-5 leg is
+    ; never gated). All refusal narration + sentinels fire inside _ExecuteGateCheck.
+    If !_ExecuteGateCheck(akInitiator, akTarget)
+        Return
+    EndIf
+    If _IsDownedAny(akTarget)
+        _Log("[SNBaka] Execute_Execute: " + akInitiator.GetDisplayName() + " executes " + akTarget.GetDisplayName() + " - delegating to dispatch choice 5")
+        _DispatchDownedAction(5, akInitiator, akTarget)
+    Else
+        _Log("[SNBaka] Execute_Execute: target not downed after settle - refusing")
+    EndIf
+EndFunction
+
+; REV-92 Task 2.2/2.3 - EXECUTION GATE (state + helpers). The gate runs INSIDE Execute_Execute
+; for every LLM-originated fire, before the dispatch. Levels (MCM "Execution Action Use", key
+; SNBaka.ExecuteGateLevel, default 0 = Unlimited): level 2 refuses ALL LLM fires outright;
+; level 1 refuses NON-companion fires outright and asks the player (popup) for companion fires -
+; INCLUDING commanded companions (user ruling 2026-10-10: an order is intent, consent is the
+; player's). The player's own downed-menu choice-5 leg is NEVER gated (it already IS the
+; player's decision).
+Int _execGatePending = 0          ; 0 = idle, 1 = popup open, 2 = answered-accept, -1 = answered-deny
+Actor _execGateInitiator = None
+Actor _execGateTarget = None
+
+; Sync/async determination of record (REV-92 Task 2.3a): the framework CANNOT hold a YAML
+; action result open - the fire is a one-way Papyrus call from SkyrimNet's pipeline with no
+; return channel the executor could block on. Designed as PAUSE-AND-WAIT instead (rev-77/78
+; menu precedent): the popup Focus()-pauses the world, the executor polls for the answer with
+; a hard 30s timeout -> deny-on-timeout is the fallback shape; never a hang. MOOT (target
+; recovered/died) auto-closes as moot.
+Bool Function _ExecuteGateCheck(Actor akInitiator, Actor akTarget)
+    Int level = _ExecuteGateLevel()
+    If level == 0
+        Return True    ; Level 1 (Unlimited): no check.
+    EndIf
+    Bool isCompanion = _ExecuteIsCompanion(akInitiator)
+    If level == 2
+        _Log("[SNBaka] Execute_Execute: gate level 3 (Always ask) - asking player")
+    ElseIf isCompanion
+        _Log("[SNBaka] Execute_Execute: gate level 2 (Companions ask) - companion fire, asking player (commanded companions included, user ruling)")
+    Else
+        _Log("[SNBaka] Execute_Execute: gate level 2 - non-companion fire refused (reason=Companions Ask, non-companion)")
+        _ExecuteGateRefuse(akInitiator, akTarget, "not one of the player's companions - the kill is not theirs to take")
+        Return False
+    EndIf
+    If _execGatePending != 0
+        _Log("[SNBaka] Execute_Execute: gate popup already open - refusing re-entrant fire")
+        Return False
+    EndIf
+    _execGatePending = 1
+    _execGateInitiator = akInitiator
+    _execGateTarget = akTarget
+    _Log("[SNBakaEXEC] Execute gate: POPUP-OPEN - " + akInitiator.GetDisplayName() + " vs " + akTarget.GetDisplayName())
+    If SNBakaUI.IsAvailable()
+        SNBakaUI.ShowExecuteConfirm(akInitiator, akTarget)
+    Else
+        _Log("[SNBaka] Execute_Execute: SNBakaUI unavailable - popup impossible, denying")
+        _ExecuteGateAnswer(False, "popup unavailable")
+        Return False
+    EndIf
+    ; Bounded wait: answer arrives via OnSNBakaMenuChoice ("execconfirm"); moot when the target
+    ; recovers or dies; 30s timeout -> deny. The world is paused by the popup Focus(), so the
+    ; poll costs nothing; the wait is always bounded - never a hang.
+    String reason = "the player declined"
+    Float waited = 0.0
+    While _execGatePending == 1 && waited < 30.0
+        Utility.Wait(0.25)
+        waited += 0.25
+        If _execGateTarget && (_execGateTarget.IsDead() || !_IsDownedAny(_execGateTarget))
+            _Log("[SNBakaEXEC] Execute gate: MOOT - target recovered or died while waiting")
+            _ExecuteGateAnswer(False, "moot")
+            reason = "the moment passed - the victim is no longer helpless"
+        EndIf
+    EndWhile
+    If _execGatePending == 1
+        _Log("[SNBakaEXEC] Execute gate: TIMEOUT after " + waited + "s - denying (deny-on-timeout)")
+        _ExecuteGateAnswer(False, "timeout")
+        reason = "the player did not answer in time"
+    EndIf
+    Bool accepted = (_execGatePending == 2)
+    _execGatePending = 0
+    _execGateInitiator = None
+    _execGateTarget = None
+    If accepted
+        _Log("[SNBakaEXEC] Execute gate: ACCEPT - proceeding")
+    Else
+        _ExecuteGateRefuse(akInitiator, akTarget, reason)
+    EndIf
+    Return accepted
+EndFunction
+
+; Popup answer path: DLL ExecuteConfirm mode falls through OnJSChoice's normal path as
+; SNBaka_MenuChoice strArg="execconfirm", numArg 0 = accept / -1 = decline (also the DLL's
+; timeout/moot auto-close token). Sentinel prefix [SNBakaEXEC].
+Function _ExecuteGateAnswer(Bool abAccept, String asSource)
+    If _execGatePending != 1
+        Return    ; already answered or abandoned - spurious close is a no-op
+    EndIf
+    If abAccept
+        _execGatePending = 2
+        _Log("[SNBakaEXEC] Execute gate: ACCEPT (" + asSource + ")")
+    Else
+        _execGatePending = -1
+        _Log("[SNBakaEXEC] Execute gate: DENY (" + asSource + ")")
+    EndIf
+EndFunction
+
+; Refusal narration (decline/timeout/moot/non-companion): registered as a SkyrimNet event so
+; the LLM sees the attempt failed and never claims the kill landed. Same cue shape as
+; baka_release/baka_capture.
+Function _ExecuteGateRefuse(Actor akInitiator, Actor akTarget, String asWhy)
+    _Log("[SNBakaEXEC] Execute gate REFUSE - " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + " (" + asWhy + ")")
+    SkyrimNetApi.RegisterEvent("baka_execute_refused", \
+        akInitiator.GetDisplayName() + " moves to finish " + akTarget.GetDisplayName() + " - but the killing blow does not land. " + asWhy + ". " + \
+        "The moment passes without a death; keep roleplaying accordingly (do not claim the kill happened).", \
+        akInitiator, akTarget)
+EndFunction
+
+Int Function _ExecuteGateLevel()
+    Actor p = PlayerRef
+    If !p
+        p = Game.GetPlayer()
+    EndIf
+    Return StorageUtil.GetIntValue(p, "SNBaka.ExecuteGateLevel", 0)
+EndFunction
+
+Bool Function _ExecuteIsCompanion(Actor akActor)
+    ; Companion = the player's teammate. IsPlayerTeammate() is the exact check this file already
+    ; uses for followers (the FollowerSlavery gate, formerly L6555).
+    If !akActor
+        Return False
+    EndIf
+    If akActor == PlayerRef
+        Return True
+    EndIf
+    Return akActor.IsPlayerTeammate()
 EndFunction
 
 ; --- Capture ---

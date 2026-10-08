@@ -81,6 +81,12 @@ Int _stPickOID
 Int _stDefaultColorOID
 Int _stRemoveOnReleaseOID
 Int _stObserveOID
+; REV-92 Task 2.1 — Execute-gate MCM cycling option ("Execution Action Use", General page).
+; Player-keyed StorageUtil key "SNBaka.ExecuteGateLevel": 0 = Unlimited (default, strategist-
+; recommended + user-flagged for confirm in the REV-92 gate report), 1 = Companions ask,
+; 2 = Always ask. Read directly via GetIntValue (same StorageUtil pattern as the SNAcheron.*
+; options - no CK property link; Execute_Execute is the enforcement point).
+Int _execGateOID
 
 Event OnConfigInit()
     ModName = "Baka SkyrimNet"
@@ -187,6 +193,10 @@ Event OnPageReset(String page)
         ; any loaded actor -- for actors stuck non-aggressive/untargetable after something went wrong.
         ; Leaves genuinely downed/defeated actors alone (HelpUp / the get-up key is their way out).
         _panicOID = AddTextOption("EMERGENCY: reset stuck actor states", "RUN")
+        AddEmptyOption()
+        ; REV-92 Task 2.1 — Execute-gate cycling option (family convention: menu option + name
+        ; function, like "Target Sex"/"Scene Framework"). Level names user-ruled 2026-10-10.
+        _execGateOID = AddMenuOption("Execution Action Use", _execGateName(_ExecGateLevel()))
     ElseIf page == "Timing"
         SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("Animation Durations")
@@ -555,6 +565,10 @@ Event OnOptionMenuOpen(Int option)
         SetMenuDialogOptions(_targetSexNames())
         SetMenuDialogStartIndex(Main.iTargetSex)
         SetMenuDialogDefaultIndex(0)
+    ElseIf option == _execGateOID
+        SetMenuDialogOptions(_execGateNames())
+        SetMenuDialogStartIndex(_ExecGateLevel())
+        SetMenuDialogDefaultIndex(0)
     EndIf
 EndEvent
 
@@ -571,8 +585,49 @@ Event OnOptionMenuAccept(Int option, Int index)
     ElseIf option == _femaleOnlyOID
         Main.iTargetSex = index
         SetMenuOptionValue(_femaleOnlyOID, _targetSexName(index))
+    ElseIf option == _execGateOID
+        ; REV-92 Task 2.1 — player-keyed StorageUtil write (same pattern as the SNAcheron.*
+        ; options; no CK property link). Execute_Execute re-reads it on every fire.
+        _SetExecGateLevel(index)
+        SetMenuOptionValue(_execGateOID, _execGateName(index))
     EndIf
 EndEvent
+
+; REV-92 Task 2.1 — Execute-gate level names (user-ruled 2026-10-10; ASCII-only per the
+; runtime-string ASCII rider).
+String[] Function _execGateNames()
+    String[] a = new String[3]
+    a[0] = "Unlimited"
+    a[1] = "Companions ask"
+    a[2] = "Always ask"
+    Return a
+EndFunction
+
+String Function _execGateName(Int i)
+    If i == 1
+        Return "Companions ask"
+    ElseIf i == 2
+        Return "Always ask"
+    EndIf
+    Return "Unlimited"
+EndFunction
+
+Int Function _ExecGateLevel()
+    Actor p = Main.PlayerRef
+    If !p
+        p = Game.GetPlayer()
+    EndIf
+    Return StorageUtil.GetIntValue(p, "SNBaka.ExecuteGateLevel", 0)
+EndFunction
+
+Function _SetExecGateLevel(Int i)
+    Actor p = Main.PlayerRef
+    If !p
+        p = Game.GetPlayer()
+    EndIf
+    StorageUtil.SetIntValue(p, "SNBaka.ExecuteGateLevel", i)
+EndFunction
+
 
 String[] Function _targetSexNames()
     String[] a = new String[3]
@@ -976,6 +1031,8 @@ Event OnOptionHighlight(Int option)
         SetInfoText("Strip the module's degradation marks when a captive is genuinely released (the Release action). Only marks THIS module applied - Baka's own spank heat marks are untouched. Default ON.")
     ElseIf option == _stObserveOID
         SetInfoText("Periodic ambient cue (~every 4 game hours) that a marked actor still wears their degradation marks, so nearby personas can notice and react without polling. Only fires when module-applied marks exist. Default ON.")
+    ElseIf option == _execGateOID
+        SetInfoText("How much the player is asked before an NPC executes a downed victim. Unlimited: never asked (default). Companions ask: your companions ask first - everyone else acts freely. Always ask: every execution asks first. Your own downed-menu Execute button is never gated.")
     EndIf
 EndEvent
 

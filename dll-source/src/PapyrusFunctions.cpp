@@ -60,7 +60,7 @@ namespace {
 static bool SNBakaUI_IsAvailable(RE::StaticFunctionTag*) {
     const bool result = PrismaUIBridge::IsAvailable();
     if (!result)
-        SKSE::log::warn("IsAvailable() = false — view invalid, will try to recover.");
+        SKSE::log::warn("IsAvailable() = false - view invalid, will try to recover.");
     return result;
 }
 
@@ -128,6 +128,12 @@ static void SNBakaUI_ShowSlaveTatsMenu(RE::StaticFunctionTag*, RE::BSFixedString
     PrismaUIBridge::ShowSlaveTatsMenu(json.c_str() ? json.c_str() : "{}");
 }
 
+// REV-92: Execute-gate accept/decline popup entry point (SNBaka_ExecuteConfirm view, modal).
+static void SNBakaUI_ShowExecuteConfirm(RE::StaticFunctionTag*,
+                                        RE::Actor* akInitiator, RE::Actor* akTarget) {
+    PrismaUIBridge::ShowExecuteConfirm(akInitiator, akTarget);
+}
+
 bool PapyrusFunctions::Register(RE::BSScript::IVirtualMachine* vm) {
     vm->RegisterFunction("IsAvailable",       kScriptName, SNBakaUI_IsAvailable);
     vm->RegisterFunction("ShowInteractMenu",  kScriptName, SNBakaUI_ShowInteractMenu);
@@ -143,6 +149,7 @@ bool PapyrusFunctions::Register(RE::BSScript::IVirtualMachine* vm) {
     vm->RegisterFunction("GetLastHitAggressor", kScriptName, SNBakaUI_GetLastHitAggressor);
     vm->RegisterFunction("SetGetUpCharge",      kScriptName, SNBakaUI_SetGetUpCharge);
     vm->RegisterFunction("ShowSlaveTatsMenu",   kScriptName, SNBakaUI_ShowSlaveTatsMenu);
+    vm->RegisterFunction("ShowExecuteConfirm",  kScriptName, SNBakaUI_ShowExecuteConfirm);
     SKSE::log::info("Papyrus functions registered.");
     return true;
 }

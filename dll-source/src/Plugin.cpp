@@ -74,7 +74,7 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
             PrismaUIBridge::RequestAPI();
             break;
         case SKSE::MessagingInterface::kDataLoaded:
-            // View created exactly once here — never re-created on save load,
+            // View created exactly once here  -  never re-created on save load,
             // matching the known-good behaviour.  ShowInteractMenu self-heals
             // lazily if PrismaUI ever reports the view invalid.
             PrismaUIBridge::CreateMenuView();

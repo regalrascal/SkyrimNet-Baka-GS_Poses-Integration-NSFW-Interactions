@@ -70,9 +70,9 @@ namespace {
             [](RE::Actor* a) { return PreSexContact(a); });
 
         RegisterOne("SNBaka_Display",
-            "Provocative, performative display FOR another character to see — flirt, tease, seduce, make eyes, "
+            "Provocative, performative display FOR another character to see  -  flirt, tease, seduce, make eyes, "
             "or show off your body for them. Always has a target watching or being addressed: a brief social "
-            "beat, NOT a held solo pose (hold a solo pose via the Pose category instead). "
+            "beat, NOT a held solo pose (hold a solo pose via the Pose category). "
             "No physical contact.",
             [](RE::Actor* a) { return NotInCombat(a); });
 

@@ -80,3 +80,12 @@ Function SetGetUpCharge(Float afPct) Global Native
 ; SkyrimNet_BakaIntegration._ST_MenuChoice(slot, section, name) via the DLL's modal dispatch:
 ; slot is "spank"/"defeat"/"escalation"; empty section/name = cleared; "cancel" = no change.
 Function ShowSlaveTatsMenu(String asJson) Global Native
+
+; REV-92 (Task 2.3): opens the Execute accept/decline confirmation popup (SNBaka_ExecuteConfirm
+; view) shown when the LLM-gate (MCM "Execution Action Use") requires the player's consent before
+; a companion (level 2) or any actor (level 3) executes a downed victim. Game PAUSES while the
+; popup waits (Focus pauseGame=true - a killing blow must not land mid-menu). The answer comes
+; back via the SKSE mod event "SNBaka_MenuChoice" (strArg="execconfirm", numArg):
+;   0 = Accept (downed-recheck then execute)   -1 = Decline / timeout / moot (refusal)
+; A timeout is enforced Papyrus-side (_ExecuteGateCallback) - the popup itself never hangs.
+Function ShowExecuteConfirm(Actor akInitiator, Actor akTarget) Global Native

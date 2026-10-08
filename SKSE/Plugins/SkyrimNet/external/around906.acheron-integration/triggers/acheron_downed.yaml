@@ -9,8 +9,9 @@ response:
   content: |
     {{ target }} is down{% if originator %}, beaten by {{ originator }}{% endif %}. Nearby actors can talk
     to them first — interrogate, threaten, mock, demand their surrender or belongings — but must still
-    resolve the moment: call the action, don't just narrate — PinHelpless, ChokeHelpless, HelpUp, or
-    Release.
+    resolve the moment: call the action, don't just narrate — Execute, PinHelpless, ChokeHelpless,
+    HelpUp, or Release. Execute is the deliberate killing blow on a downed victim — first when the
+    loser is an enemy the winner wants dead.
 
 audience: "nearby_npcs"
 

@@ -18,6 +18,10 @@ this design is a STOP for planner/user decision.
 - `docs/STANDING_RULESET.md` — canonical ruleset (mirrored to fork `docs/`).
 - `docs/FILE_STRUCTURE.md` — this registry (mirrored to fork `docs/`).
 - `docs/features/`, `docs/permissions/`, gate/session reports — internal docs.
+
+- `docs/reference/` — on-touch reference sheets (sn-api-cheatsheet.md, papyrus-gotchas.md,
+  cpp-conventions.md), registered REV-92: NEVER standing-header reads; size + freshness
+  riders in STANDING_RULESET (REV-92). Version-provenance stamps mandatory.
 - Convention: internal records live here, NOT in the fork; two-tree doc rule per
   `78d6af8` (fork PROJECT_STATE removed). Not a deploy tree in any direction.
 - **DeD-Handoff disposition (REV-91, 2026-10-10):** the former

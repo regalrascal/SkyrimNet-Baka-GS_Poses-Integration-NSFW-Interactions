@@ -47,6 +47,12 @@ public:
     // SkyrimNet_BakaIntegration._ST_MenuChoice with the three parsed strings.
     static void ShowSlaveTatsMenu(const std::string& json) noexcept;
 
+    // REV-92 Execute-gate accept/decline popup (SNBaka_ExecuteConfirm view, ST-menu precedent).
+    // Papyrus waits (world paused by Focus) for the pick; the answer comes back as
+    // SNBaka_MenuChoice strArg="execconfirm": 0 = accept, -1 = decline (also the DLL-side
+    // 20s auto-close / cancel token  -  Papyrus owns the authoritative 30s timeout + moot poll).
+    static void ShowExecuteConfirm(RE::Actor* initiator, RE::Actor* target) noexcept;
+
     // Resolves the NPC the player is targeting (crosshair, then nearest-actor
     // fallback).  Returns nullptr if none / only the player.  Called from
     // OnEffectStart so Papyrus runs its sex/escalate/interact checks on the
@@ -70,13 +76,17 @@ public:
 private:
     static void OnJSChoice(const char* value) noexcept;
 
-    enum class MenuMode { None, Interact, SexSpank, Encounter, Downed, MidCombat, SlaveTats };
+    // REV-92: creates the SNBaka_ExecuteConfirm view (idempotent, like CreateSlaveTatsView).
+    static void CreateExecuteConfirmView() noexcept;
+
+    enum class MenuMode { None, Interact, SexSpank, Encounter, Downed, MidCombat, SlaveTats, ExecuteConfirm };
 
     static inline PRISMA_UI_API::IVPrismaUI1* s_prisma = nullptr;
     static inline PRISMA_UI_API::IVPrismaUI2* s_prismav2 = nullptr;
     static inline PrismaView                  s_view   = 0;
     static inline PrismaView                  s_hudView = 0;
     static inline PrismaView                  s_stView = 0;
+    static inline PrismaView                  s_execView = 0;   // REV-92 Execute-confirm popup
     static inline std::atomic<MenuMode>       s_mode   = MenuMode::None;
 
     // When Papyrus-side sex scene detection returns no NPCs we fall back to a
