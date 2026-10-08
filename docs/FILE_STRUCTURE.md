@@ -57,6 +57,18 @@ remotes, and branch verified intact at the new path)
     `releases\archive\`; the archive is append-only history.
   - **Current-zip-loose rule:** exactly ONE current release zip (+ its sha256)
     stays loose at repo root; all older ones live under `releases\archive\`.
+  - **`dist\archive\` model (REV-88 rider, user-ruled 2026-10-08):** after every
+    new dist build, all superseded [REV-NN] folders and zips move one level down
+    into `dist\archive\`; stamps are never renamed; exactly the latest rev's
+    folder + zip + sidecar stay loose at `dist\` root. One-time cleanup EXECUTED
+    same rev (2026-10-08): all superseded stamped folders, zips, and sidecars
+    moved to `dist\archive\` (full inventory in PROJECT_STATE §93). Loose at
+    `dist\` root after cleanup: `[REV-85c] Delectatio-et-Dominium
+    aroused-split` + `Delectatio-et-Dominium-rev85c-aroused-split.zip` + sidecar
+    (the latest rev's set) + `compile-out-rev85c` (current build-output staging,
+    not a stamped dist) + `SkyrimNet_BakaIntegration-v1.4.1` (the standing
+    pdb-reference path registered above — non-rev reference tree, kept).
+    `-LiteralPath` throughout (bracket-name rule above).
 - **Build-warning (gates the next DLL build):** the rev-57 migration left stale
   CMake caches pointing at the old BKA path. Before the next clean build of either
   DLL, run from repo root: `git clean -xdf dll-source/build/ dll-source-gs/build/`.
@@ -220,3 +232,14 @@ Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-R
   REV-83 §). ONE-WAY FLOW of record: planner -> checklist, never silently
   back (planner edits are the user's; checklist edits cite, never rewrite,
   planner intent). The planner file itself is NEVER edited by sessions.
+
+  **REV-88 amendment (dated 2026-10-08, user-ruled):** planner shared
+  authorship supersedes the never-edit convention's mechanics per the REV-88
+  ruleset rider — user-authored text remains immutable (rule 1); Cline
+  maintains timestamped, rev-stamped "— Project working notes —" blocks at
+  feature-section ends (status pointers only, never duplicated content) with
+  status-only inline asterisk flags next to user items; rulings of record may
+  be appended as marked notes when they arrive via approved paste. The
+  checklist tree (INDEX + feature docs) remains the single status authority —
+  planner notes are convenience annotations. The planner stays git-untracked
+  (unchanged). First applied same rev (PROJECT_STATE §93).

@@ -261,3 +261,22 @@ also sweeps generic engine error lines within the event window (origin: 24
 untagged "Unbound native function" errors invisible to two sentinel-scoped
 reads during the picker investigation). Rides §5; the numbered rule count
 stays 10.
+
+Rider (REV-88, user-ruled 2026-10-08) — planner shared authorship, superseding
+the never-edit convention: (1) user-authored text is immutable; Cline never
+edits, rewrites, or restructures it. (2) Cline maintains a "— Project working
+notes —" block at each feature section's end; entries timestamped + rev-stamped,
+terse pointers (status, evidence location), never duplicated content. (3) Inline
+asterisk flags next to user items are STATUS-ONLY ([EXECUTED REV-84]-class); no
+content edits. (4) Rulings of record may be appended verbatim as marked notes
+when they arrive via approved paste. (5) The checklist tree (INDEX + feature
+docs) remains the single status authority — planner notes are convenience
+annotations. (6) A working note that would conflict with user text is marked
+[NEEDS USER RULING] and surfaced in the gate report — never silently resolved.
+(7) The planner stays git-untracked. Rides §7; the numbered rule count stays 10.
+
+Rider (REV-88, user-ruled 2026-10-08) — dist hygiene: after every new dist
+build, all superseded [REV-NN] folders and zips move one level down into
+dist\archive\; stamps are never renamed; exactly the latest rev's folder + zip +
+sidecar stay loose at dist\ root. Rides §2 + the rev-42 rider; the numbered rule
+count stays 10.
