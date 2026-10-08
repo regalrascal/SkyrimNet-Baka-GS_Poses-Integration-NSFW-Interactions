@@ -297,3 +297,9 @@ build, all superseded [REV-NN] folders and zips move one level down into
 dist\archive\; stamps are never renamed; exactly the latest rev's folder + zip +
 sidecar stay loose at dist\ root. Rides §2 + the rev-42 rider; the numbered rule
 count stays 10.
+
+Rider (REV-90b close, user-approved 2026-10-10) — pending-approvals register:
+every §7 draft is registered in docs/pending-approvals.md in its producing
+session, quoted verbatim with feature + rev; approval moves the ruled text to
+the owning feature doc as wording of record. No user-facing text ships while
+its register entry is open. Rides §7; the numbered rule count stays 10.

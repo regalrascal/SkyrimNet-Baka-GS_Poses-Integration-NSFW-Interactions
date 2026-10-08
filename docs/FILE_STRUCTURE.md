@@ -14,6 +14,7 @@ this design is a STOP for planner/user decision.
 `C:\Users\Tristan\.cline\data\workspaces\chat\gs-build\SkyrimNet-Animations-GS\`
 - Role: canonical GS repo and internal records home. Branch `gs-muse-redesign`.
 - `docs/PROJECT_STATE.md` — central internal record (this file's sibling).
+- `docs/pending-approvals.md` — pending-approvals register: every §7 draft until ruled (REV-90b-close rider, 2026-10-10); rulings move text to the owning feature doc.
 - `docs/STANDING_RULESET.md` — canonical ruleset (mirrored to fork `docs/`).
 - `docs/FILE_STRUCTURE.md` — this registry (mirrored to fork `docs/`).
 - `docs/features/`, `docs/permissions/`, gate/session reports — internal docs.
