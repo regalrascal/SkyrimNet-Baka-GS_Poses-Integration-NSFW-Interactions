@@ -53,6 +53,10 @@ remotes, and branch verified intact at the new path)
     through REV-85c dists (2026-10-07 audit, PROJECT_STATE §91). The REV-56
     zip's own bytes are unchanged (historical artifact, never edited); only
     the lineage-of-record reading is corrected here.
+  - `releases\manifests\` (REV-89, 2026-10-09; dist-manifest home, ruled (b)):
+    generated-at-build dist manifests versioned in-repo (dist/ itself stays
+    gitignored); first artifact = manifest-rev85c-repro-dryrun.txt (the REV-89
+    dry-run proof manifest, sha256 5FA12E7B).
   - **`releases\archive\` model:** superseded release zips+sha256 move to
     `releases\archive\`; the archive is append-only history.
   - **Current-zip-loose rule:** exactly ONE current release zip (+ its sha256)
