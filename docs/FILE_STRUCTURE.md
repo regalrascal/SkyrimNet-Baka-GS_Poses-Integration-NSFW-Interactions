@@ -20,6 +20,14 @@ this design is a STOP for planner/user decision.
 - `docs/features/`, `docs/permissions/`, gate/session reports — internal docs.
 - Convention: internal records live here, NOT in the fork; two-tree doc rule per
   `78d6af8` (fork PROJECT_STATE removed). Not a deploy tree in any direction.
+- **DeD-Handoff disposition (REV-91, 2026-10-10):** the former
+  `D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\DeD-Handoff\` folder (the
+  REV-86 delivery vehicle) no longer exists on disk (deleted between REV-95
+  and REV-91; not git-tracked at any point, so no git history remains). Its
+  records role is CLOSED: all future records edits target canonical trees
+  ONLY (GS repo + fork `docs\`). Any future handoff delivery is a fresh
+  point-in-time snapshot under a new stamped folder — never maintained,
+  never resynced, never a third ruleset copy.
 
 ## 2. Project home "1a" (the fork — active worktree)
 

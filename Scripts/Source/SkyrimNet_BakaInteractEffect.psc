@@ -44,14 +44,14 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
     ; refused, only the aggressor who actually owns this window gets through.
     If realTarget && BakaMain.IsInSexAnimation(realTarget)
         If dbg
-            Debug.Notification("[Baka] power: " + realTarget.GetDisplayName() + " is busy (scene) — not interrupting")
+            Debug.Notification("[Baka] power: " + realTarget.GetDisplayName() + " is busy (scene) - not interrupting")
             Debug.Trace("[SNBaka][POWER] blocked — target " + realTarget.GetDisplayName() + " is mid-scene")
         EndIf
         Return
     EndIf
     If realTarget && BakaMain.IsActorLocked(realTarget) && !BakaMain._IsGroundWindowOwner(akCaster, realTarget)
         If dbg
-            Debug.Notification("[Baka] power: " + realTarget.GetDisplayName() + " is busy (struggle) — not interrupting")
+            Debug.Notification("[Baka] power: " + realTarget.GetDisplayName() + " is busy (struggle) - not interrupting")
             Debug.Trace("[SNBaka][POWER] blocked — target " + realTarget.GetDisplayName() + " is locked by someone else")
         EndIf
         Return
@@ -67,7 +67,7 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
     EndIf
     If !realTarget
         If dbg
-            Debug.Notification("[Baka] power pressed — no target on the crosshair")
+            Debug.Notification("[Baka] power pressed - no target on the crosshair")
             Debug.Trace("[SNBaka][POWER] no interact target (no actor on crosshair / in range)")
         EndIf
         Return

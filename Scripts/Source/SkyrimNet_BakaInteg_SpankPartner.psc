@@ -14,7 +14,7 @@ Event OnEffectStart(Actor akTarget, Actor akCaster)
         Debug.Trace("[SNBaka_SpankPartner] MainQuest auto-resolved: " + MainQuest)
     EndIf
     If !MainQuest
-        Debug.Notification("[SNBaka] SpankPartner: could not resolve MainQuest — check ESP is active.")
+        Debug.Notification("[SNBaka] SpankPartner: could not resolve MainQuest - check ESP is active.")
         Return
     EndIf
     If !MainQuest.bEnabled

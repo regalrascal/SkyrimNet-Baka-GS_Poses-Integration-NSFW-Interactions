@@ -272,6 +272,27 @@ SAME session; a stale-state warning that lives only in documentation is a
 scheduled regression (origin: the 42A0771F workspace DLL — flagged stale at
 REV-74, re-entered dists at REV-84, user-visible defect 2026-10-07).
 
+**Checklist v8 (REV-91, 2026-10-10 — 8th entry of THE SHIPPING-FEATURES
+CHECKLIST, REV-77 rider):** 8. FULL-SURFACE ASCII TRUTH — at ship time, a
+binary-level non-ASCII scan of ALL user-facing string surfaces in the
+assembled output (pex string tables + esp Message strings + DLL user-facing
+strings where the DLL ships), NOT scoped to touched scripts. Grounds: a
+scoped sweep inherits its scope's blind spots — occurrence #2 of the
+mojibake class: the interact-power "[Baka] power pressed — no target on the
+crosshair" notification (SkyrimNet_BakaInteractEffect.psc L70) shipped
+through the REV-85b scoped sweep untouched (user-confirmed in-game
+2026-10-08; the psc literal compiled to CP1252 mojibake "â€"" in the pex
+string table). Comment/Trace-class strings stay out of scope (REV-85
+Phase C rider). Rides §3/§5; the count stays 10. EXECUTED against
+`Delectatio-et-Dominium-rev91-ascii-sweep.zip` (2026-10-10): PASS — 26
+user-facing literal sites swept across 4 scripts (InteractEffect 3,
+SpankPartner 1, BakaIntegration_MCM 17, AcheronIntegration_MCM 5;
+em-dash -> " - ", arrow -> "->" per the REV-85 Phase C convention), 0
+user-facing mojibake/em-dash runs in the staged pex (residual runs verified
+Trace-class), 0 non-ASCII runs in all 3 esps, DLL lineage unchanged
+(55D98572; DLL-resident user-facing em-dashes are a separate gated
+DLL-rebuild item, reported not rebuilt — REV-91 Task 2.3).
+
 Rider (REV-87, user-ruled 2026-10-08) — investigation log-reads: sentinel-list
 greps never constitute a "zero errors" claim; every investigation log-read
 also sweeps generic engine error lines within the event window (origin: 24
