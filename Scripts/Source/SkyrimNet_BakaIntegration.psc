@@ -8984,25 +8984,24 @@ EndFunction
 ; loads. Idempotent: safe to call as often as the listeners re-register.
 Function _ArmModules()
     _Log("[SNBaka] module-arm: SexLab handshake — installed=" + SkyrimNet_BakaSL.Installed())
-    ; REV-96 1.2 (ruling of record: UN-CAST presence probe, per _DelegateDownToAcheron's
-    ; proven pattern): "installed" is answered WITHOUT a cast — the esp's quest form
-    ; 0x800 resolving means the bridge mod is in the load order. The old code CAST the
-    ; form to the manager class and treated None as "absent", conflating installed vs.
-    ; instantiated: the manager script has NO esp host form (REV-96 finding of record —
-    ; the esp never attaches SkyrimNet_AcheronIntegration to any record; it ran only
-    ; via cosave-persisted instances), so on a clean save/new game the cast returned
-    ; None and logged "bridge absent" EVEN THOUGH the esp was loaded. Manager calls stay
-    ; guarded: no-op + sentinel when the instance is absent; the clean-save instantiation
-    ; fix is the scuttle session's manager-attachment (acheron-fold.md, Amendment 2).
+    ; REV-98b Amendment 3 (Option C, user-ruled 2026-10-12): presence and manager are DIFFERENT
+    ; questions at DIFFERENT forms. Presence = the esp's 0x800 Downed worker quest resolving
+    ; (un-cast probe via IsAcheronBridgeInstalled(), unchanged — 0x800 binds the Acheron
+    ; consequence YAMLs and stays exactly as-is). Manager = the esp-attached manager script
+    ; on QUST 0x801 (second script entry, 0 props, DNAM 11 start-game-enabled; attached since
+    ; the REV-62 fold). REV-96's "manager has no esp host form" finding is WITHDRAWN
+    ; (objectFormat-2 decode error; enumeration receipts in PROJECT_STATE §104); the old
+    ; 0x800 cast here was a wrong-form cast — effectively a no-op. Retargeted to 0x801,
+    ; EnsureAlive() is functional (the bridge's documented idempotent no-op when ticking).
     If !IsAcheronBridgeInstalled()
         _Log("[SNBaka] module-arm: Acheron bridge NOT installed (esp absent from load order — Option-B clause: keeps own Form/esp until the scheduled esp-unification phase)")
     Else
-        SkyrimNet_AcheronIntegration bridge = Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp") as SkyrimNet_AcheronIntegration
+        SkyrimNet_AcheronIntegration bridge = Game.GetFormFromFile(0x801, "SkyrimNet_AcheronIntegration.esp") as SkyrimNet_AcheronIntegration
         If bridge
-            _Log("[SNBaka] module-arm: Acheron bridge installed + manager instance live — nudging EnsureAlive()")
+            _Log("[SNBaka] module-arm: Acheron bridge installed + manager instance live (host 0x801) — nudging EnsureAlive()")
             bridge.EnsureAlive()
         Else
-            _Log("[SNBaka] module-arm: Acheron bridge INSTALLED but manager instance ABSENT (no esp host form — runs only via cosave-persisted instances; clean-save instantiation fix is the scuttle session's manager-attachment) — EnsureAlive() nudge skipped (no-op sentinel)")
+            _Log("[SNBaka] module-arm: Acheron bridge INSTALLED but manager instance ABSENT at host 0x801 (unexpected — esp attaches the manager there since the REV-62 fold; report if seen) — EnsureAlive() nudge skipped (no-op sentinel)")
         EndIf
     EndIf
     _Log("[SNBaka] module-arm: GS Poses presence=" + (Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None))

@@ -113,9 +113,39 @@ CLOSED at REV-94 (2026-10-11) — approved; wording of record in
 *(Sentence identical in all three templates; the baka_opportunity variant places it inside the Execute parentheses.)*
 
 ---
+
+## 11. Execute action wording rider (REV-98b, 2026-10-12 — user-delegated wording, dogfood-gated)
+
+CREATED + CLOSED in the same session per the user's standing ruling
+(user-delegated wording). Base adopted from Oldcustard's execute-llm-action
+fork — upstream repo since deleted (404, verified 2026-10-12); the base text
+survives in the USER-PRESERVED copy (enabled mod folder,
+`Delectatio-et-Dominium-rev96-probe-and-modules`, read-only fetch per the
+REV-91 read precedent) — truth-reconciled to our executor and shipped at
+REV-98b as wording of record:
+`SKSE\Plugins\SkyrimNet\external\regalrascal.baka-gs-integration\actions\execute.yaml`
+(the shipped file IS the verbatim wording of record; description quoted there
+in full).
+
+Ruled judgments applied: "or TIED" REMOVED (one site present in the
+preserved copy — noted; no second site found); the essential/protected
+survival line KEPT (TRUE per psc L2102-2107 + §103 evidence); "coup de
+grâce" -> "coup de grace" (NO site present in the preserved copy — ruling
+held in reserve, noted); henchman line OMITTED (ruled redundant with the
+leader's-demand "Duty or orders" line); cultist entry KEPT; "If you kill,
+own it - this fires a visible event the world reacts to" KEPT; ASCII-only.
+Dogfood-gated: the J'zargo trial + delegation occasion ride the REV-98b
+handoff (Task 5).
+
+---
 *Register refreshed at REV-94 (2026-10-11): ALL entries CLOSED (1-4, 6 at
 REV-92; 5, 7-10 at REV-94). Register EMPTY of open entries as of this
 refresh. Fork copy lockstep. New drafts would enter per the standing rules.*
+
+---
+*REV-98b refresh (2026-10-12): entry 11 created + closed same-session
+(user-delegated wording, dogfood-gated). Register EMPTY of open entries.
+Fork copy lockstep.*
 
 ---
 *Register created 2026-10-10 per the REV-90b-close rider (user-approved 2026-10-10). Registered by sweeping PROJECT_STATE recent §s, the features INDEX, and all feature docs for live §7 drafts. Entry 6 added REV-91; entries 1-4+6 closed + entries 7-10 added at REV-92 (2026-10-10) per the pre-loaded 2026-10-10 rulings; entries 5 + 7-10 closed at REV-94 (2026-10-11) per the 2026-10-11 rulings; fork `docs/` copy maintained per the REV-92 register rider.*
