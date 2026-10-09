@@ -6360,8 +6360,24 @@ Function Execute_Execute(Actor akInitiator, Actor akTarget)
         Return
     EndIf
     If _IsDownedAny(akInitiator)
-        _Log("[SNBaka] Execute_Execute: blocked — initiator is downed")
-        Return
+        ; REV-94 Task 1.1 (user-approved 2026-10-11; scoping of record: LENIENT
+        ; initiator, STRICT target): an Acheron-DEFEATED initiator is pacified,
+        ; not helpless - when the ONLY "downed" signal is the Acheron hold (no
+        ; local SNBaka.OnGround window, no vanilla bleedout), the initiator may
+        ; execute (the REV-93 J'zargo dogfood block, class (ii)). A genuinely
+        ; locally-downed initiator (OnGround/bleedout) stays blocked. Presence-
+        ; gated like _DelegateDownToAcheron (bridge quest 0x800 probe): inert
+        ; without Acheron, per the planner's without-Acheron requirement.
+        ; _IsDownedAny itself is UNTOUCHED - this is a widening, not a removal.
+        If IsAcheronBridgeInstalled() \
+            && Acheron.IsDefeated(akInitiator) \
+            && StorageUtil.GetIntValue(akInitiator, "SNBaka.OnGround", 0) != 1 \
+            && !akInitiator.IsBleedingOut()
+            _Log("[SNBakaEXEC] Execute_Execute: initiator Acheron-defeated but standing/pacified - ACCEPTED (REV-94 lenient-initiator widening)")
+        Else
+            _Log("[SNBaka] Execute_Execute: blocked — initiator is downed")
+            Return
+        EndIf
     EndIf
     If akTarget == PlayerRef
         ; Never the player — the player's defeat IS the death alternative (choice-5 rule).

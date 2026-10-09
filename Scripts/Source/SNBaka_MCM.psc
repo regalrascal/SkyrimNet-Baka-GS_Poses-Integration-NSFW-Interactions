@@ -40,6 +40,9 @@ Int _execGateOID      ; REV-93 Task 1: ported from the DEAD v7 script (REV-92 bu
                       ; mistake — SkyrimNet_BakaIntegration_MCM is the neutered pre-REV-76 quest;
                       ; THIS quest is the live MCM). Levels: 0 Unlimited / 1 Companions ask /
                       ; 2 Always ask; key SNBaka.ExecuteGateLevel (player-keyed StorageUtil).
+                      ; REV-94 Task 2.2: DEFAULT = 0 (Unlimited) USER-CONFIRMED 2026-10-11
+                      ; (literal default in _ExecGateLevel below and in _ExecuteGateLevel on
+                      ; the integration side: GetIntValue(..., 0) both).
 Int _animatedTearsOID
 Int _hugDurOID
 Int _molestDurOID

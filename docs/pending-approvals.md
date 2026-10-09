@@ -14,16 +14,14 @@ register QUOTED VERBATIM in full; pointer-only entries are prohibited.
 register change, lockstep with the GS canonical; both hashes are reported at
 every change.
 
-**Register state after REV-92 (2026-10-10):** entries 1, 2, 3, 4 and 6 CLOSED
-(approved -> wording of record in the owning feature docs; closures noted
-below). Entry 5 OPEN (verbatimized this session; user rules next exchange).
-REV-92 new drafts: entries 7-10 (built + staged in the [REV-92] dist;
-approval precedes install).
+**Register state after REV-94 (2026-10-11):** ALL entries CLOSED — 1, 2, 3,
+4, 6 at REV-92; 5, 7, 8, 9, 10 at REV-94 (approved 2026-10-11; wording of
+record in `fhu-inflation.md` and `baka-module.md` REV-94 sections). The
+register is EMPTY of open entries; no new drafts entered at REV-94.
 
 ---
 
 ## CLOSED at REV-92 (2026-10-10) — rulings of record
-
 - **Entry 1 (execute.yaml description)** — approved with two ruled verbatim
   additions; final full description quoted in `baka-module.md` (REV-92 line)
   and PROJECT_STATE §98. CLOSED.
@@ -46,8 +44,13 @@ approval precedes install).
 ---
 
 ## 5. FHU-inflation — cue texts + manifest
-- **Feature:** INDEX row 6 (`fhu-inflation`) — **Rev:** REV-63/65 build, REV-66 dogfood-passed — **Status:** OPEN (verbatim quotes registered REV-92 per the verbatim-always rule; user rules next exchange)
-- **Module (read + quoted this session):** `SKSE\Plugins\SkyrimNet\external\regalrascal.fhu-inflation\` — manifest.json + `triggers\sdb_fhu_inflate.yaml`
+
+CLOSED at REV-94 (2026-10-11): entries 5, 7, 8, 9, 10 approved — approved
+text moved to the owning feature docs as wording of record; register
+refreshed; fork copy lockstep.
+
+- **Feature:** INDEX row 6 (`fhu-inflation`) — **Rev:** REV-63/65 build, REV-66 dogfood-passed — **Status:** CLOSED at REV-94 (2026-10-11) — approved wording of record now in `fhu-inflation.md` (REV-94 section)
+- **Module (read + quoted REV-92):** `SKSE\Plugins\SkyrimNet\external\regalrascal.fhu-inflation\` — manifest.json + `triggers\sdb_fhu_inflate.yaml`
 
 **manifest.json description (L6, verbatim):**
 > LLM trigger cues for Fill Her Up inflation level changes: swelling (level up) and release (level down), read from FHU's own per-actor state. Source-agnostic by design: the cues describe only the visible state and never assert what caused it, so any framework that feeds FHU benefits automatically.
@@ -72,14 +75,16 @@ approval precedes install).
 ---
 
 ## 7. Execute-gate MCM option description (REV-92 Task 2.1 draft)
-- **Feature:** INDEX row 14 (`execute-bug`) — **Rev:** REV-92 — **Status:** OPEN (draft; built + staged in [REV-92]; approval precedes install)
-- **Surface:** MCM option "Execution Action Use" hover/description text (SkyUI SetInfoText). Option label + level names ("Unlimited" / "Companions ask" / "Always ask") are USER-RULED (2026-10-10), not drafts. Verbatim draft:
+
+CLOSED at REV-94 (2026-10-11) — approved; wording of record in
+`baka-module.md` (REV-94 lines). Verbatim approved draft:
 
 > How much the player is asked before an NPC executes a downed victim. Unlimited: never asked (default). Companions ask: your companions ask first - everyone else acts freely. Always ask: every execution asks first. Your own downed-menu Execute button is never gated.
 
 ## 8. Execute-confirm popup texts (REV-92 Task 2.3 drafts)
-- **Feature:** INDEX row 14 (`execute-bug`) — **Rev:** REV-92 — **Status:** OPEN (drafts; built + staged in [REV-92]; approval precedes install)
-- **Surface:** PrismaUI SNBaka_ExecuteConfirm view (title / question line / buttons / timeout hint). Verbatim drafts:
+
+CLOSED at REV-94 (2026-10-11) — approved; wording of record in
+`baka-module.md` (REV-94 lines). Verbatim approved drafts:
 
 **Title:** "An Execution Awaits Your Word"
 **Hint line:** "SkyrimNet Baka - Execute gate"
@@ -88,8 +93,9 @@ approval precedes install).
 **Timeout hint (interpolated):** "The moment passes in {N}s"
 
 ## 9. Execute-gate refusal narrations (REV-92 Task 2.3 drafts)
-- **Feature:** INDEX row 14 (`execute-bug`) — **Rev:** REV-92 — **Status:** OPEN (drafts; built + staged in [REV-92]; approval precedes install)
-- **Surface:** `baka_execute_refused` SkyrimNet events + papyrus log sentinels; per-path reason strings interpolated. Verbatim drafts:
+
+CLOSED at REV-94 (2026-10-11) — approved; wording of record in
+`baka-module.md` (REV-94 lines). Verbatim approved drafts:
 
 **Shared frame (actor names interpolated):** "{Initiator} moves to finish {Target} - but the killing blow does not land. {Reason}. The moment passes without a death; keep roleplaying accordingly (do not claim the kill happened)."
 **Reason - decline:** "the player declined"
@@ -98,12 +104,18 @@ approval precedes install).
 **Reason - level-2 non-companion:** "not one of the player's companions - the kill is not theirs to take"
 
 ## 10. Execute nudge-template connective sentence (REV-92 Task 2.4 draft)
-- **Feature:** INDEX row 14 (`execute-bug`) — **Rev:** REV-92 — **Status:** OPEN (draft; built + staged in [REV-92]; approval precedes install)
-- **Surface:** the REV-91 entry-6 approved action-list addition ("Execute, PinHelpless, ChokeHelpless, HelpUp, or Release" / "Execute (the deliberate killing blow...)") shipped in all 3 nudge templates. The REV-92 connective sentence added after the list, verbatim:
+
+CLOSED at REV-94 (2026-10-11) — approved; wording of record in
+`baka-module.md` (REV-94 lines). Verbatim approved draft:
 
 > Execute is the deliberate killing blow on a downed victim — first when the loser is an enemy the winner wants dead.
 
 *(Sentence identical in all three templates; the baka_opportunity variant places it inside the Execute parentheses.)*
 
 ---
-*Register created 2026-10-10 per the REV-90b-close rider (user-approved 2026-10-10). Registered by sweeping PROJECT_STATE recent §s, the features INDEX, and all feature docs for live §7 drafts. Entry 6 added REV-91; entries 1-4+6 closed + entries 7-10 added at REV-92 (2026-10-10) per the pre-loaded 2026-10-10 rulings; fork `docs/` copy maintained per the REV-92 register rider.*
+*Register refreshed at REV-94 (2026-10-11): ALL entries CLOSED (1-4, 6 at
+REV-92; 5, 7-10 at REV-94). Register EMPTY of open entries as of this
+refresh. Fork copy lockstep. New drafts would enter per the standing rules.*
+
+---
+*Register created 2026-10-10 per the REV-90b-close rider (user-approved 2026-10-10). Registered by sweeping PROJECT_STATE recent §s, the features INDEX, and all feature docs for live §7 drafts. Entry 6 added REV-91; entries 1-4+6 closed + entries 7-10 added at REV-92 (2026-10-10) per the pre-loaded 2026-10-10 rulings; entries 5 + 7-10 closed at REV-94 (2026-10-11) per the 2026-10-11 rulings; fork `docs/` copy maintained per the REV-92 register rider.*
