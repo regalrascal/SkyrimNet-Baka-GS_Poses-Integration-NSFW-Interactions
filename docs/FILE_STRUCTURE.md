@@ -226,10 +226,11 @@ Current lineage holder: `D:\Modlists\LoreRim\mods\SN-AnimationsGS-Baka-Unified-R
 
 ---
 
-## 7. D&D Features Planner (design authority — fork root; REV-81)
+## 7. DeD Features Planner (design authority — fork root; REV-81)
 
-`D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\D&D Features Planner.md`
-(fork root, path updated at the REV-82 rename)
+`D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\DeD_Features_Planner.md`
+(fork root; RENAMED 2026-10-08 REV-93 from "D&D Features Planner.md" —
+ASCII-filesystem-safe; dated rename note added both copies)
 - Role: the project's design-authority planner (feature pipeline, tiering
   semantics, cue-wording tiers — e.g. the arousal 3-tier: >=75% enthusiastic /
   25-75% fascinated / <=25% shocked). New design work cites it as the design

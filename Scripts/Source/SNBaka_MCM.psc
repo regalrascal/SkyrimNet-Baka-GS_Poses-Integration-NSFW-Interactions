@@ -36,6 +36,10 @@ Int _panicOID
 Int _lapSitOID
 Int _playerTargetOID
 Int _femaleOnlyOID
+Int _execGateOID      ; REV-93 Task 1: ported from the DEAD v7 script (REV-92 built it there by
+                      ; mistake — SkyrimNet_BakaIntegration_MCM is the neutered pre-REV-76 quest;
+                      ; THIS quest is the live MCM). Levels: 0 Unlimited / 1 Companions ask /
+                      ; 2 Always ask; key SNBaka.ExecuteGateLevel (player-keyed StorageUtil).
 Int _animatedTearsOID
 Int _hugDurOID
 Int _molestDurOID
@@ -162,7 +166,10 @@ Int Function GetVersion()
     ; (configuration-vs-picker clarity, §7-approved copy).
     ; REV-85: THIRD canonical bump (v3 -> v4) — the "GS Poses" top-level page
     ; joins (gender policy home, posing-gender.md §2b; page-count 10 -> 11).
-    Return 4
+    ; REV-93: FOURTH canonical bump (v4 -> v5) — the Execute-gate option
+    ; (REV-92, mis-built in the DEAD v7 script) is ported into THIS live
+    ; script's General page (dogfood-failure fix; wrong-script defect).
+    Return 5
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -181,8 +188,11 @@ Event OnVersionUpdate(Int aVersion)
     ; REV-85 v4 (GS Poses page): canary marker — pages rebuilt FIRST so the
     ; canary reports the NEW page count (the v2 lesson, applied by convention).
     StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v4", 1)
+    ; REV-93 v5 (Execute-gate option ported from the dead v7 script into the
+    ; live General page): canary marker — pages rebuilt FIRST (the v2 lesson).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v5", 1)
     _BuildPages()
-    Debug.Trace("[SNBaka] MCM canary: v4 OnVersionUpdate (GS Poses page: " + Pages.Length + ")")
+    Debug.Trace("[SNBaka] MCM canary: v5 OnVersionUpdate (exec-gate option port: " + Pages.Length + ")")
 EndEvent
 
 ; ============================================================================
@@ -263,6 +273,10 @@ Event OnPageReset(String page)
         ; any loaded actor -- for actors stuck non-aggressive/untargetable after something went wrong.
         ; Leaves genuinely downed/defeated actors alone (HelpUp / the get-up key is their way out).
         _panicOID = AddTextOption("EMERGENCY: reset stuck actor states", "RUN")
+        ; REV-93 Task 1 (port of the REV-92 block): Execute-gate cycling option, family
+        ; convention (menu option + name function, like "Target Sex"). Level names
+        ; user-ruled 2026-10-10; ASCII-only per the runtime-string ASCII rider.
+        _execGateOID = AddMenuOption("Execution Action Use", _execGateName(_ExecGateLevel()))
     ElseIf page == "Timing"
         SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("Animation Durations")
@@ -660,6 +674,10 @@ Event OnOptionMenuOpen(Int option)
         SetMenuDialogOptions(_gsGenderPolicyNames())
         SetMenuDialogStartIndex(StorageUtil.GetIntValue(None, "GSAnim.GenderPolicy", 0))
         SetMenuDialogDefaultIndex(0)
+    ElseIf option == _execGateOID
+        SetMenuDialogOptions(_execGateNames())
+        SetMenuDialogStartIndex(_ExecGateLevel())
+        SetMenuDialogDefaultIndex(0)
     EndIf
 EndEvent
 
@@ -686,8 +704,49 @@ Event OnOptionMenuAccept(Int option, Int index)
         StorageUtil.SetIntValue(None, "GSAnim.GenderPolicy", index)
         SetMenuOptionValue(_gsGenderPolicyOID, _gsGenderPolicyName(index))
         Debug.Notification("GS Poses: pose gender policy set - " + _gsGenderPolicyName(index))
+    ElseIf option == _execGateOID
+        ; REV-93 Task 1 (port): player-keyed StorageUtil write (same pattern as the
+        ; SNAcheron.* options; no CK property link). Execute_Execute re-reads it on
+        ; every fire.
+        _SetExecGateLevel(index)
+        SetMenuOptionValue(_execGateOID, _execGateName(index))
     EndIf
 EndEvent
+
+; REV-93 Task 1 (port of the REV-92 block) - Execute-gate level names (user-ruled
+; 2026-10-10; ASCII-only per the runtime-string ASCII rider).
+String[] Function _execGateNames()
+    String[] a = new String[3]
+    a[0] = "Unlimited"
+    a[1] = "Companions ask"
+    a[2] = "Always ask"
+    Return a
+EndFunction
+
+String Function _execGateName(Int i)
+    If i == 1
+        Return "Companions ask"
+    ElseIf i == 2
+        Return "Always ask"
+    EndIf
+    Return "Unlimited"
+EndFunction
+
+Int Function _ExecGateLevel()
+    Actor p = Main.PlayerRef
+    If !p
+        p = Game.GetPlayer()
+    EndIf
+    Return StorageUtil.GetIntValue(p, "SNBaka.ExecuteGateLevel", 0)
+EndFunction
+
+Function _SetExecGateLevel(Int i)
+    Actor p = Main.PlayerRef
+    If !p
+        p = Game.GetPlayer()
+    EndIf
+    StorageUtil.SetIntValue(p, "SNBaka.ExecuteGateLevel", i)
+EndFunction
 
 String[] Function _targetSexNames()
     String[] a = new String[3]
@@ -992,6 +1051,8 @@ Event OnOptionHighlight(Int option)
         SetInfoText("Which target sex ALL actions allow: Both, Female only, or Male only. Note: breast/intimate actions always require female targets regardless.")
     ElseIf option == _cooldownOID
         SetInfoText("Minimum real-time seconds between NPC-initiated actions. Default 30s.")
+    ElseIf option == _execGateOID
+        SetInfoText("REV-93: how the Execute action may be used. Unlimited = no gate. Companions ask / Always ask = the confirm dialog appears (companion-initiated only, or every time). Player hotkey Execute bypasses this gate.")
     ElseIf option == _hugDurOID
         SetInfoText("How long BackHug and FrontHug loop phases last.")
     ElseIf option == _molestDurOID

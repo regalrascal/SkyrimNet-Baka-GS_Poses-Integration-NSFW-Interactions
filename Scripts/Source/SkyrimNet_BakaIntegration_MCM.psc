@@ -194,6 +194,13 @@ Event OnPageReset(String page)
         ; Leaves genuinely downed/defeated actors alone (HelpUp / the get-up key is their way out).
         _panicOID = AddTextOption("EMERGENCY: reset stuck actor states", "RUN")
         AddEmptyOption()
+        ; REV-93 DOGFOOD-FIXTURE: this script is the REV-76-NEUTERED DEAD QUEST (detached
+        ; from the quest record — SNBaka_MCM.psc is the LIVE MCM). The REV-92 Execute-gate
+        ; option block below was BUILT HERE BY MISTAKE and never rendered in-game. REV-93
+        ; Task 1 PORTED the whole block (declaration/option/dialog legs/name fns/InfoText)
+        ; into the live SNBaka_MCM.psc (GetVersion 4 -> 5 there). It is retained here,
+        ; comment-out of render lines intentionally NOT done (dead script, never runs) —
+        ; but treat this block as HISTORICAL only; do not extend it.
         ; REV-92 Task 2.1 — Execute-gate cycling option (family convention: menu option + name
         ; function, like "Target Sex"/"Scene Framework"). Level names user-ruled 2026-10-10.
         _execGateOID = AddMenuOption("Execution Action Use", _execGateName(_ExecGateLevel()))
