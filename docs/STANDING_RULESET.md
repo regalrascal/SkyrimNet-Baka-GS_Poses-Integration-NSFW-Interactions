@@ -328,3 +328,10 @@ Rider (REV-92, user-ruled 2026-10-10) - register rules: (i) every §7 draft ente
 
 Rider (REV-92, user-ruled 2026-10-10) - reference-sheet discipline: docs/reference/ sheets are on-touch reads, NEVER standing-header reads; if any sheet exceeds roughly a couple of screens it is becoming the thing it replaces - split or cut. Freshness: every reference sheet carries a version-provenance stamp; a new SkyrimNet beta triggers a diff pass against the DevKit before the sheet is trusted again (stale-artifact class). Rides §2 records tiering; the numbered rule count stays 10.
 
+
+Rider (REV-95, user-ruled 2026-10-12, strike to reject) — modlist-write attestation:
+every gate report carries an explicit line — "Modlist writes this session: NONE"
+(or an enumerated list WITH the user authorization that permitted each write) — plus
+an accompanying completion-table row. Rides §1/§2 + the REV-76 never-deploy ruling;
+the numbered rule count stays 10.
+
