@@ -70,9 +70,23 @@ Function RunConsequence()
     ; unconditionally, which is a harmless no-op if it's already ticking. FormID verified directly from
     ; the compiled plugin (QUST record for EDID "SNAcheron_Quest"), not guessed — matches the FEE66800
     ; runtime id seen in logs and the QF_SNAcheron_Quest_02000800 fragment.
-    SkyrimNet_AcheronIntegration bridge = Game.GetFormFromFile(0x000800, "SkyrimNet_AcheronIntegration.esp") as SkyrimNet_AcheronIntegration
-    If bridge
-        bridge.EnsureAlive()
+    ; REV-96 1.2 (ruling of record: UN-CAST presence probe — installed vs. instantiated
+    ; are different questions): the manager script has NO esp host form (REV-96 finding
+    ; of record — it runs only via cosave-persisted instances), so a None cast here does
+    ; NOT mean the bridge is absent, and a successful nudge is impossible on a clean save.
+    ; The nudge stays guarded: no-op + trace sentinel when the instance is absent; the
+    ; clean-save instantiation fix is the scuttle session's manager-attachment.
+    ; (bridge declared at function scope, not inside the If: Papyrus block-scopes local
+    ; variables, and the ForceEssential borrow below (the `If bridge` further down) needs it
+    ; after this probe block closes — REV-96 compile-0/0 lesson.)
+    SkyrimNet_AcheronIntegration bridge = None
+    If Game.GetFormFromFile(0x000800, "SkyrimNet_AcheronIntegration.esp")
+        bridge = Game.GetFormFromFile(0x000800, "SkyrimNet_AcheronIntegration.esp") as SkyrimNet_AcheronIntegration
+        If bridge
+            bridge.EnsureAlive()
+        Else
+            Debug.Trace("[SNAcheron:Downed] RunConsequence: bridge installed but manager instance ABSENT (no esp host form — cosave-persisted instances only) — EnsureAlive() nudge skipped (no-op sentinel)")
+        EndIf
     EndIf
     Float now = Utility.GetCurrentRealTime()
     ; Both clocks need seeding here (LastProxRT too, not just LastCheckRT) or the bridge's very first

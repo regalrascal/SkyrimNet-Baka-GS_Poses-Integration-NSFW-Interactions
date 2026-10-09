@@ -27,9 +27,19 @@ Event OnConfigInit()
     ; Second safety net (see Downed_SkyrimNet.RunConsequence for the primary one and why it exists) —
     ; MCM init is reliable and happens on every game load, so this catches the bridge being dead even
     ; before the first defeat occurs this session. EnsureAlive() is a no-op if it's already ticking.
-    SkyrimNet_AcheronIntegration bridge = Game.GetFormFromFile(0x000800, "SkyrimNet_AcheronIntegration.esp") as SkyrimNet_AcheronIntegration
-    If bridge
-        bridge.EnsureAlive()
+    ; REV-96 1.2 (ruling of record: UN-CAST presence probe — installed vs. instantiated
+    ; are different questions): the manager script has NO esp host form (REV-96 finding
+    ; of record — it runs only via cosave-persisted instances), so a None cast here does
+    ; NOT mean the bridge is absent. The nudge stays guarded: no-op + trace sentinel when
+    ; the instance is absent; the clean-save instantiation fix is the scuttle session's
+    ; manager-attachment (acheron-fold.md, Amendment 2).
+    If Game.GetFormFromFile(0x000800, "SkyrimNet_AcheronIntegration.esp")
+        SkyrimNet_AcheronIntegration bridge = Game.GetFormFromFile(0x000800, "SkyrimNet_AcheronIntegration.esp") as SkyrimNet_AcheronIntegration
+        If bridge
+            bridge.EnsureAlive()
+        Else
+            Debug.Trace("[SNAcheron:MCM] OnConfigInit: bridge installed but manager instance ABSENT (no esp host form — cosave-persisted instances only) — EnsureAlive() nudge skipped (no-op sentinel)")
+        EndIf
     EndIf
 EndEvent
 

@@ -434,7 +434,7 @@ Function Setup()
     ; REV-63: FHU inflation level poll (soft-optional: armed only when FHU is
     ; actually installed and the toggle is on; multiplexed onto the shared
     ; real-time update slot -- see _ArmRealtimeTimer).
-    If bFHUInflationEnabled && _FHUInstalled()
+    If bFHUInflationEnabled && SNBaka_FHUInflationModule.Installed()   ; REV-96 Task 2: probe moved to the module (call shape only)
         _FHUStartPoll()
     Else
         _FHUStopPoll()
@@ -1099,7 +1099,9 @@ Event OnUpdate()
         _fCooldownExpiresAtRT = 0.0
     EndIf
     If _fFHUNextPollRT > 0.0 && now >= _fFHUNextPollRT
-        _PollFHULevels()
+        ; REV-96 Task 2: poll body extracted to SNBaka_FHUInflationModule.PollLevels
+        ; (behavior-preserving move; this multiplexed tick chain stays on the quest).
+        SNBaka_FHUInflationModule.PollLevels(Self)
         _fFHUNextPollRT = now + _RT_POLL_INTERVAL
     EndIf
     _ArmRealtimeTimer()
@@ -1120,7 +1122,7 @@ Function _FHUStartPoll()
     If _fFHUNextPollRT > 0.0 && _fFHUNextPollRT > nowRT && (_fFHUNextPollRT - nowRT) <= _RT_POLL_INTERVAL
         Return  ; already armed, poll pending
     EndIf
-    _PollFHULevels()   ; seed pass: records current amounts, fires no cue
+    SNBaka_FHUInflationModule.PollLevels(Self)   ; seed pass: records current amounts, fires no cue (REV-96 Task 2: body moved to the module)
     _fFHUNextPollRT = nowRT + _RT_POLL_INTERVAL
     _ArmRealtimeTimer()
     _Log("[SNBaka] _FHUStartPoll: level poll armed (" + _RT_POLL_INTERVAL + "s, registered-actors only)")
@@ -8982,12 +8984,26 @@ EndFunction
 ; loads. Idempotent: safe to call as often as the listeners re-register.
 Function _ArmModules()
     _Log("[SNBaka] module-arm: SexLab handshake — installed=" + SkyrimNet_BakaSL.Installed())
-    SkyrimNet_AcheronIntegration bridge = Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp") as SkyrimNet_AcheronIntegration
-    If bridge
-        _Log("[SNBaka] module-arm: Acheron bridge present — nudging EnsureAlive()")
-        bridge.EnsureAlive()
+    ; REV-96 1.2 (ruling of record: UN-CAST presence probe, per _DelegateDownToAcheron's
+    ; proven pattern): "installed" is answered WITHOUT a cast — the esp's quest form
+    ; 0x800 resolving means the bridge mod is in the load order. The old code CAST the
+    ; form to the manager class and treated None as "absent", conflating installed vs.
+    ; instantiated: the manager script has NO esp host form (REV-96 finding of record —
+    ; the esp never attaches SkyrimNet_AcheronIntegration to any record; it ran only
+    ; via cosave-persisted instances), so on a clean save/new game the cast returned
+    ; None and logged "bridge absent" EVEN THOUGH the esp was loaded. Manager calls stay
+    ; guarded: no-op + sentinel when the instance is absent; the clean-save instantiation
+    ; fix is the scuttle session's manager-attachment (acheron-fold.md, Amendment 2).
+    If !IsAcheronBridgeInstalled()
+        _Log("[SNBaka] module-arm: Acheron bridge NOT installed (esp absent from load order — Option-B clause: keeps own Form/esp until the scheduled esp-unification phase)")
     Else
-        _Log("[SNBaka] module-arm: Acheron bridge absent (Option-B clause — keeps own Form/esp until the scheduled esp-unification phase)")
+        SkyrimNet_AcheronIntegration bridge = Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp") as SkyrimNet_AcheronIntegration
+        If bridge
+            _Log("[SNBaka] module-arm: Acheron bridge installed + manager instance live — nudging EnsureAlive()")
+            bridge.EnsureAlive()
+        Else
+            _Log("[SNBaka] module-arm: Acheron bridge INSTALLED but manager instance ABSENT (no esp host form — runs only via cosave-persisted instances; clean-save instantiation fix is the scuttle session's manager-attachment) — EnsureAlive() nudge skipped (no-op sentinel)")
+        EndIf
     EndIf
     _Log("[SNBaka] module-arm: GS Poses presence=" + (Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None))
     SNBaka_SlaveTatsModule.Arm()
@@ -9125,7 +9141,7 @@ Event OnUpdateGameTime()
     ; heartbeat even when the MCM reload path is stale. _FHUStartPoll() is
     ; idempotent (no-op while a poll is pending); arming remains
     ; toggle-gated + install-gated. Arming points: Setup() (primary) + here.
-    If bFHUInflationEnabled && _FHUInstalled()
+    If bFHUInflationEnabled && SNBaka_FHUInflationModule.Installed()   ; REV-96 Task 2: probe moved to the module (call shape only)
         _FHUStartPoll()
     EndIf
     Float currentTime = Utility.GetCurrentGameTime()
@@ -10008,29 +10024,16 @@ EndFunction
 ; ---- Presence probes (cached: GetFormFromFile on an ABSENT esp logs a hard
 ; Papyrus error, not a silent None -- the SNBakaSL.Absent-cache lesson,
 ; SkyrimNet_BakaSL.psc L7-14). Absence is cached on the None key once. ----
+; REV-96 Task 2: both probes' bodies MOVED VERBATIM to the module scripts (the §64
+; class -- cached absence semantics identical); these are the motherboard's forwarding
+; wrappers, so every existing caller (MCM reads Main._OCumInstalled() /
+; Main._FHUInstalled(), Setup(), heartbeat) keeps its call shape unchanged.
 Bool Function _OCumInstalled()
-    If StorageUtil.GetIntValue(None, "SNBaka.OCumAbsent", 0) == 1
-        Return False
-    EndIf
-    If Game.GetFormFromFile(0x000800, "OCum.esp") != None
-        Return True
-    EndIf
-    StorageUtil.SetIntValue(None, "SNBaka.OCumAbsent", 1)
-    Return False
+    Return SNBaka_CumDetectionModule.Installed()
 EndFunction
 
 Bool Function _FHUInstalled()
-    If StorageUtil.GetIntValue(None, "SNBaka.FHUAbsent", 0) == 1
-        Return False
-    EndIf
-    ; sr_inflateQuest QUST 0x000D63 in sr_FillHerUp.esp (formID parsed from the
-    ; plugin binary this session; identical in BOTH installed variants -- the
-    ; base hotfix esp and the "SL FHU Baka Ostim 0.18" patch esp).
-    If Game.GetFormFromFile(0x000D63, "sr_FillHerUp.esp") != None
-        Return True
-    EndIf
-    StorageUtil.SetIntValue(None, "SNBaka.FHUAbsent", 1)
-    Return False
+    Return SNBaka_FHUInflationModule.Installed()
 EndFunction
 
 ; ---- CUM DETECTION (OCum / OStim side) ----
@@ -10052,17 +10055,9 @@ EndFunction
 ; recoverable -- named-partner cue wording is PRIMARY; the rev-63 unnamed
 ; wording is the fallback only (Target == None guard).
 Event OnOCumApplied(Form akOrgasmer, Form akTarget, Float afAmountML, String asArea, String asSceneID)
-    If !bEnabled || !bCumDetectionEnabled || !_OCumInstalled()
-        Return
-    EndIf
-    Actor orgasmer = akOrgasmer as Actor
-    If !orgasmer || orgasmer.IsDead()
-        Return
-    EndIf
-    Actor target = akTarget as Actor
-    ; REV-65 full-payload sentinel: reception verified at the ARGUMENT level.
-    _Log("[SNBaka] OnOCumApplied: orgasmer=" + orgasmer.GetDisplayName() + " target=" + (target as Form) + " amount=" + afAmountML + "ml area=" + asArea + " sceneID=" + asSceneID)
-    _FireCumCue(orgasmer, target)
+    ; REV-96 Task 2: body MOVED VERBATIM to SNBaka_CumDetectionModule.HandleOCumApplied
+    ; (the §64 class; ModEvents are Form-members, so the declaration stays on the quest).
+    SNBaka_CumDetectionModule.HandleOCumApplied(Self, akOrgasmer, akTarget, afAmountML, asArea, asSceneID)
 EndEvent
 
 ; REV-65: the npc_scene variant carries ThreadID as a 3rd (Int) push, so it
@@ -10070,48 +10065,13 @@ EndEvent
 ; logged in the sentinel (positions still resolve via the SL thread surface
 ; only in the SL proxy below -- OCum scenes do not use it).
 Event OnOCumAppliedNPCScene(Form akOrgasmer, Form akTarget, Int aiThreadID, Float afAmountML, String asArea, String asSceneID)
-    If !bEnabled || !bCumDetectionEnabled || !_OCumInstalled()
-        Return
-    EndIf
-    Actor orgasmer = akOrgasmer as Actor
-    If !orgasmer || orgasmer.IsDead()
-        Return
-    EndIf
-    Actor target = akTarget as Actor
-    _Log("[SNBaka] OnOCumApplied [npc-scene]: orgasmer=" + orgasmer.GetDisplayName() + " target=" + (target as Form) + " thread=" + aiThreadID + " amount=" + afAmountML + "ml area=" + asArea + " sceneID=" + asSceneID)
-    _FireCumCue(orgasmer, target)
+    ; REV-96 Task 2: body MOVED VERBATIM to SNBaka_CumDetectionModule.HandleOCumAppliedNPCScene.
+    SNBaka_CumDetectionModule.HandleOCumAppliedNPCScene(Self, akOrgasmer, akTarget, aiThreadID, afAmountML, asArea, asSceneID)
 EndEvent
 
-; REV-65: shared outbound leg for both OCum events (was inline in the
-; rev-63 handler). Shared 15s cum-cue cooldown (with the SL proxy) --
-; HJ/FJ scenes loop over multiple givers and multi-fire; one narrator cue
-; per 15s. Cooldown behavior is IDENTICAL to rev-63 (same key, same window,
-; same write point) -- only the call shape changed.
-Function _FireCumCue(Actor orgasmer, Actor target)
-    Float nowRT = Utility.GetCurrentRealTime()
-    If nowRT - StorageUtil.GetFloatValue(None, "SNBaka.LastCumCueRT", -999.0) < 15.0
-        _Log("[SNBaka] _FireCumCue: cue suppressed (shared 15s cum-cue cooldown)")
-        Return
-    EndIf
-    StorageUtil.SetFloatValue(None, "SNBaka.LastCumCueRT", nowRT)
-    String desc
-    If iCumCueMode == 1
-        ; per-source (OStim/OCum) wording -- DRAFT, §7 approval pending
-        If target
-            desc = orgasmer.GetDisplayName() + " just came inside " + target.GetDisplayName() + "; OCum applies the result."
-        Else
-            desc = orgasmer.GetDisplayName() + " just came inside an OStim scene; OCum applies the result."
-        EndIf
-    Else
-        ; unified (framework-neutral) wording -- DRAFT, §7 approval pending
-        If target
-            desc = orgasmer.GetDisplayName() + " just came, finishing all over " + target.GetDisplayName() + "."
-        Else
-            desc = orgasmer.GetDisplayName() + " just came, finishing all over their partner."
-        EndIf
-    EndIf
-    SkyrimNetApi.RegisterEvent("sdb_cum_applied", desc, orgasmer, target)
-EndFunction
+; REV-96 Task 2: _FireCumCue MOVED VERBATIM to SNBaka_CumDetectionModule._FireCumCue
+; (both OCum event bodies forward to the module now; the shared 15s cooldown key
+; SNBaka.LastCumCueRT is unchanged, so the cooldown still spans OCum + SL proxy).
 
 ; ---- SEXLAB ORGASM-HOOK PROXY (amendment 2a-ii; verdict of record: PROXY) ----
 ; SexLab has NO dedicated cum-state API (no event/faction/spell surface; its
@@ -10125,36 +10085,8 @@ EndFunction
 ; PPLUS V2.18.1, SetupThreadEvent L2261-2268: PushInt(thread_id),
 ; PushBool(HasPlayer) -- 2 args). The rev-63 4-slot shape is retired.
 Event OnSLStageEnd(Int aiThreadID, Bool abHasPlayer)
-    If !bEnabled || !bCumDetectionEnabled || !bSLProxyEnabled || !SkyrimNet_BakaSL.Installed()
-        Return
-    EndIf
-    Int threadID = aiThreadID
-    If threadID < 0
-        Return
-    EndIf
-    Actor[] positions = SkyrimNet_BakaSL.SLThreadPositions(threadID)
-    If !positions || positions.Length == 0
-        _Log("[SNBaka] OnSLStageEnd: thread=" + threadID + " hasPlayer=" + abHasPlayer + " -- no positions resolved, skipping")
-        Return
-    EndIf
-    Actor lead = positions[0]
-    ; Shared 15s cum-cue cooldown (see _FireCumCue).
-    Float nowRT = Utility.GetCurrentRealTime()
-    If nowRT - StorageUtil.GetFloatValue(None, "SNBaka.LastCumCueRT", -999.0) < 15.0
-        Return
-    EndIf
-    StorageUtil.SetFloatValue(None, "SNBaka.LastCumCueRT", nowRT)
-    String desc
-    If iCumCueMode == 1
-        ; per-source (SexLab) wording -- DRAFT, §7 approval pending; proxy rule:
-        ; "release" only, never overlay application.
-        desc = lead.GetDisplayName() + "'s SexLab scene just reached its release."
-    Else
-        ; unified (framework-neutral) wording -- DRAFT, §7 approval pending
-        desc = lead.GetDisplayName() + " just came, finishing all over their partner."
-    EndIf
-    _Log("[SNBaka] OnSLStageEnd: thread=" + threadID + " lead=" + lead.GetDisplayName() + " -> sdb_cum_applied (SL proxy)")
-    SkyrimNetApi.RegisterEvent("sdb_cum_applied", desc, lead, None)
+    ; REV-96 Task 2: body MOVED VERBATIM to SNBaka_CumDetectionModule.HandleSLStageEnd.
+    SNBaka_CumDetectionModule.HandleSLStageEnd(Self, aiThreadID, abHasPlayer)
 EndEvent
 
 ; ---- FHU INFLATION AWARENESS (Task 3b: fallback poll design) ----
@@ -10175,52 +10107,15 @@ EndEvent
 ; immediate-poll nudge on top of the interval.
 Event OnFHUStartSignal()
     ; REV-65: zero-arg handler -- sr.inflater.start is a parameterless
-    ; broadcast (sr_inflateQuest.InflateQueued() L2081-2084, Beta 2.11 tree:
-    ; ModEvent.Create + Send, no Push calls). The rev-63 4-slot shape is
-    ; retired (rev-64: 7x "Expected 4, got 0" VM rejections).
-    If bEnabled && bFHUInflationEnabled && _FHUInstalled()
-        _Log("[SNBaka] OnFHUStartSignal: sr.inflater.start received -- immediate level poll")
-        _PollFHULevels()
-    EndIf
+    ; broadcast (sr_inflateQuest.InflateQueued(), Beta 2.11 tree: ModEvent.Create
+    ; + Send, no Push calls). The rev-63 4-slot shape is retired (rev-64 evidence).
+    ; REV-96 Task 2: body MOVED VERBATIM to SNBaka_FHUInflationModule.HandleFHUStartSignal.
+    SNBaka_FHUInflationModule.HandleFHUStartSignal(Self)
 EndEvent
 
 Function _PollFHULevels()
-    Form fhq = Game.GetFormFromFile(0x000D63, "sr_FillHerUp.esp")
-    If !fhq
-        Return
-    EndIf
-    Int n = StorageUtil.FormListCount(fhq, "sr.inflater.Actors")
-    Int i = 0
-    While i < n
-        Actor a = StorageUtil.FormListGet(fhq, "sr.inflater.Actors", i) as Actor
-        If a
-            Float cur = StorageUtil.GetFloatValue(a, "sr.inflater.amount", 0.0)
-            String sKey = "SNBaka.FHULast." + a.GetFormID()
-            Float last = StorageUtil.GetFloatValue(None, sKey, -1.0)
-            If last >= 0.0 && Math.Abs(cur - last) > 0.001
-                _FireFHUChange(a, last, cur)
-            EndIf
-            StorageUtil.SetFloatValue(None, sKey, cur)
-        EndIf
-        i += 1
-    EndWhile
-EndFunction
-
-Function _FireFHUChange(Actor akActor, Float afLast, Float afCur)
-    String evType
-    String desc
-    If afCur > afLast
-        evType = "sdb_fhu_inflate"
-        ; DRAFT cue (§7 approval pending). Future-proof wording rule (3b-ii):
-        ; never assert WHY the level changed -- no framework, source, or
-        ; mechanism named. The state is observable; the cause is not.
-        desc = akActor.GetDisplayName() + "'s belly is noticeably fuller now, swelling with warmth."
-    Else
-        evType = "sdb_fhu_deflate"
-        desc = akActor.GetDisplayName() + "'s swollen belly is going down at last -- the release leaves them lighter."
-    EndIf
-    _Log("[SNBaka] _FireFHUChange: " + akActor.GetDisplayName() + " amount " + afLast + " -> " + afCur + " -> " + evType)
-    SkyrimNetApi.RegisterEvent(evType, desc, akActor, None)
+    ; REV-96 Task 2: body MOVED VERBATIM to SNBaka_FHUInflationModule.PollLevels.
+    SNBaka_FHUInflationModule.PollLevels(Self)
 EndFunction
 
 
