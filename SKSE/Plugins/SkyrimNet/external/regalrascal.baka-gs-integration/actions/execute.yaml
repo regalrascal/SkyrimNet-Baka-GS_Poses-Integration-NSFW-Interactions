@@ -40,7 +40,10 @@ parameterMapping:
     name: akTarget
     description: The defeated, helpless character being finished off.
 
-enabled: true
+# REV-99 SAFETY-DISABLE (2026-10-09 incident, see PROJECT_STATE section 105): an Execute
+# fired mid-active SexLab scene and the session crashed (crash-2026-10-09-19-36-58).
+# Disabled pending investigation; wording untouched. Reversible: flip back to true.
+enabled: false
 defaultPriority: 10
 customCategory: SNBaka_Downed
 # Same shape as Escalate/HelpUp (REV-90): scene-block eligibility only - no combat gate

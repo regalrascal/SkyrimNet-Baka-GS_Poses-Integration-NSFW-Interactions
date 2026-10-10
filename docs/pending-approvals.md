@@ -137,6 +137,12 @@ own it - this fires a visible event the world reacts to" KEPT; ASCII-only.
 Dogfood-gated: the J'zargo trial + delegation occasion ride the REV-98b
 handoff (Task 5).
 
+**REV-99 annotation (2026-10-09):** wording trial SUSPENDED 2026-10-09 —
+incident (see PROJECT_STATE §105): an Execute fired during an active SexLab
+scene and the session crashed; disabled pending investigation. The shipped
+wording text itself is untouched by the disable (execute.yaml `enabled:`
+false only).
+
 ---
 *Register refreshed at REV-94 (2026-10-11): ALL entries CLOSED (1-4, 6 at
 REV-92; 5, 7-10 at REV-94). Register EMPTY of open entries as of this
