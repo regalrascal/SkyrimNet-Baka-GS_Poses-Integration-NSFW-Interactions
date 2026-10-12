@@ -9072,6 +9072,11 @@ Function _ArmModules()
     ; module owns all logic. Entry-point services are presence-gated; hosts never contain
     ; guest logic (module-contract clause, recorded in fomod.md at ship).
     _RegisterService("tattoo.picker", SNBaka_SlaveTatsModule.Installed())
+    ; REV-103 S3: the pose.baka-half advertisement — the GS psc's T2 loops probe this
+    ; before touching the 15 Baka-hosted pose actions (the 27-name dispatch guard).
+    ; Present = unconditional True: the motherboard quest hosting this code IS the Baka
+    ; half. Re-asserted every arm pass (Setup + heartbeat), same as every registry entry.
+    _RegisterService("pose.baka-half", True)
     _Log("[SNBaka] module-arm: arm pass complete")
 EndFunction
 

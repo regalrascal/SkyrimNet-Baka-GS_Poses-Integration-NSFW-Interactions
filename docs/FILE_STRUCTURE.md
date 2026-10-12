@@ -93,6 +93,18 @@ remotes, and branch verified intact at the new path)
   `dll-source-gs\build_plugin-gs.bat`) where it will be seen at build time.
 - Note: bracket-named (`[REV-56]…`) paths break PowerShell wildcards and
   `cmd /c rmdir` — always use `-LiteralPath`.
+- **External SkyrimNet packs (REV-103, 2026-10-12):** fork
+  `SKSE\Plugins\SkyrimNet\external\` now holds TWO content packs —
+  `regalrascal.baka-gs-integration` (Baka-owned: baka_* triggers + prompts, the 15
+  Babo pose YAMLs, down/creature category defs) and **`Gunslicer-Poses`** (GS-owned:
+  the 12 GS-vibe pose YAMLs + StopPosing/CommandStopPose +
+  gsanim_muse_consideration.prompt — the REV-103 15-file hash-verified move;
+  pose.yaml DELETED, not moved, ruling (b)). **R2 orphan dependency of record
+  (ruling (c)):** the Gunslicer-Poses member YAMLs reference
+  `customCategory: SNGS_Pose`, whose def is DLL-REGISTERED (Baka DLL unconditional
+  owner, SkyrimNetBridge.cpp; GS DLL esp-probe fallback, dll-source-gs) — a
+  pack-without-either-DLL install orphans the members (predicted vanish-from-menu
+  behavior, the `enabled: false` precedent class).
 
 ## 3. Quarantined read-only fallbacks (1b, 1c — do not work here)
 

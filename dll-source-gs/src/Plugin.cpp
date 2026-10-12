@@ -1,6 +1,15 @@
 #include "PCH.h"
 #include "PrismaUIBridge.h"
 #include "PapyrusFunctions.h"
+
+// REV-103 (S1 pack-split): SNGS_Pose fallback bridge. FORWARD DECLARATION ONLY —
+// SkyrimNetBridge.h pulls SkyrimNet_PublicAPI.h, whose extern "C" function-pointer
+// globals (33 definitions) must not be defined in more than one TU: including it here
+// AND in SkyrimNetBridge.cpp yields LNK2005 multiply-defined symbols at link time.
+// SkyrimNetBridge.cpp is the single TU that defines/resolves the API pointers.
+namespace SkyrimNetBridge {
+    void Init();
+}
 #include <spdlog/sinks/basic_file_sink.h>
 #include <RE/B/BSInputDeviceManager.h>
 #include <RE/I/InputEvent.h>
@@ -73,6 +82,9 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
             PrismaUIBridge::CreatePoseView();
             RE::BSInputDeviceManager::GetSingleton()->AddEventSink(MenuInputHandler::GetSingleton());
             SKSE::log::info("[SNAnimGS] Input handler registered.");
+            // REV-103 (S1 pack-split): SNGS_Pose fallback registration for GS-only
+            // installs (esp-probe; silent when the Baka integration owns the def).
+            SkyrimNetBridge::Init();
             break;
         }
     });

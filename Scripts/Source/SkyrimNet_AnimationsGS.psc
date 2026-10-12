@@ -379,6 +379,10 @@ Event OnPoseSelected(String asEventName, String asPose, Float afNum, Form akSend
         EndIf
         If akTarget.IsDead()
             Debug.Notification(akTarget.GetDisplayName() + " can't pose: dead.")
+            ; REV-90 rider sentinel (REV-89 registration, §94 3.1; unconditional per §5):
+            ; the crosshair validation chain was Notification-only — admit/refuse was NOT
+            ; log-distinguishable (posing-gender.md observability gap, closed here).
+            Debug.Trace("[SNAnimGS] crosshair refuse: " + akTarget.GetDisplayName() + " dead")
             Return
         EndIf
         ; REV-85 Phase B: the L335 female test is replaced by the central policy
@@ -390,12 +394,22 @@ Event OnPoseSelected(String asEventName, String asPose, Float afNum, Form akSend
         ; the _VibeMaleOK vibe names).
         If _GenderPolicy() != 2 && !_GenderAdmits(akTarget, sCat)
             Debug.Notification(_GenderRefusal(akTarget, _GenderPolicy()))
+            ; REV-90 rider sentinel (REV-89 registration, §94 3.1; unconditional per §5).
+            Debug.Trace("[SNAnimGS] crosshair refuse: " + akTarget.GetDisplayName() \
+                + " gender policy veto (cat '" + sCat + "', mode " + _GenderPolicy() + ")")
             Return
         EndIf
         If _IsBusyElsewhere(akTarget)   ; mid-scene/combat/seated -- reason stays vague on purpose
             Debug.Notification(akTarget.GetDisplayName() + " can't pose right now.")
+            ; REV-90 rider sentinel (REV-89 registration, §94 3.1; unconditional per §5).
+            Debug.Trace("[SNAnimGS] crosshair refuse: " + akTarget.GetDisplayName() + " busy at pick time")
             Return
         EndIf
+        ; REV-90 rider sentinel (REV-89 registration, §94 3.1; unconditional per §5): the
+        ; ADMIT leg — with the three refuse legs above, every crosshair pick outcome is
+        ; now log-distinguishable (mode 1 vs 2 admit included).
+        Debug.Trace("[SNAnimGS] crosshair admit: " + akTarget.GetDisplayName() \
+            + " (cat '" + sCat + "', mode " + _GenderPolicy() + ")")
         _PoseDirect(akTarget, sEv, sDesc, sCat)
         Return
     EndIf
@@ -1075,7 +1089,18 @@ Function _MuseTick()
                 ; (the guard If ends, the loop tail moves to the next candidate).
             EndIf
             EndIf   ; REV-25 3a/3b state-guard Else
-        EndIf
+        Else
+            ; REV-90 rider sentinel (REV-89 registration, §94 3.1; unconditional per §5):
+            ; this skip was SILENT — seated (and every other busy) candidates entered
+            ; _DaemonScan, were excluded by the walk guard, and never appeared in the log
+            ; (gs-poses.md REV-87 §1.4: idle-dense pool composition was unmeasurable).
+            ; Reason-coded, so the combat and busy legs stay distinguishable.
+            If ak.IsInCombat()
+                Debug.Trace("[SNAnimGS] muse walk skip: " + ak.GetDisplayName() + " in combat at walk time — excluded")
+            Else
+                Debug.Trace("[SNAnimGS] muse walk skip: " + ak.GetDisplayName() + " busy at walk time — excluded (formerly SILENT skip)")
+            EndIf
+        EndIf   ; REV-90 busy/combat walk-guard Else
         i = (i + 1) % n
         If i == iStart
             If bDebug
@@ -1580,6 +1605,43 @@ Function ReArmMuseDebug()
     Debug.Trace("[SNAnimGS] muse debug window re-armed via ReArmMuseDebug().")
 EndFunction
 
+; ── REV-103 S3: Baka-half presence probe ─────────────────────────────────────
+; The 15 Baka-hosted pose executors (indices 12-26 of _PoseActions) live in the Baka
+; integration's quest script; on a Baka-absent install those action names resolve to
+; nothing and every SkyrimNetApi call naming one is a wasted call plus a not-found
+; line. The Baka motherboard advertises its halves through the service registry
+; (SNBaka.Svc.* keys on its own quest form, QUST 0xD62 of SkyrimNet_BakaIntegration.esp,
+; REV-74 shape); the GS probe here is the soft-read mirror of the motherboard's own
+; log-only GS presence probe (_ArmModules). Soft read, same class as the SNBaka.Locked /
+; OnGround busy keys this script already reads: StorageUtil returns the default (0) when
+; the host form or key is absent - no error, no hard dependency. Deliberately NOT cached:
+; the arm pass re-asserts the registry entry on the motherboard heartbeat, so a mid-
+; session change reads correctly at the next guard evaluation.
+Bool Function _BakaPoseHalfPresent()
+    Form kHost = Game.GetFormFromFile(0xD62, "SkyrimNet_BakaIntegration.esp")
+    If !kHost
+        Return False
+    EndIf
+    Return StorageUtil.GetIntValue(kHost, "SNBaka.Svc.pose.baka-half", 0) == 1
+EndFunction
+
+; REV-103 S3: the 15 Baka-hosted names of the 27-name dispatch (_PoseActions = 12
+; GS-owned + 15 Baka-described). Exact-match list, not an index range, so the table
+; stays reviewable against _PoseActions and the Gunslicer-Poses pack manifest (the
+; GS-owned 12). The muse fire path needs NO guard (its vibes fire GS-bookkept Babo
+; idle events, never a Baka action call) and T3 needs none (_OdVibeNames is GS-only
+; by construction) - the T2 cooldown loops are the dispatch's only hard name-set.
+Bool Function _IsBakaHostedPose(String sAction)
+    Return sAction == "PoseAroused" || sAction == "PoseAutograph" \
+        || sAction == "PoseBraceArm" || sAction == "PoseCrouch" \
+        || sAction == "PoseDogeza" || sAction == "PoseDrink" \
+        || sAction == "PoseDrool" || sAction == "PoseFood" \
+        || sAction == "PoseHandOnChin" || sAction == "PoseHandOnFace" \
+        || sAction == "PoseKneel" || sAction == "PoseMeditate" \
+        || sAction == "PosePickpocket" || sAction == "PoseSleep" \
+        || sAction == "PoseScratchHead"
+EndFunction
+
 ; Performance Mode ON: flag up, T2 cooldowns set to the iOdCooldownFloor (Fix B/4f — the
 ; old 0-floor let the LLM chain poses back-to-back, live spam confirmed), expiry stamped, T3
 ; silence-floor clock stamped (an ON immediately after a quiet stretch must not instantly
@@ -1588,10 +1650,19 @@ Function _OverdriveOn()
     _EnsurePools()   ; Phase 4d: stale-instance heal — the T2 loop reads _PoseActions and _OdCue reads _OdCues
     StorageUtil.SetIntValue(None, "GSAnim.Overdrive", 1)
     Int i = 0
+    Int iSkipped = 0
+    Bool bBakaHalf = _BakaPoseHalfPresent()   ; REV-103 S3: one probe per pass, not per name
     While i < _PoseActions.Length
-        SkyrimNetApi.SetActionCooldown(_PoseActions[i], iOdCooldownFloor)
+        If bBakaHalf || !_IsBakaHostedPose(_PoseActions[i])
+            SkyrimNetApi.SetActionCooldown(_PoseActions[i], iOdCooldownFloor)
+        Else
+            iSkipped += 1   ; guarded skip - Baka half absent
+        EndIf
         i += 1
     EndWhile
+    If iSkipped > 0
+        Debug.Trace("[SNAnimGS] overdrive T2 floor: " + iSkipped + " Baka-hosted pose cooldowns skipped - Baka half absent (REV-103 S3 guard)")
+    EndIf
     StorageUtil.SetFloatValue(None, "GSAnim.OverdriveExpire", Utility.GetCurrentRealTime() + fOdExpireSeconds)
     StorageUtil.SetFloatValue(None, "GSAnim.LastPoseFire", Utility.GetCurrentRealTime())
     StorageUtil.SetFloatValue(None, "GSAnim.LastOdCue", 0.0)
@@ -1607,10 +1678,19 @@ EndFunction
 Function _OverdriveOff(String sNotify)
     _EnsurePools()   ; Phase 4d: cheap insurance — the restore loop reads _PoseActions, and a 2nd-press OFF can arrive in a never-healed stale instance
     Int i = 0
+    Int iSkipped = 0
+    Bool bBakaHalf = _BakaPoseHalfPresent()   ; REV-103 S3: one probe per pass, not per name
     While i < _PoseActions.Length
-        SkyrimNetApi.SetActionCooldown(_PoseActions[i], 0)
+        If bBakaHalf || !_IsBakaHostedPose(_PoseActions[i])
+            SkyrimNetApi.SetActionCooldown(_PoseActions[i], 0)
+        Else
+            iSkipped += 1   ; guarded skip - Baka half absent (nothing to restore)
+        EndIf
         i += 1
     EndWhile
+    If iSkipped > 0
+        Debug.Trace("[SNAnimGS] overdrive T2 restore: " + iSkipped + " Baka-hosted pose cooldowns skipped - Baka half absent (REV-103 S3 guard)")
+    EndIf
     StorageUtil.SetIntValue(None, "GSAnim.Overdrive", 0)
     StorageUtil.SetFloatValue(None, "GSAnim.OverdriveExpire", 0.0)
     StorageUtil.SetFloatValue(None, "GSAnim.LastOdCue", 0.0)

@@ -96,6 +96,27 @@ namespace {
             "happy, angry, afraid, sad, pained, surprised, or confused. Use to react emotionally to what was said or done.",
             [](RE::Actor* a) { return NotInCombat(a); });
 
+        // REV-103 (S1 pack-split, P2 single-owner pattern): SNGS_Pose was a YAML-defined
+        // category def (regalrascal.baka-gs-integration/actions/pose.yaml - DELETED at the
+        // split); THIS DLL is now its unconditional single owner. Description = the
+        // pose.yaml wording of record, ported faithfully (em-dashes rendered "  -  " per
+        // the REV-92 DLL ASCII sweep). No visibility gate: the YAML def had none - member
+        // actions (now the GS-owned Gunslicer-Poses pack) carry their own eligibility
+        // rules; a != nullptr is the API header's canonical no-op gate. The GS DLL
+        // (SNAnimGS_UI.dll) carries an esp-probe fallback for GS-only installs - with
+        // both mods installed, this registration is the only one that fires.
+        RegisterOne("SNGS_Pose",
+            "Pose, dance, stretch, show off  -  express a mood through your body, on your own, for no one in "
+            "particular: a SOLO held pose or gesture, no target, no physical contact (unlike SNBaka_Display, "
+            "which is a brief beat performed FOR someone else). Use when the moment invites it: music playing "
+            "and you feel like dancing, celebrating a win, flirting or being teased, freshly complimented, "
+            "dared, flushed with wine, relaxing or bored, praying or meditating, pleading or surrendering to "
+            "someone of higher status, training, stretching, or simply striking an attitude as you speak  -  "
+            "a pose pairs naturally with a line of dialogue. Held until you stop it, combat starts, or it "
+            "times out on its own. Skip it entirely in combat, danger, or mid-scene  -  nothing inside is "
+            "available then.",
+            [](RE::Actor* a) { return a != nullptr; });
+
     }
 }
 
