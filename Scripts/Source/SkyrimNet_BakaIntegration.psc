@@ -6531,14 +6531,14 @@ Function _ExecuteGateRefuse(Actor akInitiator, Actor akTarget, String asWhy)
         akInitiator, akTarget)
 EndFunction
 
-; REV-100 fix (a): scene-active refusal narration (§7 draft, user rules in the gate —
-; pending-approvals entry 11, draft wording of record): same baka_execute_refused cue
-; shape as _ExecuteGateRefuse so the LLM never claims a kill that was refused because
-; either actor was mid SexLab/OStim scene. ASCII-only per the v8 checklist rider.
+; REV-100 fix (a): scene-active refusal narration (register entry 12a - user-edited
+; wording of record, REV-101): same baka_execute_refused cue shape as _ExecuteGateRefuse
+; so the LLM never claims a kill that was refused because either actor was mid
+; SexLab/OStim scene. ASCII-only per the v8 checklist rider.
 Function _ExecuteSceneRefuse(Actor akInitiator, Actor akTarget)
     _Log("[SNBakaEXEC] Execute refused: scene active - " + akInitiator.GetDisplayName() + " holds off from finishing " + akTarget.GetDisplayName() + " mid-scene")
     SkyrimNetApi.RegisterEvent("baka_execute_refused", \
-        akInitiator.GetDisplayName() + " holds off - killing someone mid-act would end the scene, and the moment doesn't call for it. " + \
+        akInitiator.GetDisplayName() + " holds off - killing someone mid-act would end the fun, and the moment doesn't call for it. " + \
         "The killing blow does not land; keep roleplaying accordingly (do not claim the kill happened).", \
         akInitiator, akTarget)
 EndFunction

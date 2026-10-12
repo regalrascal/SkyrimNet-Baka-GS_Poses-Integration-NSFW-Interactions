@@ -460,3 +460,7 @@ A compilation of issues, bugs, and requirements not connected to any specific mo
 - Archive rider executed: [REV-96]/[REV-98b]/[REV-99] folders + rev96 zip/sidecar moved to dist\archive\; only [REV-100] loose (prior builds left [REV-96]/[REV-98b] loose — under-execution flagged in §106).
 - Registered, no build: routing watch item (kill-intent free-pick misroute class; parked wording rider owns it) + downed-loop scene-yield DESIGN QUESTION (era doc).
 - Known nit: psc L6535's comment cites register entry 11 for the refusal narration; the actual entry is 12 — comment-only drift, fix at the next psc-touching build (no recompile for a comment).
+
+## Working note (REV-101, 2026-10-11)
+
+- Execute lane CLOSED: execute.yaml enabled: true per user ruling (register 12b); refusal narration = the user-edited 12a wording of record (end-the-fun wording, psc L6541 + baka-module.md REV-101 section). The lane ships EXPERIMENTAL - release-notes label of record: Execute action: experimental - community feedback welcome (registered on the release-prep checklist, era item 9). [REV-101] dist 266/266; manifest delta vs rev100 = 11 pex + psc + execute.yaml only (zero esp/DLL/fomod lines); archive rider executed ([REV-100] -> dist archive). User gates: install at leisure (the guarded REV-100 build is already installed; this adds the enable + the user wording); OPTIONAL dogfood with no expectations (outside scene -> kill; mid-scene -> the refusal with the user's wording); era-end consolidated dogfood unchanged.

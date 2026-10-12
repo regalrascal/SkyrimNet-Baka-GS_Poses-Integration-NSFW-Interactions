@@ -145,22 +145,26 @@ false only).
 
 ---
 
-## 12. Execute scene-refusal narration + re-enable ruling (REV-100, 2026-10-11)
+## 12. Execute scene-refusal narration + re-enable ruling (REV-100/REV-101, 2026-10-11)
 
-**OPEN — two user-gated items from the §105 incident-fix build (PROJECT_STATE §106).**
+**CLOSED at REV-101 (2026-10-11) — both items user-ruled; lane shipped [REV-101].**
 
-**12a. Scene-refusal narration (REV-100 draft, shipped with the action DISABLED).** Fired
-via the `baka_execute_refused` event on every scene-active refusal (both executor guard
-layers + the kill-time recheck). Verbatim draft (actor names interpolated; ASCII per
-checklist v8):
+**12a. Scene-refusal narration — CLOSED (user-edited, approved verbatim).** Fired via
+the `baka_execute_refused` event on every scene-active refusal (both executor guard
+layers + the kill-time recheck). Wording of record (actor names interpolated — psc L6541
+concatenates the initiator's display name; ASCII per checklist v8), now in baka-module.md
+(REV-101 section):
 
-> {Initiator} holds off - killing someone mid-act would end the scene, and the moment
+> {Initiator} holds off - killing someone mid-act would end the fun, and the moment
 > doesn't call for it.
 
-**12b. RE-ENABLE RULING (decision, not wording):** execute.yaml stays `enabled: false`
-with the [REV-100] guards shipped. The user rules when Execute re-enables (flip now, or
-consolidate at the era-end dogfood — both defensible; single reversible yaml line). Until
-ruled, the action is guarded-pending-dogfood, not enabled.
+(The user's edit from the REV-100 draft: "would end the scene" -> "would end the fun".)
+
+**12b. RE-ENABLE RULING — CLOSED (user ruling 2026-10-11):** execute.yaml re-enabled
+(`enabled: true`) with the [REV-100] guards live. The lane ships EXPERIMENTAL — guarded
+(both layers), community-honed, honestly labeled; release-notes label of record:
+"Execute action: experimental - community feedback welcome". Single reversible yaml line
+if the label is ever revoked.
 
 ---
 *Register refreshed at REV-94 (2026-10-11): ALL entries CLOSED (1-4, 6 at
@@ -178,3 +182,8 @@ Fork copy lockstep.*
 ---
 *REV-100 refresh (2026-10-11): entry 12 added (OPEN — narration draft 12a + re-enable
 ruling 12b, both user-gated). Register holds ONE open entry. Fork copy lockstep.*
+
+---
+*REV-101 refresh (2026-10-11): entries 12a + 12b CLOSED (user-edited wording approved
+verbatim + re-enable ruling; Execute lane shipped [REV-101], EXPERIMENTAL). Register
+EMPTY of open entries. Fork copy lockstep.*
