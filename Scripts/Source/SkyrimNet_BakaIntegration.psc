@@ -1631,8 +1631,17 @@ Function _PacifyActor(Actor ak, Bool on)
     EndIf
     If on
         If StorageUtil.GetIntValue(ak, "SNBaka.Pacified", 0) == 0
-            StorageUtil.SetFloatValue(ak, "SNBaka.OrigAggr", ak.GetActorValue("Aggression"))
+            ; Claim BEFORE reading: concurrent hit-event threads both passed the old check-then-set and
+            ; the second captured the first's 0 as "original". And if a GS pose already holds this
+            ; actor at 0, its saved original is the real one — the live value isn't. Either way a
+            ; captured 0 self-perpetuates across every later pacify/restore (confirmed: Auri, base
+            ; Aggressive, restored to 0 in every session).
             StorageUtil.SetIntValue(ak, "SNBaka.Pacified", 1)
+            Float orig = ak.GetActorValue("Aggression")
+            If StorageUtil.GetIntValue(ak, "GSAnim.Pacified", 0) == 1
+                orig = StorageUtil.GetFloatValue(ak, "GSAnim.OrigAggr", orig)
+            EndIf
+            StorageUtil.SetFloatValue(ak, "SNBaka.OrigAggr", orig)
         EndIf
         ak.SetActorValue("Aggression", 0.0)
         ak.StopCombatAlarm()
@@ -1644,7 +1653,10 @@ Function _PacifyActor(Actor ak, Bool on)
         EndIf
         _Log("[SNBaka] _PacifyActor: calmed " + ak.GetDisplayName() + " (aggr->0, StopCombat, Calm cast; wasInCombat now=" + ak.IsInCombat() + ")")
     ElseIf StorageUtil.GetIntValue(ak, "SNBaka.Pacified", 0) == 1
-        ak.SetActorValue("Aggression", StorageUtil.GetFloatValue(ak, "SNBaka.OrigAggr", 1.0))
+        ; A GS pose still holding the actor keeps them at 0 — its own stop restores the original.
+        If StorageUtil.GetIntValue(ak, "GSAnim.Pacified", 0) == 0
+            ak.SetActorValue("Aggression", StorageUtil.GetFloatValue(ak, "SNBaka.OrigAggr", 1.0))
+        EndIf
         StorageUtil.SetIntValue(ak, "SNBaka.Pacified", 0)
         ; The Calm EFFECT cast on pacify does NOT end with the aggression restore — with any real
         ; duration it kept "liberated" aggressors becalmed and passive long after the struggle
@@ -7814,6 +7826,15 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
             ; is back on shortly after the grace.
             If downed && _IsDownedAny(akVictim)
                 _ClearAcheronHold(akVictim)
+            EndIf
+            ; A DOWNED victim's struggle cleanup ran _ReassertDownedProtection (still Acheron-held at
+            ; that point) — restrain + DontMove + AI hold. Release them like _ForceRecover does, or the
+            ; freed victim plays her walk cycle stuck in place forever (confirmed: Jordis/Mjoll after
+            ; escaping downed chaurus struggles; DontMove persists in the save).
+            If akVictim != PlayerRef
+                akVictim.SetRestrained(False)
+                akVictim.SetDontMove(False)
+                _HoldActorAI(akVictim, False)
             EndIf
             _PacifyActor(akVictim, False)
             ; Revert every "lover"-rank anti-re-aggro link touching this victim — the current pair's

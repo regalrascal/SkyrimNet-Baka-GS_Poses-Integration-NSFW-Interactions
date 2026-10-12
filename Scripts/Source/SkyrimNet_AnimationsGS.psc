@@ -474,14 +474,23 @@ Function _PacifyGS(Actor ak, Bool on)
     EndIf
     If on
         If StorageUtil.GetIntValue(ak, "GSAnim.Pacified", 0) == 0
-            StorageUtil.SetFloatValue(ak, "GSAnim.OrigAggr", ak.GetActorValue("Aggression"))
+            ; Mirror of Baka's _PacifyActor: claim before reading, and if Baka already holds this
+            ; actor at 0, reuse ITS saved original instead of capturing the 0.
             StorageUtil.SetIntValue(ak, "GSAnim.Pacified", 1)
+            Float orig = ak.GetActorValue("Aggression")
+            If StorageUtil.GetIntValue(ak, "SNBaka.Pacified", 0) == 1
+                orig = StorageUtil.GetFloatValue(ak, "SNBaka.OrigAggr", orig)
+            EndIf
+            StorageUtil.SetFloatValue(ak, "GSAnim.OrigAggr", orig)
         EndIf
         ak.SetActorValue("Aggression", 0.0)
         ak.StopCombatAlarm()
         ak.StopCombat()
     ElseIf StorageUtil.GetIntValue(ak, "GSAnim.Pacified", 0) == 1
-        ak.SetActorValue("Aggression", StorageUtil.GetFloatValue(ak, "GSAnim.OrigAggr", 1.0))
+        ; Baka still holding the actor keeps them at 0 — its own release restores the original.
+        If StorageUtil.GetIntValue(ak, "SNBaka.Pacified", 0) == 0
+            ak.SetActorValue("Aggression", StorageUtil.GetFloatValue(ak, "GSAnim.OrigAggr", 1.0))
+        EndIf
         StorageUtil.SetIntValue(ak, "GSAnim.Pacified", 0)
     EndIf
 EndFunction
