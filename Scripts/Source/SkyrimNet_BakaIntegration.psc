@@ -6386,6 +6386,18 @@ Function Execute_Execute(Actor akInitiator, Actor akTarget)
         _Log("[SNBaka] Execute_Execute: blocked — the player is never the execute target")
         Return
     EndIf
+    ; REV-100 fix (a): SCENE-ACTIVE GUARD — the REV-99 incident (2026-10-09 19:36:58,
+    ; PROJECT_STATE §105) proved this lane inherited NONE of IsEligible's IsInSexAnimation
+    ; class (psc L628/L694; ~20 other lanes carry it). BOTH frameworks, ONE refusal
+    ; semantics: IsInSexAnimation reads SexLab AnimatingFaction + the OStim scene faction
+    ; (OStimActorCountFaction) + the BakaSL bridge fallback, ours OR another mod's scene.
+    ; Either actor mid-scene is the crash hazard — the incident kill fired on a target
+    ; bound inside SexLab thread 0 and the session died one second later.
+    If IsInSexAnimation(akInitiator) || IsInSexAnimation(akTarget)
+        _Log("[SNBakaEXEC] Execute refused: scene active — initiator or target is mid SexLab/OStim scene (refusing before settle)")
+        _ExecuteSceneRefuse(akInitiator, akTarget)
+        Return
+    EndIf
     If !_IsDownedAny(akTarget)
         ; Same two late-landing races as HelpUp_Execute: native bleedout not yet adopted by
         ; the Acheron bridge, or a creature pin temporarily rescuing the victim out of Acheron.
@@ -6516,6 +6528,18 @@ Function _ExecuteGateRefuse(Actor akInitiator, Actor akTarget, String asWhy)
     SkyrimNetApi.RegisterEvent("baka_execute_refused", \
         akInitiator.GetDisplayName() + " moves to finish " + akTarget.GetDisplayName() + " - but the killing blow does not land. " + asWhy + ". " + \
         "The moment passes without a death; keep roleplaying accordingly (do not claim the kill happened).", \
+        akInitiator, akTarget)
+EndFunction
+
+; REV-100 fix (a): scene-active refusal narration (§7 draft, user rules in the gate —
+; pending-approvals entry 11, draft wording of record): same baka_execute_refused cue
+; shape as _ExecuteGateRefuse so the LLM never claims a kill that was refused because
+; either actor was mid SexLab/OStim scene. ASCII-only per the v8 checklist rider.
+Function _ExecuteSceneRefuse(Actor akInitiator, Actor akTarget)
+    _Log("[SNBakaEXEC] Execute refused: scene active - " + akInitiator.GetDisplayName() + " holds off from finishing " + akTarget.GetDisplayName() + " mid-scene")
+    SkyrimNetApi.RegisterEvent("baka_execute_refused", \
+        akInitiator.GetDisplayName() + " holds off - killing someone mid-act would end the scene, and the moment doesn't call for it. " + \
+        "The killing blow does not land; keep roleplaying accordingly (do not claim the kill happened).", \
         akInitiator, akTarget)
 EndFunction
 
@@ -7392,12 +7416,49 @@ Function _DispatchDownedAction(Int choice, Actor akCaster, Actor akVictim)
         If akVictim == PlayerRef || akVictim.IsDead()
             Return
         EndIf
+        ; REV-100 fix (a): SCENE-ACTIVE GUARD at the convergence point — choice-5 serves BOTH
+        ; the LLM lane (Execute_Execute delegates here) and the player's own downed-menu click,
+        ; so the REV-99 hazard is guarded here too, not just upstream. Same one-refusal-semantics
+        ; check as Execute_Execute: either actor mid SexLab/OStim scene refuses the kill.
+        If IsInSexAnimation(akCaster) || IsInSexAnimation(akVictim)
+            _Log("[SNBakaEXEC] Execute refused: scene active — " + akCaster.GetDisplayName() + " / " + akVictim.GetDisplayName() + " mid SexLab/OStim scene (choice-5 convergence guard)")
+            _ExecuteSceneRefuse(akCaster, akVictim)
+            Return
+        EndIf
         _Log("[SNBaka] _DispatchDownedAction: EXECUTE — " + akCaster.GetDisplayName() + " finishes " + akVictim.GetDisplayName())
         ; Visual cue: the executor swings their equipped weapon at the body before it dies —
         ; attackStart drives a real attack animation for player and NPC alike; if the graph
         ; rejects it in some stance, the kill still lands, just without the flourish.
         Debug.SendAnimationEvent(akCaster, "attackStart")
         Utility.Wait(0.6)
+        ; REV-100 fix (b): KILL-TIME RECHECK — the 0.6s flourish wait above is a real race
+        ; window (the REV-99 incident chain: fire -> flourish -> state changed underneath).
+        ; Rev-20 recheck precedent, extended: re-validate BOTH actor refs and every state
+        ; assumption IMMEDIATELY before Actor.Kill. Each refusal reason gets its own §5
+        ; sentinel; the success narration is registered only AFTER the recheck passes so
+        ; a refused kill never narrates as landed.
+        If !akCaster || !akVictim
+            _Log("[SNBakaEXEC] Execute refused: kill-time recheck — actor reference lost (initiator or target invalid)")
+            Return
+        EndIf
+        If akVictim == PlayerRef
+            _Log("[SNBakaEXEC] Execute refused: kill-time recheck — target is the player")
+            Return
+        EndIf
+        If akVictim.IsDead()
+            _Log("[SNBakaEXEC] Execute refused: kill-time recheck — target already dead")
+            Return
+        EndIf
+        If IsInSexAnimation(akCaster) || IsInSexAnimation(akVictim)
+            _Log("[SNBakaEXEC] Execute refused: kill-time recheck — scene went active during the flourish window (refused: scene active)")
+            _ExecuteSceneRefuse(akCaster, akVictim)
+            Return
+        EndIf
+        If !_IsDownedAny(akVictim)
+            _Log("[SNBakaEXEC] Execute refused: kill-time recheck — target no longer downed")
+            _ExecuteGateRefuse(akCaster, akVictim, "the moment passed - the victim is no longer helpless")
+            Return
+        EndIf
         SkyrimNetApi.RegisterEvent("baka_execution", \
             akCaster.GetDisplayName() + " finishes the helpless " + akVictim.GetDisplayName() + " with a deliberate killing blow.", \
             akCaster, akVictim)

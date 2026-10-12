@@ -144,6 +144,25 @@ wording text itself is untouched by the disable (execute.yaml `enabled:`
 false only).
 
 ---
+
+## 12. Execute scene-refusal narration + re-enable ruling (REV-100, 2026-10-11)
+
+**OPEN — two user-gated items from the §105 incident-fix build (PROJECT_STATE §106).**
+
+**12a. Scene-refusal narration (REV-100 draft, shipped with the action DISABLED).** Fired
+via the `baka_execute_refused` event on every scene-active refusal (both executor guard
+layers + the kill-time recheck). Verbatim draft (actor names interpolated; ASCII per
+checklist v8):
+
+> {Initiator} holds off - killing someone mid-act would end the scene, and the moment
+> doesn't call for it.
+
+**12b. RE-ENABLE RULING (decision, not wording):** execute.yaml stays `enabled: false`
+with the [REV-100] guards shipped. The user rules when Execute re-enables (flip now, or
+consolidate at the era-end dogfood — both defensible; single reversible yaml line). Until
+ruled, the action is guarded-pending-dogfood, not enabled.
+
+---
 *Register refreshed at REV-94 (2026-10-11): ALL entries CLOSED (1-4, 6 at
 REV-92; 5, 7-10 at REV-94). Register EMPTY of open entries as of this
 refresh. Fork copy lockstep. New drafts would enter per the standing rules.*
@@ -155,3 +174,7 @@ Fork copy lockstep.*
 
 ---
 *Register created 2026-10-10 per the REV-90b-close rider (user-approved 2026-10-10). Registered by sweeping PROJECT_STATE recent §s, the features INDEX, and all feature docs for live §7 drafts. Entry 6 added REV-91; entries 1-4+6 closed + entries 7-10 added at REV-92 (2026-10-10) per the pre-loaded 2026-10-10 rulings; entries 5 + 7-10 closed at REV-94 (2026-10-11) per the 2026-10-11 rulings; fork `docs/` copy maintained per the REV-92 register rider.*
+
+---
+*REV-100 refresh (2026-10-11): entry 12 added (OPEN — narration draft 12a + re-enable
+ruling 12b, both user-gated). Register holds ONE open entry. Fork copy lockstep.*

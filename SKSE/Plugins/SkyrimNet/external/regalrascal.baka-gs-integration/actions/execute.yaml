@@ -43,16 +43,29 @@ parameterMapping:
 # REV-99 SAFETY-DISABLE (2026-10-09 incident, see PROJECT_STATE section 105): an Execute
 # fired mid-active SexLab scene and the session crashed (crash-2026-10-09-19-36-58).
 # Disabled pending investigation; wording untouched. Reversible: flip back to true.
+# REV-100 (section 106): the safety fixes are BUILT but the action stays DISABLED until
+# the user rules re-enable (guarded-pending-dogfood; reversible: flip back to true).
 enabled: false
-defaultPriority: 10
-customCategory: SNBaka_Downed
 # Same shape as Escalate/HelpUp (REV-90): scene-block eligibility only - no combat gate
 # (acting on a downed victim is exactly what happens in/right after a fight) and the
 # target-down check is enforced in Execute_Execute, not a decorator (helpup.yaml ruling).
+# REV-100 fix (a) YAML layer: the SexLab-side guard, matching the OStim one. Decorator
+# surface: get_faction_rank is native (the one-registry class the GS pose files use with
+# SexLabAnimatingFaction; no custom decorator needed). Decorator limits: the token set is
+# currentActor/player only, so the YAML rule checks the INITIATOR (speaker); target-side
+# enforcement is executor-only (Execute_Execute + choice-5 guard BOTH actors - the
+# executor is the enforcement point, helpup.yaml ruling).
 eligibilityRules:
   - conditions:
       - decoratorName: "get_faction_rank"
         arguments: ["currentActor", "OStimExcitementFaction"]
+        comparisonOperator: "<"
+        expectedValue: 0
+    logicalOperator: "AND"
+    required: true
+  - conditions:
+      - decoratorName: "get_faction_rank"
+        arguments: ["currentActor", "SexLabAnimatingFaction"]
         comparisonOperator: "<"
         expectedValue: 0
     logicalOperator: "AND"
