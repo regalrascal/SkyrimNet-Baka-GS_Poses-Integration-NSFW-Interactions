@@ -7580,7 +7580,10 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
         ; packs often ship PAIR scenes for a creature type but nothing bigger — confirmed live with
         ; rieklings: the 4-actor pick found nothing, the scene was refused, and the retry pipeline
         ; re-grabbed the same victims every ~20s forever. Shrink until a scene exists.
-        If iCreatureBackend == 2
+        ; RESOLVED backend, not the raw setting: on "auto" (0) without SexLab this is OStim too, and
+        ; the raw == 2 check skipped the whole fallback (confirmed live: chaurus group of 4 refused,
+        ; Auri grabbed->claimed->re-downed 4 times running).
+        If _ResolveSexBackend(iCreatureBackend) == 2
             String pickTest = _PickOStimScene(sexActors, "aggressive")
             While pickTest == "" && sexActors.Length > 2
                 Actor droppedComp
@@ -7672,10 +7675,8 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
         _Log("[SNBaka] CreatureEscalate(" + akVictim.GetDisplayName() + "): STARTING creature sex scene (backend=" + iCreatureBackend + ", group size=" + sexActors.Length + ", victimStillDowned=" + _IsDownedAny(akVictim) + ")")
         ; Narrative parity for NPC victims (confirmed feedback: "for other npcs, llm do not get as many
         ; cues as with the player... sometimes it's a bit lost"): the LLM heard the pin start but NOT
-        ; that the claim actually proceeded to a scene. Same eventType the pin cue used.
-        SkyrimNetApi.RegisterEvent("baka_forced", \
-            akCreature.GetDisplayName() + " overpowers the helpless " + akVictim.GetDisplayName() + " completely and claims them right there on the ground.", \
-            akCreature, akVictim)
+        ; that the claim actually proceeded to a scene. Same eventType the pin cue used. Sent only once
+        ; the scene has really started (below) — sent before, a refused scene still told the LLM it happened.
         Int stid = _StartSexScene(sexActors, akVictim, akCreature, "", "aggressive", iCreatureBackend)
         If stid < 0
             ; Scene never started (CTD-guard refusal or OStim failure). This return value used to be
@@ -7703,6 +7704,9 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
             UnlockBoth(akCreature, akVictim)
             Return
         EndIf
+        SkyrimNetApi.RegisterEvent("baka_forced", \
+            akCreature.GetDisplayName() + " overpowers the helpless " + akVictim.GetDisplayName() + " completely and claims them right there on the ground.", \
+            akCreature, akVictim)
         _Log("[SNBaka] CreatureEscalate(" + akVictim.GetDisplayName() + "): _StartSexScene returned, entering wait loop")
         ; Wait for the scene to actually END before touching anything — this used to fall straight
         ; through to UnlockBoth the instant the scene was merely KICKED OFF, releasing the lock while
@@ -7825,6 +7829,11 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
             SkyrimNetApi.RegisterEvent("baka_release", \
                 akVictim.GetDisplayName() + " breaks free of " + akCreature.GetDisplayName() + "'s grip and struggles back to their feet — shaken, but free and ready to fight.", \
                 akVictim, akCreature)
+            ; Overwrite the live "pins ... cannot get away" scene cue (same per-aggressor ID, 25s TTL) so
+            ; it doesn't keep telling the LLM she's still held for the ~10s after she's free.
+            SkyrimNetApi.RegisterShortLivedEvent("baka_scene_" + akCreature.GetFormID(), "baka_release", \
+                akVictim.GetDisplayName() + " has broken free of " + akCreature.GetDisplayName() + " and is no longer held.", \
+                "", 10000, akVictim, akCreature)
             _Log("[SNBaka] CreatureEscalate(" + akVictim.GetDisplayName() + "): victim broke free — fully liberated, fight may resume after the grace window")
             ; Creature LOST the struggle (victim broke free) -- explicitly make sure it's actually back
             ; on its feet and free to act, rather than just trusting PlayPairedSequence's own _CleanupPair
@@ -7851,7 +7860,13 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
             akCreature.EvaluatePackage()
             _Log("[SNBaka] CreatureEscalate(" + akVictim.GetDisplayName() + "): " + akCreature.GetDisplayName() + " lost the struggle -- explicit liberation (stagger + AI released, pose reset)")
         EndIf
-        _CueResistOutcome("baka_forced", akCreature, akVictim)
+        ; Outcome cue states the result explicitly. _CueResistOutcome can't be used here: it reads
+        ; _bAELVictimEscaped, which only the human AEL struggle sets — this path never does, so every
+        ; creature escape ALSO sent "X overpowered Y" right after baka_release (confirmed in the log:
+        ; Mjoll broke free, the LLM got both a release and a forced/overpowered event).
+        If succeed
+            _CueOutcome("baka_forced", akCreature.GetDisplayName() + " overpowered " + akVictim.GetDisplayName() + ". It is over.", akCreature, akVictim)
+        EndIf
     EndIf
     UnlockBoth(akCreature, akVictim)
 EndFunction
