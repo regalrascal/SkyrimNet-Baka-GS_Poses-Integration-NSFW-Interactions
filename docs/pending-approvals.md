@@ -196,7 +196,35 @@ Dogfood-gated per the REV-98b entry-11 precedent (user-delegated wording).
 Also pending user confirm at the same gate: the GS pack id `regalrascal.gs-poses`
 (proposed per the DevKit author.slug rule; the only rule-compliant shape).
 
+## 14. FOMOD v2 wizard tooltips — §7 ruling + MO2 wizard test gate (REV-108, 2026-10-13; OPEN)
+
+**Feature:** INDEX row 16 (`unification-era`, FOMOD v2) — **Rev:** REV-108 —
+**Status:** OPEN (the tooltips shipped as drafts in `fomod/ModuleConfig.xml`
+v2 — the wizard renders them as-is; §7 ruling is a wording gate, not a
+build blocker; the dist is gate-independent packaging).
+
+**Scope (8 plugin descriptions + the info.xml Description line):** the
+"Framework (always installed)" anchor tooltip, 6 module tooltips (Baka
+Interactions, GS Poses incl. the muse reduced-vocabulary note, Cum
+Detection, FHU Inflation, SlaveTats incl. the Acheron-coupling note,
+Acheron Bridge), the "Arousal Framework Check" disclosure (the Reborn
+false-positive limit + the runtime chain of record), and the info.xml
+Description (module-toggle wording). All drafted in the honest-capability
+register: registry detection only, modules runtime presence-gated.
+
+**Also pending at the same gate: the MO2 wizard test (cannot be
+headless-simulated):** (a) install [REV-108] with GS Poses DESELECTED —
+expect the wizard to install framework + 5 modules and NO
+SkyrimNet_AnimationsGS esp / SNAnimGS_UI.dll / regalrascal.gs-poses pack /
+GSAnim_Menu index+poses files; (b) full install for the 11-page MCM parity;
+(c) the Arousal Framework Check plugin observation (Reborn-only users see
+the grey-out per the disclosed limit).
+
 ---
+
+*Register refreshed at REV-108 (2026-10-13): entry 14 ADDED (OPEN — §7
+tooltip wording ruling + the MO2 wizard test). Register holds ONE open
+entry. Fork copy lockstep.*
 *Register created 2026-10-10 per the REV-90b-close rider (user-approved 2026-10-10). Registered by sweeping PROJECT_STATE recent §s, the features INDEX, and all feature docs for live §7 drafts. Entry 6 added REV-91; entries 1-4+6 closed + entries 7-10 added at REV-92 (2026-10-10) per the pre-loaded 2026-10-10 rulings; entries 5 + 7-10 closed at REV-94 (2026-10-11) per the 2026-10-11 rulings; fork `docs/` copy maintained per the REV-92 register rider.*
 
 ---

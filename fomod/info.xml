@@ -8,9 +8,9 @@
   <Name>Delectatio et Dominium</Name>
   <Author>regalrascal</Author>
   <Version>0.2.0-alpha</Version>
-  <Description>Bedroom drama for SkyrimNet - unified LLM-driven interaction scenes and solo posing. Integrates Baka's Animations, AnimationsGS poses, and the Acheron downed-state bridge behind one MCM.
+  <Description>Bedroom drama for SkyrimNet - unified LLM-driven interaction scenes and solo posing, with real per-module install toggles: Baka Interactions, GS Poses, Cum Detection, FHU Inflation, SlaveTats degradation sets, and the Acheron downed-state bridge behind one MCM.
 
-Requirements: SKSE, SkyrimNet, Acheron (for the downed-state bridge).</Description>
+Requirements: SKSE, SkyrimNet, MCM. Module prerequisites (OCum/SexLab, Fill Her Up, SlaveTats, Acheron) are optional - each module is inert without its prerequisite.</Description>
   <Groups>
     <element>SkyrimNet</element>
     <element>Gameplay</element>
