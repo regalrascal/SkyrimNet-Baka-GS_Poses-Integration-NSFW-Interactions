@@ -29,67 +29,135 @@ Scriptname SNBaka_MCM extends SKI_ConfigBase
 ; (fEscapeGraceDuration dual-write, old script L793) carried unchanged.
 ; ============================================================================
 
-SkyrimNet_BakaIntegration Property Main Auto
+; ============================================================================
+; REV-106 SEVERANCE (user ruling of record 2026-10-1X, "Boundary S4a" - the SHAPE
+; OF RECORD): the MCM quest is the FRAMEWORK's config surface - every module hangs
+; its pages on it presence-gated; Baka's settings become module pages like any
+; other; the eventual PHYSICAL host is a DeD Framework esp (S4b, esp session -
+; this session is script-only, no esp bytes, scriptname/EDID unchanged; the rename
+; rides S4b). Task 1.1: the MCM stops using the compiled `Main` property (the esp
+; VMAD auto-fill link is what kept the MCM hostage to the motherboard quest) and
+; resolves the motherboard AT RUNTIME via GetFormFromFile(0xD62, Baka esp) + cast
+; - the same resolution pattern as SkyrimNet_BakaIntegration.GetMain (that script,
+; L1207) and SkyrimNet_BakaInteg_SpankPartner (L13). Absent motherboard = None =
+; the Baka pages don't build (§74 precedent); the MCM itself lives on. Setting
+; storage is UNCHANGED (§73/§75 discipline: no new migration; the resolver hands
+; back the exact same quest instance the compiled link used to).
+; NOTE (physical reachability, recorded §112): today the MCM quest record and the
+; motherboard quest record are co-homed in SkyrimNet_BakaIntegration.esp, so the
+; absent-motherboard state is not physically reachable until S4b moves the MCM
+; quest record to the framework esp. This machinery is the logical re-home; the
+; S4b gate activates it.
+; ============================================================================
 
-Int _enabledOID
-Int _panicOID
-Int _lapSitOID
-Int _playerTargetOID
-Int _femaleOnlyOID
-Int _execGateOID      ; REV-93 Task 1: ported from the DEAD v7 script (REV-92 built it there by
+SkyrimNet_BakaIntegration Main    ; REV-106: plain member variable, NOT a compiled
+                                  ; Auto property - resolved at runtime below. All
+                                  ; consumer sites are unchanged (same name, same
+                                  ; members); only the BINDING changed.
+
+Bool _gsFound = False             ; REV-106: cached GS esp presence (a found state
+                                  ; is permanent for a save's lifetime; an absent
+                                  ; esp re-probes at the next _BuildPages - the
+                                  ; GetFormFromFile-on-absent-esp hard-error rule
+                                  ; cited at SNBaka_CumDetectionModule L22).
+
+; REV-106 Task 1.1 - the motherboard resolution, presence-gated, sentinel-once:
+; when found, the result is cached for the session (plugins can't change mid-run),
+; so the "found" sentinel logs ONCE; when absent, _ResolveMain re-probes at every
+; OnGameReload, so the "absent" sentinel logs ONCE PER LOAD (the REV-105
+; busy-service probe's once-per-load discipline; grep
+; "[SNBaka] MCM motherboard resolution" in Papyrus.0.log).
+SkyrimNet_BakaIntegration Function _ResolveMain()
+    If Main != None
+        Return Main
+    EndIf
+    Main = Game.GetFormFromFile(0xD62, "SkyrimNet_BakaIntegration.esp") as SkyrimNet_BakaIntegration
+    If Main != None
+        Debug.Trace("[SNBaka] MCM motherboard resolution (REV-106 S4a): found - module pages build")
+    Else
+        Debug.Trace("[SNBaka] MCM motherboard resolution (REV-106 S4a): ABSENT - Baka module pages not built (framework MCM carries on)")
+    EndIf
+    Return Main
+EndFunction
+
+; REV-106 Task 1.3 - GS Poses presence gate (the leaked one: the page previously
+; rendered unconditionally and wrote GSAnim.GenderPolicy even with the GS esp
+; absent - a dead page per the §74 class). Same probe the motherboard's module-arm
+; uses (SkyrimNet_BakaIntegration L9068: GetFormFromFile(0xD61, GS esp)). Log-only
+; sentinel; no player-facing text.
+Bool Function _GSInstalled()
+    If _gsFound
+        Return True
+    EndIf
+    If Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None
+        _gsFound = True
+        Debug.Trace("[SNBaka] MCM GS-poses probe (REV-106 S4a): present")
+        Return True
+    EndIf
+    Debug.Trace("[SNBaka] MCM GS-poses probe (REV-106 S4a): absent - GS Poses page not built")
+    Return False
+EndFunction
+
+
+Int _enabledOID = -1
+Int _panicOID = -1
+Int _lapSitOID = -1
+Int _playerTargetOID = -1
+Int _femaleOnlyOID = -1
+Int _execGateOID = -1      ; REV-93 Task 1: ported from the DEAD v7 script (REV-92 built it there by
                       ; mistake — SkyrimNet_BakaIntegration_MCM is the neutered pre-REV-76 quest;
                       ; THIS quest is the live MCM). Levels: 0 Unlimited / 1 Companions ask /
                       ; 2 Always ask; key SNBaka.ExecuteGateLevel (player-keyed StorageUtil).
                       ; REV-94 Task 2.2: DEFAULT = 0 (Unlimited) USER-CONFIRMED 2026-10-11
                       ; (literal default in _ExecGateLevel below and in _ExecuteGateLevel on
                       ; the integration side: GetIntValue(..., 0) both).
-Int _animatedTearsOID
-Int _hugDurOID
-Int _molestDurOID
-Int _kissDurOID
-Int _touchDurOID
-Int _stageDurOID
-Int _cooldownOID
-Int _resistEnabledOID
-Int _resistDifficultyOID
-Int _npcEscapeChanceOID
-Int _npcStageTimeOID
-Int _escalationWindowOID
-Int _escalationDifficultyOID
-Int _spankPlayerOID
-Int _spankMaleOID
-Int _spankFurnitureOID
-Int _spankTatIntensityOID
-Int _spankHealFactorOID
-Int _sexBackendOID
-Int _expressionsOID
-Int _exprIntensityOID
-Int _creatureEscOID
-Int _creatureOnPCOID
-Int _creatureCombatOID
-Int _creatureFollowerHitOID
-Int _creatureSceneOID
-Int _llmGateOID
-Int _notifyOID
-Int _debugLogOID
-Int _creatureVictimSexOID
-Int _creatureBackendOID
-Int _creatureSuccessOID
-Int _creatureHitChanceOID
-Int _humanOnHitOID
-Int _humanHitChanceOID
-Int _escapeGraceOID
-Int _creatureStruggleDurOID
-Int _creatureGraceOID
-Int _creatureGroupSizeOID
-Int _sellSlaveryOID
-Int _followerSlaveryOID
-Int _slaveryDistOID
-Int _tiedHoursOID
+Int _animatedTearsOID = -1
+Int _hugDurOID = -1
+Int _molestDurOID = -1
+Int _kissDurOID = -1
+Int _touchDurOID = -1
+Int _stageDurOID = -1
+Int _cooldownOID = -1
+Int _resistEnabledOID = -1
+Int _resistDifficultyOID = -1
+Int _npcEscapeChanceOID = -1
+Int _npcStageTimeOID = -1
+Int _escalationWindowOID = -1
+Int _escalationDifficultyOID = -1
+Int _spankPlayerOID = -1
+Int _spankMaleOID = -1
+Int _spankFurnitureOID = -1
+Int _spankTatIntensityOID = -1
+Int _spankHealFactorOID = -1
+Int _sexBackendOID = -1
+Int _expressionsOID = -1
+Int _exprIntensityOID = -1
+Int _creatureEscOID = -1
+Int _creatureOnPCOID = -1
+Int _creatureCombatOID = -1
+Int _creatureFollowerHitOID = -1
+Int _creatureSceneOID = -1
+Int _llmGateOID = -1
+Int _notifyOID = -1
+Int _debugLogOID = -1
+Int _creatureVictimSexOID = -1
+Int _creatureBackendOID = -1
+Int _creatureSuccessOID = -1
+Int _creatureHitChanceOID = -1
+Int _humanOnHitOID = -1
+Int _humanHitChanceOID = -1
+Int _escapeGraceOID = -1
+Int _creatureStruggleDurOID = -1
+Int _creatureGraceOID = -1
+Int _creatureGroupSizeOID = -1
+Int _sellSlaveryOID = -1
+Int _followerSlaveryOID = -1
+Int _slaveryDistOID = -1
+Int _tiedHoursOID = -1
 ; REV-63 detection + inflation triggers (own pages since REV-80: Cum Effects / Fill Her Up)
-Int _cumDetectOID
-Int _slProxyOID
-Int _fhuAwareOID
+Int _cumDetectOID = -1
+Int _slProxyOID = -1
+Int _fhuAwareOID = -1
 ; REV-68 "Downed State (Acheron Bridge)" settings (own "Acheron" page since REV-79) — consolidated from the
 ; bridge's own MCM. Settings stay in StorageUtil (player-keyed, same SNAcheron.* keys and
 ; defaults as the bridge MCM — no CK property link, no data migration; the bridge quest
@@ -123,6 +191,7 @@ Int _gsGenderPolicyOID
 
 Event OnConfigInit()
     ModName = "Delectatio et Dominium"
+    _ResolveMain()   ; REV-106 S4a: runtime motherboard resolution BEFORE the page build
     _BuildPages()
     ; REV-76 canary — first-registration sentinel (one-time, per-player): versioned
     ; marker + the one greppable line. Grep "[SNBaka] MCM canary" in Papyrus.0.log.
@@ -136,6 +205,8 @@ EndEvent
 ; This is what makes the creature hand-off and the AEL/menu events work after a reload.
 Event OnGameReload()
     Parent.OnGameReload()
+    _ResolveMain()   ; REV-106 S4a: re-probe per load while the motherboard is absent
+                     ; (once-per-load sentinel; a found result is cached, never re-probed)
     ; REV-76 canary — load-time self-check sentinel (doubles as the alias-delivery
     ; probe: this event is dispatched via SKI_PlayerLoadGameAlias, the exact event
     ; the OLD quest's instance never received on the Hadrian save; grep
@@ -172,7 +243,11 @@ Int Function GetVersion()
     ; REV-93: FOURTH canonical bump (v4 -> v5) — the Execute-gate option
     ; (REV-92, mis-built in the DEAD v7 script) is ported into THIS live
     ; script's General page (dogfood-failure fix; wrong-script defect).
-    Return 5
+    ; REV-106: FIFTH canonical bump (v5 -> v6) — S4a severance: the MCM becomes the
+    ; framework's config surface; pages go presence-gated (motherboard resolution for
+    ; the 8 Baka pages, GS esp probe for GS Poses). Page STRUCTURE is now combo-
+    ; dependent, so every pre-severance save crosses this bump once and rebuilds.
+    Return 6
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -194,8 +269,12 @@ Event OnVersionUpdate(Int aVersion)
     ; REV-93 v5 (Execute-gate option ported from the dead v7 script into the
     ; live General page): canary marker — pages rebuilt FIRST (the v2 lesson).
     StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v5", 1)
+    ; REV-106 v6 (S4a severance): canary marker — pages rebuilt FIRST (the v2
+    ; lesson; the rebuild now resolves the motherboard + probes GS so the canary
+    ; reports the new combo-dependent page set).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v6", 1)
     _BuildPages()
-    Debug.Trace("[SNBaka] MCM canary: v5 OnVersionUpdate (exec-gate option port: " + Pages.Length + ")")
+    Debug.Trace("[SNBaka] MCM canary: v6 OnVersionUpdate (S4a severance, presence-gated pages: " + Pages.Length + ", Main=" + Main + ")")
 EndEvent
 
 ; ============================================================================
@@ -223,22 +302,62 @@ Function _BuildPages()
     ; a top-level left-pane page (one integration, one page, expandable later).
     ; REV-85: 11 pages — "GS Poses" joins as a top-level page (gender policy
     ; home, posing-gender.md §2b ruling: MCM-page home, page-count bump).
-    Pages    = new String[11]
-    Pages[0] = "General"
-    Pages[1] = "Timing"
-    Pages[2] = "Resist"
-    Pages[3] = "Spank"
-    Pages[4] = "Scenes & FX"
-    Pages[5] = "Lap Sitting"
-    Pages[6] = "Cum Effects"
-    Pages[7] = "Fill Her Up"
-    Pages[8] = "Acheron"
-    Pages[9] = "SlaveTats"
-    Pages[10] = "GS Poses"
+    ; REV-106 S4a: the page set is PRESENCE-GATED (the framework-MCM ruling):
+    ;   - the 8 Baka module pages build ONLY when the motherboard resolves;
+    ;   - GS Poses builds ONLY when the GS esp is present (Task 1.3 — the page
+    ;     previously leaked: it rendered unconditionally with the GS esp absent,
+    ;     a dead page writing unread keys);
+    ;   - Acheron + SlaveTats are ALWAYS present (framework pages: they carry
+    ;     no motherboard dependency — see the de-Mained consumer sites).
+    ; Both-installed users see the IDENTICAL 11-page set as [REV-105], ORDER
+    ; preserved (the Pages array is positional). Combo table recorded §112.
+    _ResolveMain()
+    If Main
+        If _GSInstalled()
+            Pages    = new String[11]
+            Pages[0] = "General"
+            Pages[1] = "Timing"
+            Pages[2] = "Resist"
+            Pages[3] = "Spank"
+            Pages[4] = "Scenes & FX"
+            Pages[5] = "Lap Sitting"
+            Pages[6] = "Cum Effects"
+            Pages[7] = "Fill Her Up"
+            Pages[8] = "Acheron"
+            Pages[9] = "SlaveTats"
+            Pages[10] = "GS Poses"
+        Else
+            Pages    = new String[10]
+            Pages[0] = "General"
+            Pages[1] = "Timing"
+            Pages[2] = "Resist"
+            Pages[3] = "Spank"
+            Pages[4] = "Scenes & FX"
+            Pages[5] = "Lap Sitting"
+            Pages[6] = "Cum Effects"
+            Pages[7] = "Fill Her Up"
+            Pages[8] = "Acheron"
+            Pages[9] = "SlaveTats"
+        EndIf
+    ElseIf _GSInstalled()
+        Pages    = new String[3]
+        Pages[0] = "Acheron"
+        Pages[1] = "SlaveTats"
+        Pages[2] = "GS Poses"
+    Else
+        Pages    = new String[2]
+        Pages[0] = "Acheron"
+        Pages[1] = "SlaveTats"
+    EndIf
 EndFunction
 
 Event OnPageReset(String page)
-    If page == "General"
+    ; REV-106 S4a: the 8 Baka module pages carry a motherboard presence rider —
+    ; when the motherboard is absent they are never in Pages[] (see _BuildPages);
+    ; this belt-and-suspenders guard makes the render bodies unreachable even if a
+    ; stale cached Pages array ever named one (defensive only — no behavior delta
+    ; in any combo reachable today; activates with the S4b quest-record move).
+    If page == "General" && Main
         SetCursorFillMode(TOP_TO_BOTTOM)
         ; REV-76 rider: the title tagline rides the MCM header (per the REV-68
         ; title rider + §7 Option-2 ruling).
@@ -280,7 +399,7 @@ Event OnPageReset(String page)
         ; convention (menu option + name function, like "Target Sex"). Level names
         ; user-ruled 2026-10-10; ASCII-only per the runtime-string ASCII rider.
         _execGateOID = AddMenuOption("Execution Action Use", _execGateName(_ExecGateLevel()))
-    ElseIf page == "Timing"
+    ElseIf page == "Timing" && Main
         SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("Animation Durations")
         _hugDurOID    = AddSliderOption("Hug Loop Duration",         Main.fHugLoopDuration,    "{0}s")
@@ -288,7 +407,7 @@ Event OnPageReset(String page)
         _kissDurOID   = AddSliderOption("Kiss Duration (per stage)", Main.fKissLoopDuration,   "{0}s")
         _touchDurOID  = AddSliderOption("Touch Duration",            Main.fTouchLoopDuration,  "{0}s")
         _stageDurOID  = AddSliderOption("Sequence Stage Duration",   Main.fSequenceStageTimer, "{0}s")
-    ElseIf page == "Resist"
+    ElseIf page == "Resist" && Main
         SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("Struggle QTE")
         _resistEnabledOID        = AddToggleOption("Enable Resist Minigame",    Main.bResistEnabled)
@@ -303,7 +422,7 @@ Event OnPageReset(String page)
         AddHeaderOption("Defeat window (fallback only)")
         _escalationWindowOID     = AddSliderOption("Escalation Window",  Main.fEscalationWindow,    "{0}s")
         _escalationDifficultyOID = AddSliderOption("Escalation QTE",     Main.fEscalationDifficulty, "{0}%")
-    ElseIf page == "Spank"
+    ElseIf page == "Spank" && Main
         SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("Behaviour")
         _spankPlayerOID    = AddToggleOption("Player Can Be Spanked",  Main.bPlayerCanBeSpanked)
@@ -313,7 +432,7 @@ Event OnPageReset(String page)
         AddHeaderOption("Tattoo Marks")
         _spankTatIntensityOID = AddSliderOption("Spanks Per Stage", Main.SpankTatIntensity as Float, "{0}")
         _spankHealFactorOID   = AddSliderOption("Hours Per Stage",  Main.SpankHealFactor as Float,   "{0} hr")
-    ElseIf page == "Scenes & FX"
+    ElseIf page == "Scenes & FX" && Main
         SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("Sex Framework")
         _sexBackendOID    = AddMenuOption("Scene Framework", _backendName(Main.iSexBackend))
@@ -340,7 +459,7 @@ Event OnPageReset(String page)
         AddHeaderOption("Humanoids (mid-combat)")
         _humanOnHitOID       = AddToggleOption("Escalate on Hit Mid-Combat (followers + player)", Main.bHumanEscalateOnHit)
         _humanHitChanceOID   = AddSliderOption("Chance to Struggle on Hit", Main.iHumanHitEngageChance as Float, "{0}%")
-    ElseIf page == "Lap Sitting"
+    ElseIf page == "Lap Sitting" && Main
         ; REV-80: promoted from the dissolved Plugins page (one integration,
         ; one page). Presence-greyed at page level when the mod is absent.
         SetCursorFillMode(TOP_TO_BOTTOM)
@@ -350,7 +469,7 @@ Event OnPageReset(String page)
         Else
             _lapSitOID = AddToggleOption("Enable Lap Sitting Actions (mod not installed)", False, OPTION_FLAG_DISABLED)
         EndIf
-    ElseIf page == "Cum Effects"
+    ElseIf page == "Cum Effects" && Main
         ; REV-80: promoted from the dissolved Plugins page (one integration,
         ; one page). REV-63 detection toggles, presence-gated as before.
         SetCursorFillMode(TOP_TO_BOTTOM)
@@ -366,7 +485,7 @@ Event OnPageReset(String page)
             _cumDetectOID = AddToggleOption("Cum Cues (OCum not installed)", False, OPTION_FLAG_DISABLED)
             _slProxyOID   = -1
         EndIf
-    ElseIf page == "Fill Her Up"
+    ElseIf page == "Fill Her Up" && Main
         ; REV-80: promoted from the dissolved Plugins page (one integration,
         ; one page). Presence-greyed at page level when the mod is absent.
         SetCursorFillMode(TOP_TO_BOTTOM)
@@ -382,11 +501,11 @@ Event OnPageReset(String page)
         ; option greyed + the header names the missing mod (per-section gate, extended).
         SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("Downed State (Acheron Bridge)")
-        Actor _achP = Main.PlayerRef
+        Actor _achP = Game.GetPlayer()
         If !_achP
             _achP = Game.GetPlayer()
         EndIf
-        If Main.IsAcheronBridgeInstalled()
+        If Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp") != None   ; REV-106 S4a: de-Mained — same probe the motherboard module-arm uses (SkyrimNet_BakaIntegration L586); the Acheron page no longer consults the motherboard
             _achEnabledOID  = AddToggleOption("Bridge Enabled",            StorageUtil.GetIntValue(_achP,   "SNAcheron.Enabled",           1) == 1)
             _achCueOID      = AddSliderOption("Reminder Cue Interval",     StorageUtil.GetFloatValue(_achP, "SNAcheron.CueInterval",       30.0),  "{0} s")
             _achProxOID     = AddSliderOption("Creature Check Interval",   StorageUtil.GetFloatValue(_achP, "SNAcheron.ProxInterval",      10.0),  "{0} s")
@@ -416,7 +535,7 @@ Event OnPageReset(String page)
         ; Presence-greyed at page level when SlaveTats is absent.
         SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("SlaveTats Degradation Sets")
-        Actor _stP = Main.PlayerRef
+        Actor _stP = Game.GetPlayer()
         If !_stP
             _stP = Game.GetPlayer()
         EndIf
@@ -500,16 +619,21 @@ Event OnOptionSelect(Int option)
         ; bridge quest re-reads it on its next tick. Nudges the motherboard lifecycle surface
         ; (per the §68 ruling: toggles nudge Main._ArmModules()) so the bridge picks the change
         ; up immediately instead of on its own self-heal cadence.
-        Actor achP1 = Main.PlayerRef
+        Actor achP1 = Game.GetPlayer()
         If !achP1
             achP1 = Game.GetPlayer()
         EndIf
         Int vAch = 1 - StorageUtil.GetIntValue(achP1, "SNAcheron.Enabled", 1)
         StorageUtil.SetIntValue(achP1, "SNAcheron.Enabled", vAch)
         SetToggleOptionValue(_achEnabledOID, vAch == 1)
-        Main._ArmModules()
+        ; REV-106 S4a: the lifecycle nudge is motherboard-dependent — guard it so
+        ; this Acheron-page toggle works with the motherboard absent too (the bridge
+        ; re-reads the key on its own self-heal cadence either way, per §68).
+        If Main
+            Main._ArmModules()
+        EndIf
     ElseIf option == _achHandoffOID
-        Actor achP2 = Main.PlayerRef
+        Actor achP2 = Game.GetPlayer()
         If !achP2
             achP2 = Game.GetPlayer()
         EndIf
@@ -517,7 +641,7 @@ Event OnOptionSelect(Int option)
         StorageUtil.SetIntValue(achP2, "SNAcheron.CreatureHandoff", vHand)
         SetToggleOptionValue(_achHandoffOID, vHand == 1)
     ElseIf option == _achDebugOID
-        Actor achP3 = Main.PlayerRef
+        Actor achP3 = Game.GetPlayer()
         If !achP3
             achP3 = Game.GetPlayer()
         EndIf
@@ -534,7 +658,7 @@ Event OnOptionSelect(Int option)
         _ST_Toggle("SNBaka.ST.ApplyOnEscalation", _stEscalOID, 0)
     ElseIf option == _stRefreshOID
         SNBaka_SlaveTatsModule.RefreshPacks()
-        Actor stP1 = Main.PlayerRef
+        Actor stP1 = Game.GetPlayer()
         If !stP1
             stP1 = Game.GetPlayer()
         EndIf
@@ -548,7 +672,7 @@ Event OnOptionSelect(Int option)
         ; REV-74: cycle Default -> Black -> Red -> Crimson -> Dark Red -> Blue -> Green
         ; -> Purple -> Pink -> Default. Stored as the 0xRRGGBB int the module reads
         ; (SNBaka.ST.DefaultColor; 0 = pack default / no recolor).
-        Actor stP2 = Main.PlayerRef
+        Actor stP2 = Game.GetPlayer()
         If !stP2
             stP2 = Game.GetPlayer()
         EndIf
@@ -647,7 +771,7 @@ EndEvent
 ; the bridge quest reads it every tick, so no nudge is needed for a keybind).
 Event OnOptionKeyMapChange(Int option, Int keyCode, String conflictControl, String conflictName)
     If option == _achGetUpKeyOID
-        Actor achPk = Main.PlayerRef
+        Actor achPk = Game.GetPlayer()
         If !achPk
             achPk = Game.GetPlayer()
         EndIf
@@ -736,7 +860,7 @@ String Function _execGateName(Int i)
 EndFunction
 
 Int Function _ExecGateLevel()
-    Actor p = Main.PlayerRef
+    Actor p = Game.GetPlayer()
     If !p
         p = Game.GetPlayer()
     EndIf
@@ -744,7 +868,7 @@ Int Function _ExecGateLevel()
 EndFunction
 
 Function _SetExecGateLevel(Int i)
-    Actor p = Main.PlayerRef
+    Actor p = Game.GetPlayer()
     If !p
         p = Game.GetPlayer()
     EndIf
@@ -932,22 +1056,22 @@ Event OnOptionSliderOpen(Int option)
         SetSliderDialogRange(0.0, 100.0)
         SetSliderDialogInterval(5.0)
     ElseIf option == _achCueOID
-        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Main.PlayerRef, "SNAcheron.CueInterval", 30.0))
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Game.GetPlayer(), "SNAcheron.CueInterval", 30.0))
         SetSliderDialogDefaultValue(30.0)
         SetSliderDialogRange(10.0, 120.0)
         SetSliderDialogInterval(5.0)
     ElseIf option == _achProxOID
-        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Main.PlayerRef, "SNAcheron.ProxInterval", 10.0))
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Game.GetPlayer(), "SNAcheron.ProxInterval", 10.0))
         SetSliderDialogDefaultValue(10.0)
         SetSliderDialogRange(5.0, 60.0)
         SetSliderDialogInterval(5.0)
     ElseIf option == _achConfirmOID
-        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Main.PlayerRef, "SNAcheron.AutoGetUpSeconds", 600.0))
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Game.GetPlayer(), "SNAcheron.AutoGetUpSeconds", 600.0))
         SetSliderDialogDefaultValue(600.0)
         SetSliderDialogRange(60.0, 3600.0)
         SetSliderDialogInterval(30.0)
     ElseIf option == _achEngageOID
-        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Main.PlayerRef, "SNAcheron.CreatureEngageChance", 50.0))
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Game.GetPlayer(), "SNAcheron.CreatureEngageChance", 50.0))
         SetSliderDialogDefaultValue(50.0)
         SetSliderDialogRange(0.0, 100.0)
         SetSliderDialogInterval(5.0)
@@ -1029,16 +1153,16 @@ Event OnOptionSliderAccept(Int option, Float value)
         Main.iCreatureGroupMaxSize = value as Int
         SetSliderOptionValue(_creatureGroupSizeOID, value, "{0}")
     ElseIf option == _achCueOID
-        StorageUtil.SetFloatValue(Main.PlayerRef, "SNAcheron.CueInterval", value)
+        StorageUtil.SetFloatValue(Game.GetPlayer(), "SNAcheron.CueInterval", value)
         SetSliderOptionValue(_achCueOID, value, "{0} s")
     ElseIf option == _achProxOID
-        StorageUtil.SetFloatValue(Main.PlayerRef, "SNAcheron.ProxInterval", value)
+        StorageUtil.SetFloatValue(Game.GetPlayer(), "SNAcheron.ProxInterval", value)
         SetSliderOptionValue(_achProxOID, value, "{0} s")
     ElseIf option == _achConfirmOID
-        StorageUtil.SetFloatValue(Main.PlayerRef, "SNAcheron.AutoGetUpSeconds", value)
+        StorageUtil.SetFloatValue(Game.GetPlayer(), "SNAcheron.AutoGetUpSeconds", value)
         SetSliderOptionValue(_achConfirmOID, value, "{0} s")
     ElseIf option == _achEngageOID
-        StorageUtil.SetFloatValue(Main.PlayerRef, "SNAcheron.CreatureEngageChance", value)
+        StorageUtil.SetFloatValue(Game.GetPlayer(), "SNAcheron.CreatureEngageChance", value)
         SetSliderOptionValue(_achEngageOID, value, "{0}%")
     EndIf
 EndEvent
@@ -1217,7 +1341,7 @@ EndFunction
 
 ; REV-72 SlaveTats toggle helper — flips a player-keyed SNBaka.ST.* int between 1 and 0.
 Function _ST_Toggle(String asKey, Int aiOID, Int aiDefault)
-    Actor p = Main.PlayerRef
+    Actor p = Game.GetPlayer()
     If !p
         p = Game.GetPlayer()
     EndIf
