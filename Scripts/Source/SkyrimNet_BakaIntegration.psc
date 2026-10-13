@@ -9077,6 +9077,13 @@ Function _ArmModules()
     ; Present = unconditional True: the motherboard quest hosting this code IS the Baka
     ; half. Re-asserted every arm pass (Setup + heartbeat), same as every registry entry.
     _RegisterService("pose.baka-half", True)
+    ; REV-105 S2: the busy-state advertisement — GS's _IsBusyElsewhere probes this
+    ; before consulting the SNBaka.Locked/OnGround keys (era doc 5.2 S2: the key
+    ; names stay the wire format — zero save migration; a contract over the existing
+    ; soft reads, not a new interface). Present = unconditional True for the same
+    ; reason as the pose entry: the motherboard hosting this code IS the Baka half
+    ; that writes those keys. Re-asserted every arm pass (Setup + heartbeat).
+    _RegisterService("busy.baka-half", True)
     _Log("[SNBaka] module-arm: arm pass complete")
 EndFunction
 

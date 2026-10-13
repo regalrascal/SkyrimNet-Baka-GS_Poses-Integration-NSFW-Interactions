@@ -176,11 +176,35 @@ EndFunction
 ; a vanilla furniture sit under the hood, so this one check catches both for free with no dependency
 ; on Baka's own state at all).
 Bool Function _IsBusyElsewhere(Actor ak)
-    If StorageUtil.GetIntValue(ak, "SNBaka.Locked",   0) == 1
-        Return True
+    ; REV-105 S2: the two SNBaka.* busy reads are now gated on the busy-state
+    ; service (the Baka motherboard advertises "busy.baka-half"; era doc 5.2 S2:
+    ; key names stay the wire format — zero save migration; a contract over the
+    ; existing soft reads, not a new interface). Behavior-identical by construction:
+    ; Baka present -> the keys are read verbatim as before; Baka absent -> the probe
+    ; reads 0 and these reads are skipped, which is exactly the soft-default-0 result
+    ; they returned in that same state (the keys' default path is preserved exactly;
+    ; the one divergence — stale nonzero keys on a pre-uninstall save no longer read
+    ; as busy — is the soft default being made explicit, flagged in PROJECT_STATE 111).
+    Bool bBakaBusySvc = _BakaBusyServicePresent()
+    If !_bBusySvcProbeSentinel
+        _bBusySvcProbeSentinel = True
+        Debug.Trace("[SNAnimGS] busy-service probe (REV-105 S2 sentinel): present=" + bBakaBusySvc)
     EndIf
-    If StorageUtil.GetIntValue(ak, "SNBaka.OnGround", 0) == 1
-        Return True
+    If bBakaBusySvc
+        If StorageUtil.GetIntValue(ak, "SNBaka.Locked",   0) == 1
+            If !_bBusySvcBlockSentinel
+                _bBusySvcBlockSentinel = True
+                Debug.Trace("[SNAnimGS] busy-service result (REV-105 S2 sentinel): actor blocked by SNBaka.Locked")
+            EndIf
+            Return True
+        EndIf
+        If StorageUtil.GetIntValue(ak, "SNBaka.OnGround", 0) == 1
+            If !_bBusySvcBlockSentinel
+                _bBusySvcBlockSentinel = True
+                Debug.Trace("[SNAnimGS] busy-service result (REV-105 S2 sentinel): actor blocked by SNBaka.OnGround")
+            EndIf
+            Return True
+        EndIf
     EndIf
     If StorageUtil.GetIntValue(ak, "SNAcheron.Held",  0) == 1
         Return True
@@ -1624,6 +1648,31 @@ Bool Function _BakaPoseHalfPresent()
     EndIf
     Return StorageUtil.GetIntValue(kHost, "SNBaka.Svc.pose.baka-half", 0) == 1
 EndFunction
+
+; REV-105 S2: the busy-state service probe — the same soft-read mirror as
+; _BakaPoseHalfPresent above, on the "busy.baka-half" registry entry. The Baka
+; motherboard owns the SNBaka.Locked/OnGround writers; absent module = absent
+; registry entry = probe returns False = _IsBusyElsewhere skips those reads
+; (their soft default of 0, made explicit — era doc 5.2 S2: key names are the
+; wire format; this is the contract over the soft reads, not a new interface).
+; Deliberately NOT cached, same reason as the pose probe: the arm pass
+; re-asserts the entry on the motherboard heartbeat, so a mid-session change
+; reads correctly at the next guard evaluation.
+Bool Function _BakaBusyServicePresent()
+    Form kHost = Game.GetFormFromFile(0xD62, "SkyrimNet_BakaIntegration.esp")
+    If !kHost
+        Return False
+    EndIf
+    Return StorageUtil.GetIntValue(kHost, "SNBaka.Svc.busy.baka-half", 0) == 1
+EndFunction
+
+; REV-105 S2 one-shot sentinels (the _bMuseDebugArmedThisBoot pattern): the busy
+; queries are hot-path (daemon scans), so the "consulted" (probe state) and
+; "result" (first busy-block via a Baka key) sentinels fire ONCE per game load —
+; both observable in the Papyrus log without spam. The Baka-side counterpart is
+; the registry's own arm-pass log line ("service-registry: 'busy.baka-half'").
+Bool _bBusySvcProbeSentinel  = False
+Bool _bBusySvcBlockSentinel = False
 
 ; REV-103 S3: the 15 Baka-hosted names of the 27-name dispatch (_PoseActions = 12
 ; GS-owned + 15 Baka-described). Exact-match list, not an index range, so the table
