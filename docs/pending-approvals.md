@@ -176,6 +176,26 @@ refresh. Fork copy lockstep. New drafts would enter per the standing rules.*
 (user-delegated wording, dogfood-gated). Register EMPTY of open entries.
 Fork copy lockstep.*
 
+## 13. Acheron-integration manifest — description + tagline (REV-104, 2026-10-12; OPEN, dogfood-gated)
+
+**Feature:** INDEX row 16 (`unification-era`, S1 legs) — **Rev:** REV-104 —
+**Status:** OPEN (user confirm pending; rides the 5.1 gate report, not a build
+blocker — the layer was DEAD without any manifest, so the draft restores
+function while the wording is ruled).
+
+**Module:** `SKSE\Plugins\SkyrimNet\external\around906.acheron-integration\manifest.json`
+(authored this rev from the 62-era Task-2d proposal; sha256 00F80C57..).
+
+**manifest.json tagline (verbatim):**
+> Downed-state bridge between Acheron defeats and SkyrimNet/Baka.
+
+**manifest.json description (verbatim):**
+> Connects Acheron's defeat-and-hold system to SkyrimNet: delegated downs route through Acheron.DefeatActor, downed NPCs emit cues and reminders, creature hand-off and auto get-up are configurable, and Acheron-side rescue events feed back into SkyrimNet triggers. Folded into the unified Delectatio et Dominium build; this layer carries the two framework-side triggers (acheron_downed, acheron_recovered) whose narration was invisible to the content library until REV-104.
+
+Dogfood-gated per the REV-98b entry-11 precedent (user-delegated wording).
+Also pending user confirm at the same gate: the GS pack id `regalrascal.gs-poses`
+(proposed per the DevKit author.slug rule; the only rule-compliant shape).
+
 ---
 *Register created 2026-10-10 per the REV-90b-close rider (user-approved 2026-10-10). Registered by sweeping PROJECT_STATE recent §s, the features INDEX, and all feature docs for live §7 drafts. Entry 6 added REV-91; entries 1-4+6 closed + entries 7-10 added at REV-92 (2026-10-10) per the pre-loaded 2026-10-10 rulings; entries 5 + 7-10 closed at REV-94 (2026-10-11) per the 2026-10-11 rulings; fork `docs/` copy maintained per the REV-92 register rider.*
 
@@ -187,3 +207,8 @@ ruling 12b, both user-gated). Register holds ONE open entry. Fork copy lockstep.
 *REV-101 refresh (2026-10-11): entries 12a + 12b CLOSED (user-edited wording approved
 verbatim + re-enable ruling; Execute lane shipped [REV-101], EXPERIMENTAL). Register
 EMPTY of open entries. Fork copy lockstep.*
+
+---
+*REV-104 refresh (2026-10-12): entry 13 ADDED (OPEN — acheron manifest description +
+tagline, dogfood-gated user-delegated wording; plus the gs-poses id confirm noted
+in-entry). Register holds ONE open entry. Fork copy lockstep.*

@@ -335,3 +335,19 @@ every gate report carries an explicit line — "Modlist writes this session: NON
 an accompanying completion-table row. Rides §1/§2 + the REV-76 never-deploy ruling;
 the numbered rule count stays 10.
 
+**Checklist v9 (REV-104, 2026-10-12 — 9th entry of THE SHIPPING-FEATURES
+CHECKLIST, REV-77 rider):** 9. LAYER-LOAD TRUTH — at ship time, run the DevKit
+content validator (content-validate.exe, the current canonical snapshot) against
+EVERY external/ content layer and archive the per-layer result (ok true/false +
+error/warning counts) with the dist records; zero errors required to ship, and
+every error repaired same-session or the layer is pulled from the dist. Grounds:
+occurrence #1 of the silent-rejection class — the REV-103 pack-split shipped
+`Gunslicer-Poses` (id not author.slug shape) and the acheron layer (manifest
+never authored at the REV-62 fold), both folder-rejected silently (loader logs a
+warning naming the directory and skips, CONTENT_ROOTS.md L33); the user saw 3 of
+5 layers on the dashboard and 78 instead of 94 actions (16 = 14 pack + 2 tattoo
+filename-stem mismatches, also caught by the same first-ever full validation
+run). Rides §2/§5 + the REV-91 full-surface precedent (a scoped pass inherits
+its scope's blind spots — here, no pass at all had ever run on the external
+tree); the numbered rule count stays 10.
+
