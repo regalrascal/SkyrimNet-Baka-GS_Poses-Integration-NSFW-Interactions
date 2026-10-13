@@ -351,3 +351,22 @@ run). Rides §2/§5 + the REV-91 full-surface precedent (a scoped pass inherits
 its scope's blind spots — here, no pass at all had ever run on the external
 tree); the numbered rule count stays 10.
 
+**Checklist v10 (REV-107b, 2026-10-13 — 10th entry of THE SHIPPING-FEATURES
+CHECKLIST, REV-77 rider):** 10. FOMOD PARITY — at ship time, the wizard's
+install set is DIFFED against the dist tree: every root-level file is
+enumerated as a `<file>` entry in ModuleConfig.xml (enumeration receipt:
+zero root files uncovered), and every folder pattern is PROVEN to cover the
+rest of the recursive tree (top-segment enumeration receipt; the `fomod/`
+folder itself is wizard-consumed by MO2 and never installed into Data —
+expected, cited, not a gap). Presence-and-parses is NO LONGER sufficient for
+the fomod/ manifest entry — the install set must MATCH the shipped tree.
+Grounds: occurrence #1 of the silent-wizard-drop class — REV-107 shipped the
+project's first authored esp (DeD_Framework.esp) at the zip root, but
+ModuleConfig.xml still carried the REV-68-authored three-esp install set; the
+user's reinstall installed 3 of 4 root esps (DeD_Framework absent from the
+installed folder; confirming trace: the REV-104 wizard-consumption evidence).
+Proof-of-fix is the user's reinstall gate — MO2's wizard cannot be simulated
+faithfully headless. Rides §2/§5 + the v9 layer-load-truth precedent
+(ship-time truth checks moved from "present" to "covering"); the numbered
+rule count stays 10.
+

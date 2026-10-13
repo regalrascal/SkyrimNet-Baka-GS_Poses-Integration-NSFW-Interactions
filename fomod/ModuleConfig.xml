@@ -12,6 +12,10 @@
 	<moduleName>Delectatio et Dominium (0.2.0-alpha)</moduleName>
 	<requiredInstallFiles>
 		<!-- Data-tree assets, source is the archive root (identical to the v0.2.0-alpha zip layout) -->
+		<!-- REV-107b (2026-10-13): DeD_Framework.esp added (fourth esp since REV-107
+		     Boundary S4b; was missing from this REV-68-authored three-esp set - the
+		     wizard silently installed 3 of 4 root esps). Parity rider: checklist v10. -->
+		<file source="DeD_Framework.esp" destination="DeD_Framework.esp"/>
 		<file source="SkyrimNet_BakaIntegration.esp" destination="SkyrimNet_BakaIntegration.esp"/>
 		<file source="SkyrimNet_AnimationsGS.esp" destination="SkyrimNet_AnimationsGS.esp"/>
 		<file source="SkyrimNet_AcheronIntegration.esp" destination="SkyrimNet_AcheronIntegration.esp"/>
