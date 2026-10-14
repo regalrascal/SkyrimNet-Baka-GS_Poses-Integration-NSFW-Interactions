@@ -63,6 +63,7 @@ Integration, credited).
 - 2026-10-08 REV-88: full-section checklist mapping lives in baka-module.md + baka-daemon.md + INDEX rows 3/12/14 (master checklist).
 - 2026-10-08 REV-88: daemon mode names — planner "Melphala Mode"/"Molag Bal's Ball" map to baka-daemon.md's "Mephala"/"Molag Bal" context-mode rows; spelling + unclosed-quote intake flags reported in the REV-88 gate report (user's text untouched).
 - 2026-10-08 REV-88: "MCM restructure" ticket — roadmap item 7 (Settings umbrella + Baka section fold), rides the SNBaka_MCM GetVersion/OnVersionUpdate rebuild machinery.
+- 2026-10-13 REV-109: "MCM restructure" ticket — roadmap item 7 BUILT (DeD_MCM.psc: the Settings page + the five "Baka - " pages; GetVersion v8); dist [REV-109]; user gates open (INDEX row 16; PROJECT_STATE §117).
 - 2026-10-12 REV-96: Acheron probe cast-lie fixed (3 sites; un-cast installed check) + cum/FHU detection logic extracted to recordless modules — built, [REV-96] dist staged, dogfood pending (INDEX rows 5/6/16; PROJECT_STATE §102).
 - 2026-10-09 REV-97: rev96 dogfood "Execute regression" diagnosed NOT-A-REGRESSION — player-button chain alive through Actor.Kill; block = victim's base Essential/Protected immunity, kill-path code byte-identical rev94->rev96, install hashes verified 6/6 (PROJECT_STATE §103; INDEX row 14).
 - 2026-10-08 REV-88: "Execute action lane" — well-evidenced open ticket (INDEX row 14: author, not adopt; Acheron-free shape ruled); roadmap item 3.

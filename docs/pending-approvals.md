@@ -250,6 +250,62 @@ SNAnimGS_UI.dll / regalrascal.gs-poses pack / GSAnim_Menu index+poses);
 then a full install for the 11-page MCM parity. MO2's wizard cannot be
 headless-simulated.
 
+## 16. REV-109 MCM restructure bulk reword set (display-length audit + absent-state tails; 2026-10-13; OPEN)
+
+**Feature:** INDEX row 16 (`unification-era`, MCM productization REV-109) —
+**Rev:** REV-109 — **Status:** OPEN (user wording rulings pending; shipped as
+first drafts per the entry-14 user-editable-baseline precedent).
+
+The REV-109 display-length audit reworded these SHIPPED MCM strings in
+`Scripts/Source/DeD_MCM.psc`. Every string is ASCII (the full-surface sweep
+receipt = 0 non-ASCII; this entry covers REWORDS only, not the sweep). All
+quoted verbatim, OLD -> NEW.
+
+**16a. Class (b) splits — long text moved from the option surface into the
+InfoText detail (three; the label/value ships SHORT, the full wording rides
+the info):**
+
+- **QTE Keys** (Baka - Resist page; value): OLD "Configured in Flash Games -
+  Struggling QTE  (WASD / d-pad)" -> NEW "Flash Games - Struggling QTE".
+  NEW InfoText (verbatim): "Struggle QTE keys: WASD / d-pad. Not configured
+  here - set them in the 'Flash Games' mod's Struggling QTE section."
+- **SlaveTats intro** (SlaveTats page; label): OLD "Sets are chosen in the
+  in-game Tattoo Menu; this section only decides WHICH events fire them
+  automatically." -> NEW "Sets are picked in the Tattoo Menu." NEW InfoText
+  (verbatim): "Sets are chosen in the in-game Tattoo Menu; this section only
+  decides WHICH events fire them automatically."
+- **GS Poses intro** (GS Poses page; label): OLD "Who may be posed, by body:
+  female-only keeps the shipped behavior; curated admits men to the neutral
+  set; all-poses opens the whole library." -> NEW "Who may be posed, by
+  body:". NEW InfoText (verbatim): "Who may be posed, by body: female-only
+  keeps the shipped behavior; curated admits men to the neutral set;
+  all-poses opens the whole library."
+
+**16b. Class (a) shortenings — absent-state "(not installed)" tails
+normalized (six):**
+
+- "Allow Sell to Slavery (Simple Slavery++ not installed)" -> "Allow Sell to
+  Slavery (not installed)"
+- "Allow Follower Enslavement (FSM not installed)" -> "Follower Enslavement
+  (not installed)"
+- "Enable Lap Sitting Actions (mod not installed)" -> "Lap Sitting Actions
+  (not installed)"
+- "Inflation Level Cues (mod not installed)" -> "Inflation Level Cues (not
+  installed)"
+- "Bridge Enabled (Acheron bridge not installed)" -> "Bridge Enabled (not
+  installed)"
+- "Module Enabled (SlaveTats not installed)" -> "Module Enabled (not
+  installed)"
+
+**16c. Status refresh value (SlaveTats "Sections Available"; two sites — the
+Add and the SetTextOptionValue refresh):** OLD "N - pick sets in the Tattoo
+menu" -> NEW "N sections".
+
+**16d. NEW headers on the Settings page (net-new surface, same gate):**
+"Framework", "Maintenance" — plus the title header "Delectatio et Dominium"
++ tagline "Bedroom drama for SkyrimNet" MOVED verbatim from the old General
+page (no reword).
+
 ---
 
 *Register refreshed at REV-108 (2026-10-13): entry 14 ADDED (OPEN — §7
@@ -277,3 +333,11 @@ APPROVED-AS-FIRST-DRAFT per user ruling; user-editable baseline; entry heading
 amended in place); entry 15 ADDED (OPEN — 15a README arousal-line wording draft,
 15b the [REV-108b] wizard-render test, carried from entry 14). Register holds ONE
 open entry (15). Fork copy lockstep.*
+
+---
+
+*REV-109 refresh (2026-10-13): entry 16 ADDED (OPEN — the REV-109 MCM reword
+set: 16a three class (b) InfoText splits, 16b six absent-state tail
+shortenings, 16c the SlaveTats status value, 16d the new Settings headers).
+Entry 15 unchanged (still open). Register holds TWO open entries (15, 16).
+Fork copy lockstep.*
