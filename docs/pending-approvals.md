@@ -306,6 +306,45 @@ menu" -> NEW "N sections".
 + tagline "Bedroom drama for SkyrimNet" MOVED verbatim from the old General
 page (no reword).
 
+**REV-109b rider (2026-10-13):** the reword set above is UNCHANGED. The
+six "Baka - " page homes are now the six sections of the "Baka
+Interactions" family page (REV-109b, PROJECT_STATE §118); the reworded
+strings ship on those section surfaces as-is. The 16a-16d rulings remain
+pending.
+
+---
+
+## Entry 17 — REV-109b MCM restructure fix: new navigation-surface strings (Option A)
+
+**Feature:** INDEX row 16 (`unification-era`, MCM productization REV-109b) —
+**Rev:** REV-109b — **Status:** 17a OPEN (helper-text wording ruling
+pending); 17b + 17c informational (no approval loop).
+
+**17a. Helper-text drafts (NEW navigation surfaces, §7):**
+
+- **Section index row value** (six rows, one per section; the click
+  affordance on the "Baka Interactions" page's index view): "Open" —
+  e.g. row reads "General ... Open". Ruling requested (first draft;
+  alternates: "" / "Select" / ">>").
+- **Back row label** (top of every section view, returns to the section
+  index; value is empty): "<< Back". Ruling requested (first draft;
+  alternates: "Back" / "Back to Sections").
+
+**17b. USER-AUTHORED strings (register-cited per the Option A ruling; the
+user's own wording from their dogfood list - no approval loop):** the page
+name / index header "Baka Interactions"; the six section names in the
+user's order: "General", "Timing", "Resist", "Spank", "Scenes & FX", "Lap
+Sitting". These are also the six nav-row labels.
+
+**17c. Question citation ("Enable Debug Logging" - what does it do?):** the
+user asked at the REV-109b session. ANSWER of record: today it toggles the
+motherboard's debug-trace channel (`Main.bDebugLog` - the
+SkyrimNet_BakaIntegration trace spam, e.g. action-selection/cooldown
+debugging); it is NOT a mod-wide capture switch. Mod-wide capture is the
+debugging-mode ticket - already registered to the polish pool (the era gap
+list); this entry cites the question so the answer is on the record. No
+ruling pending.
+
 ---
 
 *Register refreshed at REV-108 (2026-10-13): entry 14 ADDED (OPEN — §7
@@ -341,3 +380,14 @@ set: 16a three class (b) InfoText splits, 16b six absent-state tail
 shortenings, 16c the SlaveTats status value, 16d the new Settings headers).
 Entry 15 unchanged (still open). Register holds TWO open entries (15, 16).
 Fork copy lockstep.*
+
+---
+
+*REV-109b refresh (2026-10-13): entry 17 ADDED (17a OPEN — the new
+navigation-surface helper drafts: the section-index row value "Open" and the
+back-row label "<< Back"; 17b the user-authored section/page names,
+register-cited per the Option A ruling; 17c the "Enable Debug Logging"
+question citation with the answer of record). Entry 16 rider appended (reword
+set unchanged; homes are now the family sections) — 16 still open. Entry 15
+unchanged. Register holds THREE open entries (15, 16, 17a). Fork copy
+lockstep.*
