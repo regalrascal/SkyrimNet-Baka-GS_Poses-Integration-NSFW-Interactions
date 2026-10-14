@@ -312,29 +312,38 @@ Interactions" family page (REV-109b, PROJECT_STATE §118); the reworded
 strings ship on those section surfaces as-is. The 16a-16d rulings remain
 pending.
 
+**REV-109c rider (2026-10-13):** the reword set above is UNCHANGED. The
+homes are now the six STACKED sections of the ONE "Baka Interactions"
+page body (REV-109c, PROJECT_STATE §119; the 109b navigation rows are
+gone); the reworded strings ship on those stacked section surfaces
+as-is. The 16a-16d rulings remain pending.
+
 ---
 
 ## Entry 17 — REV-109b MCM restructure fix: new navigation-surface strings (Option A)
 
 **Feature:** INDEX row 16 (`unification-era`, MCM productization REV-109b) —
-**Rev:** REV-109b — **Status:** 17a OPEN (helper-text wording ruling
-pending); 17b + 17c informational (no approval loop).
+**Rev:** REV-109b — **Status:** 17a CLOSED-VOID at REV-109c (superseded -
+see the banner note below); 17b + 17c informational (no approval loop).
 
-**17a. Helper-text drafts (NEW navigation surfaces, §7):**
-
-- **Section index row value** (six rows, one per section; the click
-  affordance on the "Baka Interactions" page's index view): "Open" —
-  e.g. row reads "General ... Open". Ruling requested (first draft;
-  alternates: "" / "Select" / ">>").
-- **Back row label** (top of every section view, returns to the section
-  index; value is empty): "<< Back". Ruling requested (first draft;
-  alternates: "Back" / "Back to Sections").
+**17a. Helper-text drafts (NEW navigation surfaces, §7) - CLOSED-VOID at
+REV-109c (2026-10-13):** SUPERSESSION BANNER (not silent deletion): the
+pass-3 user ruling REMOVED the REV-109b section-navigation model entirely
+(state, index render, "Open" rows, "<< Back" rows, nav OIDs, handler
+chain). The strings this entry gated - the section-index row value
+"Open" and the back-row label "<< Back" - NO LONGER EXIST in the build
+(DeD_MCM.psc pass 3; dist [REV-109c]); the entry is closed VOID, no
+wording ruling needed or possible. The stacked-sections shape that
+replaced it needs no new helper strings (headers only; the section names
+are entry 17b).
 
 **17b. USER-AUTHORED strings (register-cited per the Option A ruling; the
 user's own wording from their dogfood list - no approval loop):** the page
-name / index header "Baka Interactions"; the six section names in the
+name / page header "Baka Interactions"; the six section names in the
 user's order: "General", "Timing", "Resist", "Spank", "Scenes & FX", "Lap
-Sitting". These are also the six nav-row labels.
+Sitting". REV-109c rider: these are now the six section-header labels of
+the stacked body (the nav rows are gone with 109b); still user-authored,
+still no approval loop.
 
 **17c. Question citation ("Enable Debug Logging" - what does it do?):** the
 user asked at the REV-109b session. ANSWER of record: today it toggles the
@@ -391,3 +400,14 @@ question citation with the answer of record). Entry 16 rider appended (reword
 set unchanged; homes are now the family sections) — 16 still open. Entry 15
 unchanged. Register holds THREE open entries (15, 16, 17a). Fork copy
 lockstep.*
+
+---
+
+*REV-109c refresh (2026-10-13): entry 17a CLOSED-VOID (supersession banner
+in-entry - the pass-3 ruling removed the REV-109b navigation model; the
+"Open"/"<< Back" strings it gated no longer exist in the build; no wording
+ruling needed or possible). 17b rider appended (the names are now the
+stacked body's section-header labels; still user-authored). 17c unchanged.
+Entry 16 rider appended (the reword-set homes are the stacked sections;
+rulings still pending). Entry 15 unchanged. Register holds TWO open entries
+(15, 16). Fork copy lockstep.*
