@@ -60,7 +60,9 @@ Function HandleOCumApplied(SkyrimNet_BakaIntegration akHost, Form akOrgasmer, Fo
     Actor target = akTarget as Actor
     ; REV-65 full-payload sentinel: reception verified at the ARGUMENT level.
     akHost._Log("[SNBaka] OnOCumApplied: orgasmer=" + orgasmer.GetDisplayName() + " target=" + (target as Form) + " amount=" + afAmountML + "ml area=" + asArea + " sceneID=" + asSceneID)
-    _FireCumCue(akHost, orgasmer, target)
+    ; REV-112: the Area string now reaches the fire path (location-variant
+    ; dispatch, cum-effects v2 item 2 -- it was dropped here in v1).
+    _FireCumCue(akHost, orgasmer, target, asArea)
 EndFunction
 
 ; REV-65: the npc_scene variant carries ThreadID as a 3rd (Int) push, so it needs its
@@ -76,7 +78,43 @@ Function HandleOCumAppliedNPCScene(SkyrimNet_BakaIntegration akHost, Form akOrga
     EndIf
     Actor target = akTarget as Actor
     akHost._Log("[SNBaka] OnOCumApplied [npc-scene]: orgasmer=" + orgasmer.GetDisplayName() + " target=" + (target as Form) + " thread=" + aiThreadID + " amount=" + afAmountML + "ml area=" + asArea + " sceneID=" + asSceneID)
-    _FireCumCue(akHost, orgasmer, target)
+    ; REV-112: Area reaches the fire path here too (location-variant dispatch).
+    _FireCumCue(akHost, orgasmer, target, asArea)
+EndFunction
+
+; REV-112: location-variant dispatch (cum-effects v2 item 2, in-script Area
+; dispatch per the REV-110 scout shape). One phrase per OCum Area literal --
+; the OCumMaleScript.psc ApplyCum dispatch class (L323-343, [035.00002]):
+; 11 literals (belly/butt/chest/face/feet/hands/mouth/rectum/thighs/throat/
+; vagina). PHRASES ARE §7 DRAFTS -- register entry 18 (bulk), ruling pending.
+; Returns "" for unknown/empty Area -> the caller falls back to the v1 wording.
+; SL LEG LIMIT (stated): the StageEnd proxy has no Area signal and passes ""
+; -- location-agnostic until the v2 state layer exists.
+String Function _LocationPhrase(String asArea) Global
+    If asArea == "belly"
+        Return "the mess settling across their belly"
+    ElseIf asArea == "butt"
+        Return "the mess settling across their backside"
+    ElseIf asArea == "chest"
+        Return "the mess settling across their chest"
+    ElseIf asArea == "face"
+        Return "the mess settling across their face"
+    ElseIf asArea == "feet"
+        Return "the mess settling over their feet"
+    ElseIf asArea == "hands"
+        Return "the mess settling over their hands"
+    ElseIf asArea == "mouth"
+        Return "the finish settling in their mouth"
+    ElseIf asArea == "rectum"
+        Return "the finish landing deep in their rear"
+    ElseIf asArea == "thighs"
+        Return "the mess settling across their thighs"
+    ElseIf asArea == "throat"
+        Return "the finish settling down their throat"
+    ElseIf asArea == "vagina"
+        Return "the finish landing deep inside them"
+    EndIf
+    Return ""
 EndFunction
 
 ; REV-65: shared outbound leg for both OCum events (was inline in the rev-63 handler).
@@ -84,25 +122,42 @@ EndFunction
 ; givers and multi-fire; one narrator cue per 15s. Cooldown behavior is IDENTICAL to
 ; rev-63 (same key, same window, same write point) -- only the call shape changed.
 ; REV-96: MOVED VERBATIM from the motherboard's _FireCumCue.
-Function _FireCumCue(SkyrimNet_BakaIntegration akHost, Actor orgasmer, Actor target) Global
+; REV-112: asArea param added (location-variant wording; "" = fallback). The
+; v1 dedupe/cooldown is UNTOUCHED; unknown areas and the no-target legs keep
+; the v1 wording verbatim.
+Function _FireCumCue(SkyrimNet_BakaIntegration akHost, Actor orgasmer, Actor target, String asArea = "") Global
     Float nowRT = Utility.GetCurrentRealTime()
     If nowRT - StorageUtil.GetFloatValue(None, "SNBaka.LastCumCueRT", -999.0) < 15.0
         akHost._Log("[SNBaka] _FireCumCue: cue suppressed (shared 15s cum-cue cooldown)")
         Return
     EndIf
     StorageUtil.SetFloatValue(None, "SNBaka.LastCumCueRT", nowRT)
+    String locPhrase = _LocationPhrase(asArea)
+    If locPhrase
+        akHost._Log("[SNBaka] _FireCumCue: location variant area=" + asArea)
+    EndIf
     String desc
     If akHost.iCumCueMode == 1
         ; per-source (OStim/OCum) wording -- DRAFT, §7 approval pending
         If target
-            desc = orgasmer.GetDisplayName() + " just came inside " + target.GetDisplayName() + "; OCum applies the result."
+            If locPhrase
+                ; REV-112 location variant -- DRAFT, §7 register 18, ruling pending
+                desc = orgasmer.GetDisplayName() + " just came; OCum applies the result to " + target.GetDisplayName() + ", " + locPhrase + "."
+            Else
+                desc = orgasmer.GetDisplayName() + " just came inside " + target.GetDisplayName() + "; OCum applies the result."
+            EndIf
         Else
             desc = orgasmer.GetDisplayName() + " just came inside an OStim scene; OCum applies the result."
         EndIf
     Else
         ; unified (framework-neutral) wording -- DRAFT, §7 approval pending
         If target
-            desc = orgasmer.GetDisplayName() + " just came, finishing all over " + target.GetDisplayName() + "."
+            If locPhrase
+                ; REV-112 location variant -- DRAFT, §7 register 18, ruling pending
+                desc = orgasmer.GetDisplayName() + " just came, finishing all over " + target.GetDisplayName() + ", " + locPhrase + "."
+            Else
+                desc = orgasmer.GetDisplayName() + " just came, finishing all over " + target.GetDisplayName() + "."
+            EndIf
         Else
             desc = orgasmer.GetDisplayName() + " just came, finishing all over their partner."
         EndIf

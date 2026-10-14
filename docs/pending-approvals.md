@@ -423,3 +423,49 @@ rulings still pending). Entry 15 unchanged. Register holds TWO open entries
 ---
 
 *REV-111 refresh (2026-10-14): entry 15 rider appended (15a arousal-line wording now rides the public-staging README pre-push review). Entries 15 + 16 unchanged otherwise; still open. Register holds TWO open entries (15, 16). Fork copy lockstep.*
+
+---
+
+## Entry 18 — REV-112 cum-v2 location-variant cue wordings (bulk; one entry)
+
+**Feature:** INDEX row 9 (`cum-effects`, v2 item 2) — **Rev:** REV-112 —
+**Status:** OPEN (bulk ruling requested; drafts staged in dist [REV-112];
+INSTALLATION REMAINS THE USER'S — nothing shipped to install unapproved).
+
+**18. Location-variant cue wording drafts (§7; one bulk entry; the
+planner's own face/hands examples cited as the set's inspiration).**
+`SNBaka_CumDetectionModule.psc` `_LocationPhrase(asArea)` — one phrase per
+OCum `Area` literal (OCumMaleScript ApplyCum dispatch, 11 literals). Each
+phrase appends to the mode-specific base sentence as
+`", <phrase>."` — quoted verbatim, in the stated order:
+
+1. belly — "the mess settling across their belly"
+2. butt — "the mess settling across their backside"
+3. chest — "the mess settling across their chest"
+4. face — "the mess settling across their face"
+5. feet — "the mess settling over their feet"
+6. hands — "the mess settling over their hands"
+7. mouth — "the finish settling in their mouth"
+8. rectum — "the finish landing deep in their rear"
+9. thighs — "the mess settling across their thighs"
+10. throat — "the finish settling down their throat"
+11. vagina — "the finish landing deep inside them"
+
+Composed examples (full sentence shapes, for context):
+- unified mode, target present, Area=face: "A just came, finishing all
+  over B, the mess settling across their face."
+- per-source mode, target present, Area=mouth: "A just came; OCum applies
+  the result to B, the finish settling in their mouth."
+
+**Honest limit stated in the set (ruling context):** the SL StageEnd proxy
+has no Area signal — it fires location-agnostic until the v2 state layer
+exists. Fallback behavior (unknown/empty Area, or target None) = the v1
+wordings verbatim (already register-prior-class, carried). Ruling
+requested: approve / edit any phrase / drop locations from the set.
+
+---
+
+*REV-112 refresh (2026-10-14): entry 18 ADDED (OPEN — the 11 location
+phrases + 2 composed-sentence shapes, bulk). Entries 15 + 16 unchanged,
+still open. Register holds THREE open entries (15, 16, 18). Fork copy
+lockstep.*
