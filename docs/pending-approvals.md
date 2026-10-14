@@ -196,7 +196,16 @@ Dogfood-gated per the REV-98b entry-11 precedent (user-delegated wording).
 Also pending user confirm at the same gate: the GS pack id `regalrascal.gs-poses`
 (proposed per the DevKit author.slug rule; the only rule-compliant shape).
 
-## 14. FOMOD v2 wizard tooltips — §7 ruling + MO2 wizard test gate (REV-108, 2026-10-13; OPEN)
+## 14. FOMOD v2 wizard tooltips — §7 ruling + MO2 wizard test gate (REV-108, 2026-10-13; tooltip wording CLOSED at REV-108b — wizard test carried to entry 15b)
+
+**REV-108b status amendment (2026-10-13):** the §7 tooltip-wording gate is
+CLOSED — tooltips APPROVED-AS-FIRST-DRAFT per user ruling (user-editable
+baseline, no longer pending). The anchor tooltip was additionally amended at
+REV-108b as the factual-corruption minimum ("You cannot deselect this." —
+the framework rides requiredInstallFiles regardless of the anchor checkbox).
+The "Arousal Framework Check" plugin named in this entry's scope was REMOVED
+at REV-108b per the C4-supersession ruling (entry 15a). The MO2 wizard-test
+half of this entry carries into entry 15b (now against dist [REV-108b]).
 
 **Feature:** INDEX row 16 (`unification-era`, FOMOD v2) — **Rev:** REV-108 —
 **Status:** OPEN (the tooltips shipped as drafts in `fomod/ModuleConfig.xml`
@@ -220,6 +229,27 @@ GSAnim_Menu index+poses files; (b) full install for the 11-page MCM parity;
 (c) the Arousal Framework Check plugin observation (Reborn-only users see
 the grey-out per the disclosed limit).
 
+## 15. README arousal-framework line (C4 supersession surface) + REV-108b wizard-render test (REV-108b, 2026-10-13; OPEN)
+
+**Feature:** INDEX row 16 (`unification-era`, FOMOD v2 hotfix REV-108b) —
+**Rev:** REV-108b — **Status:** OPEN (two user gates).
+
+**15a. README arousal line:** the "Arousal Framework Check" install-time
+plugin is REMOVED per the user ruling (C4 supersession) — the implemented
+surface of record is now the README `### Soft (strongly recommended)` line
+(pick ONE framework: OSL Aroused Reborn or SL Aroused NG; runtime chain
+Reborn -> SL Aroused -> neutral) + the runtime chain itself. The line SHIPPED
+as a draft (README.md, after the SeverActions entry); wording ruling pending
+— user edits the draft.
+
+**15b. Wizard-render test (checklist v10 rider 10a):** on dist [REV-108b] —
+deselect one module (GS Poses): the checkbox must be CLICKABLE and the choice
+must STICK (the [REV-108] bug: SelectAll locked every toggle), and the GS
+files must be ABSENT post-install (no SkyrimNet_AnimationsGS esp /
+SNAnimGS_UI.dll / regalrascal.gs-poses pack / GSAnim_Menu index+poses);
+then a full install for the 11-page MCM parity. MO2's wizard cannot be
+headless-simulated.
+
 ---
 
 *Register refreshed at REV-108 (2026-10-13): entry 14 ADDED (OPEN — §7
@@ -240,3 +270,10 @@ EMPTY of open entries. Fork copy lockstep.*
 *REV-104 refresh (2026-10-12): entry 13 ADDED (OPEN — acheron manifest description +
 tagline, dogfood-gated user-delegated wording; plus the gs-poses id confirm noted
 in-entry). Register holds ONE open entry. Fork copy lockstep.*
+
+---
+*REV-108b refresh (2026-10-13): entry 14 tooltip-wording gate CLOSED (tooltips
+APPROVED-AS-FIRST-DRAFT per user ruling; user-editable baseline; entry heading
+amended in place); entry 15 ADDED (OPEN — 15a README arousal-line wording draft,
+15b the [REV-108b] wizard-render test, carried from entry 14). Register holds ONE
+open entry (15). Fork copy lockstep.*

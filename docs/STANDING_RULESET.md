@@ -365,6 +365,7 @@ project's first authored esp (DeD_Framework.esp) at the zip root, but
 ModuleConfig.xml still carried the REV-68-authored three-esp install set; the
 user's reinstall installed 3 of 4 root esps (DeD_Framework absent from the
 installed folder; confirming trace: the REV-104 wizard-consumption evidence).
+ **Checklist v10 rider (REV-108b, 2026-10-13 - occurrence #1 of the locked-wizard class):** 10a. WIZARD-RENDER TEST - any build that touches fomod/ModuleConfig.xml REQUIRES, before the dist is called shippable, a user-run MO2 wizard test covering at minimum: (a) DESELECT one module option - the checkbox must be clickable and the choice must STICK (the [REV-108] bug: group type SelectAll locked every toggle; root cause corpus-proven - SelectAll co-occurs with Required-only plugins 10/10 across 33 local FOMODs, every deselectable module group is SelectAny, 437 precedents); (b) the deselected module files ABSENT from the installed tree after install. Corpus rules of record: SelectAny is the only attested deselectable group type; SelectAny+Required = 0 precedents (informational anchors are Recommended-typed). No headless substitute exists - MO2 must render the wizard. Rides on checklist entry 10; the numbered rule count stays 10.
 Proof-of-fix is the user's reinstall gate — MO2's wizard cannot be simulated
 faithfully headless. Rides §2/§5 + the v9 layer-load-truth precedent
 (ship-time truth checks moved from "present" to "covering"); the numbered
