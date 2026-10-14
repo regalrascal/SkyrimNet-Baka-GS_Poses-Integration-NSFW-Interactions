@@ -147,6 +147,10 @@ Enhanced NPC and player reaction to cum effects and overlays that are placed at 
     * Overwriting the severely overlapping triggers/features with an explicitly labelled toggle option  
     * Enabling a mechanism that forced the LLM to take turns with which overlapping trigger/prompt was exposed for every interaction
 
+— Project working notes —
+
+- 2026-10-13 REV-110: "Cum Effects" v2 SCOUT COMPLETE (report-only; this section's checklist tree untouched) — every planned feature mechanism-verified against the installed runtime (full receipts: GS PROJECT_STATE §120; v2 map of record: gs repo cum-effects.md REV-110 section). Key verdicts: location variants buildable via in-script wording dispatch on the OCum `Area` string (10-literal domain); no native recipient-priority exists (bystander-priority needs a two-trigger interplay or prompt-side fallback — user decision); bystander arousal tiering has an open witness-selection question (the trigger layer picks the perceiving NPC); the ambient timer rides OCum's own persistent state (spell duration default 5 min, swim-dispel) with our 10-min failsafe; SL-side persistent cum state requires OUR own state layer (SexLab has none); B2 CLOSED — the enemy-type cum-debuff mod is Fill Her Up Baka Edition (per-race cum-effect spell lists). Decisions (a)-(f) surfaced for the user, NOT decided.
+
 # Cumflation (Cum inflation integration)
 
 ## Description
