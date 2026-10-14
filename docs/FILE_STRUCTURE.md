@@ -273,3 +273,37 @@ ASCII-filesystem-safe; dated rename note added both copies)
   checklist tree (INDEX + feature docs) remains the single status authority —
   planner notes are convenience annotations. The planner stays git-untracked
   (unchanged). First applied same rev (PROJECT_STATE §93).
+
+
+---
+
+## 8. Public repo (the stake — REV-111, 2026-10-14)
+
+`D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\public-staging\`
+(inside the fork tree; fork-`.gitignore`d — a build artifact of the public
+repo, reproducible from the ship state + authored docs)
+- Role: the staged PUBLIC repo **Delectatio-et-Dominium** (GitHub, user's
+  account; repo name + MIT + fresh single-commit history + public-from-first-
+  push = user rulings of record, REV-111). Content: the [REV-109c] ship state
+  of record verbatim (269 files) + both dll-source trees' own files +
+  CommonLibSSE-NG pinned gitlink `f865d990f8d1495a5e9e7fc8a8d2b42c9af5619d` +
+  authored public docs (README.md, CHANGELOG.md, LICENSE, .gitignore,
+  .gitattributes) + `fomod/` cover jpg. 315 files staged, one commit
+  `896e4e8` ("v0.1.0 — initial public version (2026-10-14)"), annotated tag
+  `v0.1.0`, branch `main`, 316 index entries.
+- **Two-tree doctrine of record (REV-111):** the working fork (§2) stays
+  internal (dev tree); the new repo is the public product home; the old repo
+  `regalrascal/SkyrimNet-Baka-GS_Poses-Integration-NSFW-Interactions`
+  remains the lineage archive of record.
+- **Push = USER-gated** (public-gate discipline): Cline's surface ends at the
+  staged tree + the exact push commands. The user creates the repo, pushes
+  `main` + `v0.1.0`, attaches the [REV-109c] canonical dist zip (SHA256
+  428A6784894C8B7757C5BEDB8EFEF64AB58F52AB76AA6046DFD55D1C23689E55) +
+  `releases\RELEASE_NOTES_v0.1.0-draft.md` as the v0.1.0 release.
+- Post-manifest: `releases\manifests\manifest-rev111-public-stage.txt`
+  (315 files, post-scrub SHA256s). Scrub gate of record: PROJECT_STATE §121
+  (PII zero; pex headers patched; comment-class stripped; three surviving
+  classes reported user-gated).
+- **URL field (post-push):** PENDING — the user reports the repo URL, then
+  this § gets the live URL line and the staging path is superseded by
+  reference to the public home.

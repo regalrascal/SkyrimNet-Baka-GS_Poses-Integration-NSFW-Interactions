@@ -242,6 +242,14 @@ Reborn -> SL Aroused -> neutral) + the runtime chain itself. The line SHIPPED
 as a draft (README.md, after the SeverActions entry); wording ruling pending
 — user edits the draft.
 
+**REV-111 rider (2026-10-14):** the README arousal line now RIDES the
+public-staging README — the [REV-111] stake copied the shipped README as the
+public repo's README base and the draft line ships there in the Soft
+requirements section, flagged user-reviewable at the pre-push §7 review
+(README + CHANGELOG + LICENSE reviewed together; receipts PROJECT_STATE
+§121 4). This register entry remains the OPEN wording gate; the public
+review is the same ruling event.
+
 **15b. Wizard-render test (checklist v10 rider 10a):** on dist [REV-108b] —
 deselect one module (GS Poses): the checkbox must be CLICKABLE and the choice
 must STICK (the [REV-108] bug: SelectAll locked every toggle), and the GS
@@ -411,3 +419,7 @@ stacked body's section-header labels; still user-authored). 17c unchanged.
 Entry 16 rider appended (the reword-set homes are the stacked sections;
 rulings still pending). Entry 15 unchanged. Register holds TWO open entries
 (15, 16). Fork copy lockstep.*
+
+---
+
+*REV-111 refresh (2026-10-14): entry 15 rider appended (15a arousal-line wording now rides the public-staging README pre-push review). Entries 15 + 16 unchanged otherwise; still open. Register holds TWO open entries (15, 16). Fork copy lockstep.*

@@ -49,3 +49,6 @@ desktop.ini
 
 # --- [CASE-redress] case-isolated records: quarantined, never tracked/pushed (user's ruling only to promote) ---
 case-redress/
+
+# --- REV-111: staged public-repo tree (build artifact; reproducible; never tracked) ---
+public-staging/
