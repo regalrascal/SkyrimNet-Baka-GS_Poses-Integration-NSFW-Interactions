@@ -27,6 +27,11 @@
 		<folder source="Scripts" destination="Scripts"/>
 		<file source="SKSE/Plugins/SNBaka_Offsets.ini" destination="SKSE/Plugins/SNBaka_Offsets.ini"/>
 		<file source="SKSE/Plugins/SkyrimNet_BakaIntegration.dll" destination="SKSE/Plugins/SkyrimNet_BakaIntegration.dll"/>
+		<!-- REV-113b (2026-10-15): the framework service DLL joins the required set (central
+		     state store + cosave serialization + single tick scheduler + event pump; the
+		     cum-v2 backing store). Its companion psc/pex ride the Scripts folder below (the
+		     script core ships in full). -->
+		<file source="SKSE/Plugins/DeDService.dll" destination="SKSE/Plugins/DeDService.dll"/>
 		<folder source="SKSE/Plugins/SkyrimNet/external/regalrascal.baka-gs-integration" destination="SKSE/Plugins/SkyrimNet/external/regalrascal.baka-gs-integration"/>
 		<folder source="Sound" destination="Sound"/>
 		<folder source="Interface" destination="Interface"/>

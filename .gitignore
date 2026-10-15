@@ -15,6 +15,7 @@ Scripts/Source/*.psc
 !Scripts/Source/SNBakaUI.psc
 !Scripts/Source/SNBaka_SlaveTatsModule.psc
 !Scripts/Source/SNAnimGSUI.psc
+!Scripts/Source/DeDService.psc
 
 # ───────────── Third-party compile stubs ─────────────
 # These are framework API stubs for local compilation (SexLab, OStim, MfgConsole, Acheron,

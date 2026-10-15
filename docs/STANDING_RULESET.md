@@ -371,3 +371,21 @@ faithfully headless. Rides §2/§5 + the v9 layer-load-truth precedent
 (ship-time truth checks moved from "present" to "covering"); the numbered
 rule count stays 10.
 
+**REV-114 rider (2026-10-15 — occurrence #1 of the false-positive-gap class;
+strike to reject):** a stop condition's tripping gaps must be EVIDENCE-CITED,
+not design-inferred — every claimed gap carries a receipt line (tool output,
+file read, or search hit) proving the absence is REAL before it trips a gate.
+Grounds: the REV-113 §123.5 stop condition's psc-flow trip lines were FALSE on
+inspection — (1) "psc stub unpacked" (the psc never needed unpacking: the
+canonical island builds it from `dll-source-ded\papyrus\`); (2)
+"build_plugin-ded.bat DLL-only" (by design — the psc flow of record is the GS
+compile island, `compile_baka.bat`, not the DLL bat); (3) "no Scripts/Source
+copy" (a .gitignore gate pending its negation, not an absence). The stop was
+directionally right — the REAL gaps (untracked source, uncommitted residue,
+no dist/journal, ModuleConfig unset) all held — but misread design intent as
+absence cost a remediation lap and polluted the stop's evidence class. Rides
+§3 (compile integrity) + §7 (evidence before intervention: ABSENCE claims
+carry the same proof burden as presence claims — they gate the same gates);
+the numbered rule count stays 10. Receipts: PROJECT_STATE §123.1 (audit) +
+§124 (remediation).
+

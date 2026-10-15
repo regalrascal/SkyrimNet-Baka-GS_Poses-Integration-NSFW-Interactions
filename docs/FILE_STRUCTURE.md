@@ -86,6 +86,20 @@ remotes, and branch verified intact at the new path)
     not a stamped dist) + `SkyrimNet_BakaIntegration-v1.4.1` (the standing
     pdb-reference path registered above — non-rev reference tree, kept).
     `-LiteralPath` throughout (bracket-name rule above).
+- **REV-114 — the framework service DLL joins the fork tree (first light):**
+  `dll-source-ded\` is the DeDService.dll source home (18 tracked source
+  files: `src/*`, `papyrus/DeDService.psc`, `overlay/`, CMake+vcpkg configs,
+  `build_plugin-ded.bat`; `build/` auto-ignored via the `build/` rule). Built
+  artifacts tracked at `SKSE\Plugins\DeDService.dll` (SHA256
+  `BC8B92E8658447A7B160C41762D2B2FE7931C6DE978980D390DDAB29448B0EB7`,
+  662,016 B) with companions `Scripts\Source\DeDService.psc`
+  (negation-tracked, byte-identical to `dll-source-ded\papyrus\`) and
+  `Scripts\DeDService.pex` (island-built, 1,886 B, SHA256
+  `A070C5C74288CA0FA20561AACEDD139441C90025855137C513FEEA643664379A`). The
+  DLL bat is now self-contained for rebuilds (its own psc compile step,
+  vanilla imports only); the psc FLOW OF RECORD stays the GS compile island
+  (`compile_baka.bat`, 13 targets — GS-side FILE_STRUCTURE §6). Receipts:
+  PROJECT_STATE §124.
 - **Build-warning (gates the next DLL build):** the rev-57 migration left stale
   CMake caches pointing at the old BKA path. Before the next clean build of either
   DLL, run from repo root: `git clean -xdf dll-source/build/ dll-source-gs/build/`.
