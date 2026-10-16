@@ -9027,6 +9027,11 @@ Function _RegisterModEvents()
     RegisterForModEvent("HookStageEnd",               "OnSLStageEnd")
     RegisterForModEvent("sr.inflater.start",          "OnFHUStartSignal")
     _Log("[SNBaka] _RegisterModEvents: REV-65 detection triggers armed (OCum x2 [5-arg + 6-arg npc_scene], SL HookStageEnd [2-arg], FHU start [0-arg])")
+    ; REV-116 instrumentation (report-only; PROJECT_STATE 125 open item): the
+    ; arm-time gate ECHO -- what the detection gates are RIGHT NOW, so MCM
+    ; user-values vs ModEvent-delivery becomes distinguishable from logs.
+    ; Log-only; zero behavior change.
+    _Log("[SNBaka] detection gates at arm (REV-116 instrument): bEnabled=" + bEnabled + " bCumDetectionEnabled=" + bCumDetectionEnabled + " bSLProxyEnabled=" + bSLProxyEnabled + " bFHUInflationEnabled=" + bFHUInflationEnabled + " BakaSL.Installed=" + SkyrimNet_BakaSL.Installed())
 EndFunction
 
 ; ============================================================

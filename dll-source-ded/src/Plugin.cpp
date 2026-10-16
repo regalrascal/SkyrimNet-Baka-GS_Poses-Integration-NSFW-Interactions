@@ -59,6 +59,12 @@ static void OnSaveCallback(SKSE::SerializationInterface* a_intfc)
                                   DeD::ServiceState::kSchemaVersion,
                                   buf.data(), static_cast<std::uint32_t>(buf.size()))) {
             SKSE::log::error("[DeDService] STTE save failed.");
+        } else {
+            // REV-116: positive save receipt (spec §0.3 adoption -- receipt
+            // logging on cosave ops; REV-115 shipped failures-only and the
+            // dogfood had no way to see success from logs alone).
+            SKSE::log::info("[DeDService] STTE record written ({} B, schema v{}).",
+                            buf.size(), DeD::ServiceState::kSchemaVersion);
         }
     }
     {
@@ -68,6 +74,10 @@ static void OnSaveCallback(SKSE::SerializationInterface* a_intfc)
                                   DeD::Scheduler::kSchemaVersion,
                                   buf.data(), static_cast<std::uint32_t>(buf.size()))) {
             SKSE::log::error("[DeDService] TMRS save failed.");
+        } else {
+            // REV-116: positive save receipt (spec §0.3 adoption).
+            SKSE::log::info("[DeDService] TMRS record written ({} B, schema v{}).",
+                            buf.size(), DeD::Scheduler::kSchemaVersion);
         }
     }
 }
@@ -75,6 +85,7 @@ static void OnSaveCallback(SKSE::SerializationInterface* a_intfc)
 static void OnLoadCallback(SKSE::SerializationInterface* a_intfc)
 {
     std::uint32_t type, version, length;
+    std::uint32_t loaded = 0, rejected = 0, malformed = 0, unknown = 0;
     while (a_intfc->GetNextRecordInfo(type, version, length)) {
         std::vector<std::uint8_t> data(length);
         if (length > 0 && a_intfc->ReadRecordData(data.data(), length) != length) {
@@ -84,19 +95,44 @@ static void OnLoadCallback(SKSE::SerializationInterface* a_intfc)
         if (type == DeD::ServiceState::kRecordType) {
             if (version != DeD::ServiceState::kSchemaVersion) {
                 SKSE::log::warn("[DeDService] STTE version {} unsupported -- rejected.", version);
+                ++rejected;
                 continue;
             }
-            if (!DeD::ServiceState::GetSingleton().Load(a_intfc, length, data.data()))
+            if (!DeD::ServiceState::GetSingleton().Load(a_intfc, length, data.data())) {
                 SKSE::log::warn("[DeDService] STTE malformed -- state reset.");
+                ++malformed;
+            } else {
+                // REV-116: positive load receipt (spec §0.3 adoption).
+                SKSE::log::info("[DeDService] STTE record read ({} B, schema v{}) -- loaded.",
+                                length, version);
+                ++loaded;
+            }
         } else if (type == DeD::Scheduler::kRecordType) {
             if (version != DeD::Scheduler::kSchemaVersion) {
                 SKSE::log::warn("[DeDService] TMRS version {} unsupported -- rejected.", version);
+                ++rejected;
                 continue;
             }
-            if (!DeD::Scheduler::GetSingleton().Load(length, data.data()))
+            if (!DeD::Scheduler::GetSingleton().Load(length, data.data())) {
                 SKSE::log::warn("[DeDService] TMRS malformed -- rules reset.");
+                ++malformed;
+            } else {
+                // REV-116: positive load receipt (spec §0.3 adoption).
+                SKSE::log::info("[DeDService] TMRS record read ({} B, schema v{}) -- loaded.",
+                                length, version);
+                ++loaded;
+            }
+        } else {
+            // Unknown tags: skipped silently (standard SKSE shape; spec 0.1.3).
+            ++unknown;
         }
-        // Unknown tags: skipped silently (standard SKSE shape; spec 0.1.3).
+    }
+    // REV-116: load summary receipt (spec §0.3) -- makes the with-DLL
+    // round-trip leg provable from DeDService.log alone, cross-checked by
+    // the independent .skse block-walk.
+    if (loaded + rejected + malformed + unknown > 0) {
+        SKSE::log::info("[DeDService] cosave load complete: {} loaded, {} rejected, {} malformed, {} unknown.",
+                        loaded, rejected, malformed, unknown);
     }
 }
 
@@ -113,6 +149,17 @@ SKSEPluginLoad(const SKSE::LoadInterface* skse) {
     SKSE::log::info("[DeDService] Plugin loaded.");
 
     auto* serialization = SKSE::GetSerializationInterface();
+    // REV-116: the serialization UID is a BUILD REQUIREMENT (service-dll.md §2
+    // constraint 5, amended this rev; the REV-115 dogfood gap of record).
+    // skse64's save-callback gate is `info->save && info->hadUID`
+    // (skse64 Serialization.cpp L372) -- without SetUniqueID the save
+    // callback is silently skipped and STTE/TMRS never reach the cosave.
+    // UID of record: 'DSED' (0x44455344), ruled REV-116 by OUR collision
+    // check (skse64's own check is warn-only): 0 hits in both byte orders
+    // against all 47 plugin UIDs in dogfood saves Save516/Save517 (receipt
+    // rev116-uidcheck.txt; re-run when the load order gains a serialization
+    // plugin).
+    serialization->SetUniqueID('DSED');
     serialization->SetSaveCallback(OnSaveCallback);
     serialization->SetLoadCallback(OnLoadCallback);
     serialization->SetRevertCallback(OnRevertCallback);

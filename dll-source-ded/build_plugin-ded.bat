@@ -50,10 +50,13 @@ REM psc-flow fix. The canonical island compile (GS tools/compile/compile_baka.ba
 REM the flow of record; this step makes the DLL bat self-contained (psc + pex travel with
 REM the DLL artifact). Vanilla imports suffice: DeDService.psc is a Hidden script declaring
 REM only global natives with vanilla Actor/Form params.
+REM REV-116 FIX: PapyrusCompiler resolves the TARGET script through the import path too
+REM (vanilla-only -i fails with "<unknown>(0,0): unable to locate script DeDService";
+REM proven by reproducing both variants this session). The psc's own dir joins -i.
 set CC=D:\Steam\steamapps\common\Skyrim Special Edition\Papyrus Compiler\PapyrusCompiler.exe
 set FLAGS=D:\Steam\steamapps\common\Skyrim Special Edition\Data\Source\Scripts\TESV_Papyrus_Flags.flg
 for %%A in ("D:\Steam\steamapps\common\Skyrim Special Edition\Data\Source\Scripts") do set VAN=%%~sA
-"%CC%" "%SRC%\papyrus\DeDService.psc" -i="%VAN%" -o="%BUILD%" -f="%FLAGS%"
+"%CC%" "%SRC%\papyrus\DeDService.psc" -i="%SRC%\papyrus;%VAN%" -o="%BUILD%" -f="%FLAGS%"
 if %ERRORLEVEL% neq 0 ( echo PSC COMPILE FAILED & exit /b 1 )
 
 echo BUILD SUCCEEDED

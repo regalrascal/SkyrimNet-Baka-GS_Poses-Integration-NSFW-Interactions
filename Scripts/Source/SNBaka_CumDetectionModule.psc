@@ -176,11 +176,32 @@ EndFunction
 ; PPLUS V2.18.1, SetupThreadEvent: PushInt(thread_id), PushBool(HasPlayer) -- 2 args).
 ; REV-96: MOVED BODY of the motherboard's OnSLStageEnd event.
 Function HandleSLStageEnd(SkyrimNet_BakaIntegration akHost, Int aiThreadID, Bool abHasPlayer) Global
-    If !akHost.bEnabled || !akHost.bCumDetectionEnabled || !akHost.bSLProxyEnabled || !SkyrimNet_BakaSL.Installed()
+    ; REV-116 instrumentation (report-only; PROJECT_STATE 125 open item):
+    ; entry receipt BEFORE the gate chain + a named per-gate trace, so
+    ; "HookStageEnd never delivered" is distinguishable from "delivered but
+    ; gated off" and from "gated off by WHICH gate". Log-only; zero behavior
+    ; change -- any behavior fix this evidence motivates is REPORTED, not
+    ; shipped (session STOP rule).
+    akHost._Log("[SNBaka] OnSLStageEnd: event RECEIVED thread=" + aiThreadID + " hasPlayer=" + abHasPlayer + " (REV-116 instrument)")
+    If !akHost.bEnabled
+        akHost._Log("[SNBaka] OnSLStageEnd: returned at gate -- bEnabled=false (REV-116 instrument)")
+        Return
+    EndIf
+    If !akHost.bCumDetectionEnabled
+        akHost._Log("[SNBaka] OnSLStageEnd: returned at gate -- bCumDetectionEnabled=false (REV-116 instrument)")
+        Return
+    EndIf
+    If !akHost.bSLProxyEnabled
+        akHost._Log("[SNBaka] OnSLStageEnd: returned at gate -- bSLProxyEnabled=false (REV-116 instrument)")
+        Return
+    EndIf
+    If !SkyrimNet_BakaSL.Installed()
+        akHost._Log("[SNBaka] OnSLStageEnd: returned at gate -- BakaSL.Installed()=false (REV-116 instrument)")
         Return
     EndIf
     Int threadID = aiThreadID
     If threadID < 0
+        akHost._Log("[SNBaka] OnSLStageEnd: returned -- threadID=" + threadID + " negative (REV-116 instrument)")
         Return
     EndIf
     Actor[] positions = SkyrimNet_BakaSL.SLThreadPositions(threadID)
