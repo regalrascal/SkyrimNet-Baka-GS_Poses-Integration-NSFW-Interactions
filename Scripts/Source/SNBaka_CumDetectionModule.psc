@@ -52,11 +52,18 @@ Bool Function Installed() Global
 EndFunction
 
 ; ---- REV-117: DeDService presence probe + cum.* state family ----
-; DLL presence via SKSE.GetPluginVersion (SKSE.psc global native, in the island
-; import set; returns 0 when the plugin is not loaded). Never cached: cheap, and a
-; mid-session DLL state change (impossible in practice) stays honest.
+; DLL presence via SKSE.GetPluginVersion (SKSE.psc global native: "get a plugins
+; version number, -1 if the plugin is not loaded"; in the island import set).
+; REV-120 D1 FIX: the probe string is the plugin's DECLARED name -- "DeDService"
+; (SKSEPluginDeclaration .Name, dll-source-ded __DeDServicePlugin.cpp L6), which
+; is the name SKSE itself registers and logs (skse64.log: `loading plugin
+; "DeDService"` / `plugin DeDService.dll (00000001 DeDService 01000000) loaded
+; correctly`). REV-118 shipped "DeDService.dll", which GetPluginVersion can never
+; resolve -> the state layer stayed inert both dogfood loads (§130 D1 receipts).
+; Never cached: cheap, and a mid-session DLL state change (impossible in
+; practice) stays honest. Returns -1 when absent; > 0 requires a real version.
 Bool Function DeD_ServicePresent() Global
-    Return SKSE.GetPluginVersion("DeDService.dll") > 0
+    Return SKSE.GetPluginVersion("DeDService") > 0
 EndFunction
 
 ; Registers the cum.* state family + the ambient timer rule (module "cum").
@@ -301,6 +308,17 @@ Function HandleSLStageEnd(SkyrimNet_BakaIntegration akHost, Int aiThreadID, Bool
     ; shared 15s cooldown and the direct listener's earlier write -- so the
     ; reconciliation pass runs to fill the state layer when the cue was
     ; suppressed, not to double-fire narration).
+    ; REV-120 D2 FIX: the reconciliation leg's SOURCE is the thread's actual
+    ; source actor, NOT the lead. REV-118 passed lead = positions[0] = the
+    ; female WEARER (Hroki) while the actual source (Hadrian, P+ payload-proven)
+    ; went unexamined -> every reconciled cue hit source-invalid (§130 D2
+    ; receipts, 5 across both loads). Resolution path: the P+ listener carries
+    ; the payload's source directly (it fires first and its state write precedes
+    ; this pass); this pass resolves the source from the thread itself per the
+    ; interim actor-model rule -- the first male position (_SexOf==0), else None
+    ; (honest skip inside _FireCumCue: the state write above stands, the cue is
+    ; simply not misattributed to the wearer).
+    Actor srcActor = _ResolveThreadSource(positions)
     Int p = 0
     While p < positions.Length
         Actor pos = positions[p]
@@ -309,25 +327,32 @@ Function HandleSLStageEnd(SkyrimNet_BakaIntegration akHost, Int aiThreadID, Bool
             If kloc
                 _WriteCumState(pos, kloc, "sexlab_vanilla")
                 ; cue: location-variant via the shared fire path (15s cooldown applies)
-                _FireCumCue(akHost, lead, pos, kloc)
+                _FireCumCue(akHost, srcActor, pos, kloc)
                 akHost._Log("[SNBaka] OnSLStageEnd: thread=" + threadID + " position=" + pos.GetDisplayName() + " keyword-reconciled location=" + kloc + " (proxy wording skipped)")
                 Return
             EndIf
         EndIf
         p += 1
     EndWhile
-    ; Shared 15s cum-cue cooldown (see _FireCumCue).
-    Float nowRT = Utility.GetCurrentRealTime()
-    If nowRT - StorageUtil.GetFloatValue(None, "SNBaka.LastCumCueRT", -999.0) < 15.0
-        Return
-    EndIf
-    StorageUtil.SetFloatValue(None, "SNBaka.LastCumCueRT", nowRT)
+    ; REV-120 D3 FIX: the cooldown stamp is FIRE-ONLY on this path too. REV-118
+    ; stamped SNBaka.LastCumCueRT BEFORE the source check, so keywordless
+    ; mid-scene stage-ends ate the shared 15s window and both legitimate P+
+    ; cues died on "cue suppressed" (§130 D3 receipts). Order is now:
+    ; source-validation -> cooldown gate -> stamp -> fire. Suppressed/skipped
+    ; stage-end passes never touch the window. (Verified same-order in
+    ; _FireCumCue: both returns precede its stamp.)
     ; REV-118 source-validation (same interim actor-model rule as _FireCumCue):
     ; the proxy's lead actor is the source; female non-futa lead -> cue skipped.
     If !lead || SkyrimNet_BakaIntegration._SexOf(lead) != 0
         akHost._Log("[SNBaka] OnSLStageEnd: source-invalid (female non-futa), cue skipped (REV-118)")
         Return
     EndIf
+    ; Shared 15s cum-cue cooldown (see _FireCumCue).
+    Float nowRT = Utility.GetCurrentRealTime()
+    If nowRT - StorageUtil.GetFloatValue(None, "SNBaka.LastCumCueRT", -999.0) < 15.0
+        Return
+    EndIf
+    StorageUtil.SetFloatValue(None, "SNBaka.LastCumCueRT", nowRT)
     String desc
     If akHost.iCumCueMode == 1
         ; per-source (SexLab) wording -- DRAFT, §7 approval pending; proxy rule:
@@ -339,6 +364,24 @@ Function HandleSLStageEnd(SkyrimNet_BakaIntegration akHost, Int aiThreadID, Bool
     EndIf
     akHost._Log("[SNBaka] OnSLStageEnd: thread=" + threadID + " lead=" + lead.GetDisplayName() + " -> sdb_cum_applied (SL proxy)")
     SkyrimNetApi.RegisterEvent("sdb_cum_applied", desc, lead, None)
+EndFunction
+
+; REV-120 D2: source resolution for the keyword-reconciliation leg (caller
+; HandleSLStageEnd). Interim actor-model rule of record: the SOURCE is the
+; first male position in the thread (_SexOf==0, the motherboard L727 leveled-
+; safe ActorBase -> GetSex precedent). No male position -> None -> the cue is
+; skipped honestly inside _FireCumCue (the per-target state write above the
+; call still stands); the cue is never misattributed to the wearer/lead.
+Actor Function _ResolveThreadSource(Actor[] akPositions) Global
+    Int i = 0
+    While i < akPositions.Length
+        Actor a = akPositions[i]
+        If a && SkyrimNet_BakaIntegration._SexOf(a) == 0
+            Return a
+        EndIf
+        i += 1
+    EndWhile
+    Return None
 EndFunction
 
 ; ---- REV-117: SL-SIDE LOCATION SIGNALS (cum-v2 wiring, REV-114 v2-map rows) ----
