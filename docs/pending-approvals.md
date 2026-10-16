@@ -429,8 +429,15 @@ rulings still pending). Entry 15 unchanged. Register holds TWO open entries
 ## Entry 18 — REV-112 cum-v2 location-variant cue wordings (bulk; one entry)
 
 **Feature:** INDEX row 9 (`cum-effects`, v2 item 2) — **Rev:** REV-112 —
-**Status:** OPEN (bulk ruling requested; drafts staged in dist [REV-112];
-INSTALLATION REMAINS THE USER'S — nothing shipped to install unapproved).
+**Status:** CLOSED at REV-118 (2026-10-16) — **user-edited ruling of record.**
+Provenance: the user applied their edits DIRECTLY in the fork register copy
+(`docs/pending-approvals.md`, 2026-10-16 15:52); the drafts below are
+SUPERSEDED by the edited phrases (kept verbatim as the user left them).
+Applied at `SNBaka_CumDetectionModule.psc` `_LocationPhrase` REV-118;
+verified in built bytes (compile-out-rev118). The user's accompanying note
+(L467) became the REV-118 source-validation rule (see entry 19 rider).
+The register-lifecycle rule (ruled-EDITED text moves to the owning feature
+doc) is discharged at cum-effects.md REV-118.
 
 **18. Location-variant cue wording drafts (§7; one bulk entry; the
 planner's own face/hands examples cited as the set's inspiration).**
@@ -439,17 +446,18 @@ OCum `Area` literal (OCumMaleScript ApplyCum dispatch, 11 literals). Each
 phrase appends to the mode-specific base sentence as
 `", <phrase>."` — quoted verbatim, in the stated order:
 
-1. belly — "the mess settling across their belly"
-2. butt — "the mess settling across their backside"
-3. chest — "the mess settling across their chest"
-4. face — "the mess settling across their face"
-5. feet — "the mess settling over their feet"
-6. hands — "the mess settling over their hands"
-7. mouth — "the finish settling in their mouth"
-8. rectum — "the finish landing deep in their rear"
+**User edits applied directly to the phrases below
+1. belly — "the cum splatters across their belly in thick ropes"
+2. butt — "the cum pumps across their backside, basting them with thick globules"
+3. chest — "the cum pumps across their chest, trickling sluggishly down their breasts"
+4. face — "the cum sprays across their face in thick ropes"
+5. feet — "the cum gushes over their feet"
+6. hands — "the cum pumps out all over their hands"
+7. mouth — "their mouth floods with jets of hot cum"
+8. rectum — "load after load of cum pumps deep into their ass"
 9. thighs — "the mess settling across their thighs"
-10. throat — "the finish settling down their throat"
-11. vagina — "the finish landing deep inside them"
+10. throat — "gouts of hot cum pump deep into their throat"
+11. vagina — "hot, thick cum is pumped deep into their pussy"
 
 Composed examples (full sentence shapes, for context):
 - unified mode, target present, Area=face: "A just came, finishing all
@@ -463,9 +471,50 @@ exists. Fallback behavior (unknown/empty Area, or target None) = the v1
 wordings verbatim (already register-prior-class, carried). Ruling
 requested: approve / edit any phrase / drop locations from the set.
 
+**Please note that the above only makes sense for male or futa characters cumming with/in/on a partner character.
+
 ---
 
 *REV-112 refresh (2026-10-14): entry 18 ADDED (OPEN — the 11 location
 phrases + 2 composed-sentence shapes, bulk). Entries 15 + 16 unchanged,
 still open. Register holds THREE open entries (15, 16, 18). Fork copy
 lockstep.*
+
+---
+
+## Entry 19 — REV-117/118 ambient cue wording + source-validation rider
+
+**Feature:** INDEX row 9 (`cum-effects`, v2 ambient timer) — **Rev:**
+REV-117 wiring / REV-118 registration repair — **Status:** OPEN.
+
+**19. Ambient cue wording draft.** `SNBaka_CumDetectionModule.psc`
+`HandleCumAmbientDue` — the subjectless `sdb_cum_ambient` cue text
+(verbatim):
+
+> The lingering aftermath of their last encounter is impossible to ignore.
+
+**REGISTER-GAP REPAIR (honest record):** REV-117's PROJECT_STATE §128 and
+cum-effects.md item 7 claimed this draft was registered as "entry 19 (bulk)"
+— but no register refresh actually landed it at REV-117. This entry is the
+first real registration; the REV-117 claims are corrected by §129.
+**Ruling status:** user mid-session ruling 2026-10-16 — the wording stays
+DRAFT; the wiring ships and fires with the draft text in the staged dist
+only; nothing unapproved installs to the live modlist.
+
+**Entry 18 rider (source-validation):** the user's entry-18 note ("the above
+only makes sense for male or futa characters cumming with/in/on a partner")
+was implemented at REV-118 as the interim actor-model rule: cue sources must
+be male (`_SexOf==0`); female non-futa sources skip the cue (state still
+written); futa detection is flagged for the polish note (SexLab's `_sex==4`
+lives inside SL's internal gender model, not recoverable from ActorBase
+GetSex()). This is a behavior rule, not a wording — recorded here for
+provenance, ruled-of-record via the user's own note.
+
+---
+
+*REV-118 refresh (2026-10-16): entry 18 CLOSED (user-edited wording of
+record — edits applied verbatim from the user's own fork-register edits,
+2026-10-16 15:52; provenance in-entry). Entry 19 ADDED (OPEN — ambient
+draft + the register-gap repair; source-validation rider appended). Entries
+15 + 16 unchanged, still open. Register holds THREE open entries (15, 16,
+19). Fork copy lockstep.*

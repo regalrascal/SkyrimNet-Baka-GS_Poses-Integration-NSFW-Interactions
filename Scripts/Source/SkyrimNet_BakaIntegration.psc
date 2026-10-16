@@ -9026,7 +9026,13 @@ Function _RegisterModEvents()
     RegisterForModEvent("ocum_applied_cum_npc_scene", "OnOCumAppliedNPCScene")
     RegisterForModEvent("HookStageEnd",               "OnSLStageEnd")
     RegisterForModEvent("sr.inflater.start",          "OnFHUStartSignal")
-    _Log("[SNBaka] _RegisterModEvents: REV-65 detection triggers armed (OCum x2 [5-arg + 6-arg npc_scene], SL HookStageEnd [2-arg], FHU start [0-arg])")
+    ; REV-117 cum-v2: the P+ push-time location signal (SexLabApplyCumFX,
+    ; 3-push ModEvent: TargetRef, SourceRef, aiType) and the DLL's ambient
+    ; timer callback (4-slot service shape). Both idled harmlessly when absent
+    ; (vanilla SL never sends the former; the DLL absent = no timer emission).
+    RegisterForModEvent("SexLabApplyCumFX",           "OnSLApplyCumFX")
+    RegisterForModEvent("sdb_cum_ambient_due",        "OnCumAmbientDue")
+    _Log("[SNBaka] _RegisterModEvents: REV-65 detection triggers armed (OCum x2 [5-arg + 6-arg npc_scene], SL HookStageEnd [2-arg], FHU start [0-arg]) + REV-117 cum-v2 (P+ ApplyCumFX [3-arg], ambient due [4-slot])")
     ; REV-116 instrumentation (report-only; PROJECT_STATE 125 open item): the
     ; arm-time gate ECHO -- what the detection gates are RIGHT NOW, so MCM
     ; user-values vs ModEvent-delivery becomes distinguishable from logs.
@@ -9089,6 +9095,9 @@ Function _ArmModules()
     ; reason as the pose entry: the motherboard hosting this code IS the Baka half
     ; that writes those keys. Re-asserted every arm pass (Setup + heartbeat).
     _RegisterService("busy.baka-half", True)
+    ; REV-117 cum-v2: state-layer arm (DeDService cum.* family + ambient timer
+    ; rule). Self-gating (inert + logged when the DLL is absent); idempotent.
+    SNBaka_CumDetectionModule.ArmStateLayer(Self)
     _Log("[SNBaka] module-arm: arm pass complete")
 EndFunction
 
@@ -10164,6 +10173,18 @@ EndEvent
 Event OnSLStageEnd(Int aiThreadID, Bool abHasPlayer)
     ; REV-96 Task 2: body MOVED VERBATIM to SNBaka_CumDetectionModule.HandleSLStageEnd.
     SNBaka_CumDetectionModule.HandleSLStageEnd(Self, aiThreadID, abHasPlayer)
+EndEvent
+
+; REV-117 cum-v2: P+ push-time location signal. Sender's pushes (sslThreadModel
+; PPLUS V2.18.1 L2234-2238): PushForm(TargetRef), PushForm(SourceRef), PushInt(aiType).
+Event OnSLApplyCumFX(Form akTarget, Form akSource, Int aiType)
+    SNBaka_CumDetectionModule.HandleSLApplyCumFX(Self, akTarget, akSource, aiType)
+EndEvent
+
+; REV-117 cum-v2: DeDService ambient timer callback (4-slot service ModEvent
+; shape from EventPump.cpp: eventName, strArg, numArg, sender).
+Event OnCumAmbientDue(String eventName, String strArg, Float numArg, Form sender)
+    SNBaka_CumDetectionModule.HandleCumAmbientDue(Self, numArg, sender)
 EndEvent
 
 ; ---- FHU INFLATION AWARENESS (Task 3b: fallback poll design) ----
