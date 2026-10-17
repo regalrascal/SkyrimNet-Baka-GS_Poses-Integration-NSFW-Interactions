@@ -64,12 +64,25 @@ namespace DeD
 		if (a_callbackEvent.empty()) return false;
 		const std::string mk = RuleMapKey(a_moduleID, a_ruleID);
 		if (m_rules.count(mk) != 0) return false; // duplicate ruleID
+		// REV-124 (ambient-chain, second silent link): the Papyrus-side rule arms
+		// pass the predicate as the ALREADY-DOTTED family key ("cum.present"), but
+		// Tick_Impl reads moduleID + "." + predKey -- the pre-124 read queried the
+		// double-prefixed "cum.cum.present", which never matches a registration
+		// (Register builds dotted = moduleID + "." + key, ServiceState.cpp L141),
+		// so GetAnyTrue failed at its registration lookup and fire=false every
+		// tick -- the REV-123 dogfood's ambient silence (PROJECT_STATE 136).
+		// Canonical normalization HERE, at arm: strip the module prefix if the
+		// caller passed a dotted key, so Tick_Impl's moduleID + "." + predKey
+		// reconstructs the canonical dotted key on both caller shapes.
+		std::string predKey(a_predKey);
+		const std::string prefix = std::string(a_moduleID) + ".";
+		if (predKey.rfind(prefix, 0) == 0) predKey = predKey.substr(prefix.size());
 		TimerRule rule;
 		rule.moduleID = a_moduleID;
 		rule.ruleID = a_ruleID;
 		rule.cadenceSec = a_cadenceSec;
 		rule.predClass = static_cast<PredicateClass>(a_predClass);
-		rule.predKey = a_predKey;
+		rule.predKey = predKey; // normalized (see REV-124 note above)
 		rule.predOwnerFormID = a_predOwnerFormID;
 		rule.failsafeSec = a_failsafeSec;
 		rule.callbackEvent = a_callbackEvent;
