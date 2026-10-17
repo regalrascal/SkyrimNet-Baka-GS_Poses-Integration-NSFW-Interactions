@@ -47,6 +47,11 @@ remotes, and branch verified intact at the new path)
   - Contents are **MO2-installable full trees** (root = mod root: both esps,
     `Scripts\`, `SKSE\`, `PrismaUI\`, `Sound\`, `textures\`, `meta.ini`) plus loose
     stamped zip artifacts — not partial staging.
+    **REV-122b annotation (2026-10-17):** "full trees" is the standing default —
+    changed-set (partial) dist zips are a DEVIATION requiring an explicit user
+    ruling, recorded in the § (origin: REV-122's silent changed-set zip,
+    superseded by the full-tree [REV-122b] dist the same day; rider codified in
+    STANDING_RULESET §3 rider (c)).
   - **Stamped names** carry the revision gate, bracket-prefixed per rev-42 rider,
     e.g. `dist\[REV-56] SN-BakaGS-Unified reference build\`.
   - **Stamp convention OF RECORD (REV-82 ruling, 2026-10-04):** stamped folders

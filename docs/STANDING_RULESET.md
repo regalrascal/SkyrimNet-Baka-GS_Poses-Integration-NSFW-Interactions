@@ -43,6 +43,20 @@ against installed framework source on any framework-adjacent build. Compile
 bats are versioned per repo — **open item: both bats currently unversioned**
 (flagged; user's call).
 
+RIDERS: **(a) STUB-PARITY GATE** — stub_parity.ps1 runs FIRST and diff-checks
+every local stub signature against the INSTALLED runtimes; any mismatch fails
+the build (REV-79; motivating history: the JValue/JArray/SetOptionHighlightText
+drift class, secs.78/80). **(b) FAILURE PROPAGATION** (REV-122b, the false-13/13
+incident §133/§134): a compile gate that can lie silently is the project's most
+dangerous tool — every compile target must check BOTH the compiler exit code
+AND that the expected .pex landed in OUT (PapyrusCompiler can exit 0 on failed
+compiles); ANY target failure = loud banner + non-zero bat exit. A verification
+gate is only real once it has been caught failing correctly (poison test). **(c)
+FULL-TREE DISTS** — dists are FULL-TREE by default (dist_assemble.ps1, 272-class
+entry count, FOMOD, all layers); changed-set artifacts are a DEVIATION requiring
+an explicit user ruling, recorded in the §. Origin: REV-122's silent changed-set
+deviation, user-reinforced 2026-10-1X.
+
 ## 4. Validate-first
 
 `validate_custom_action` / `validate_prompt` per protocol. Smoke test with the
