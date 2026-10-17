@@ -564,3 +564,28 @@ conversations the same way — follow-up rev.
 shipped in [REV-125]). Entry 20 ADDED (OPEN — the name-free template rewrite,
 user-editable under the no-{{ originator }} constraint). Register holds THREE
 open entries (15, 16, 20). Fork copy lockstep.*
+
+---
+
+## Entry 20 rider — REV-126 (2026-10-17): the D8 re-adjudication and the binding constraint's status
+
+**The two-event re-read (PROJECT_STATE §138, receipts cited):** the 10-17 window
+held TWO application events (Hadrian's P+ fire, L5525; Hroki's own OCum fire,
+L5538) — but Hroki's was DECLINED by the REV-118 source gate BEFORE any
+RegisterEvent (L5542), so the "Hroki just came" renders in her conversation
+cannot be her own event. ONE registered cue, cross-rendered across
+conversations: **§137's conversation-binding finding CONFIRMED; entry 20's
+no-`{{ originator }}` constraint STANDS** (the two models were mutually
+exclusive; the event-count verdict picked binding). No revert — the name-free
+template is correct as shipped.
+
+**Event-level source enforcement (shipped same rev):** female non-futa
+sources own NOTHING from us (cue OR state OR ambient debt) — new
+`_EventSourceOwnsCum` guard runs before every `_WriteCumState`; sentinel
+`female-source event declined (SN-SL lane) (REV-126)`.
+
+**D9-family rider (updated, event-model lens):** the spank/slap/resist/
+overpower YAMLs carry the same undocumented vars AND the same question —
+per-fix method: enumerate the actual application receipts first, then read
+the renders against them (one event cross-rendered = binding; a second
+uncounted event = a missing-enforcement finding).

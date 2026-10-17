@@ -271,7 +271,15 @@ Function HandleOCumApplied(SkyrimNet_BakaIntegration akHost, Form akOrgasmer, Fo
     akHost._Log("[SNBaka] OnOCumApplied: orgasmer=" + orgasmer.GetDisplayName() + " target=" + (target as Form) + " amount=" + afAmountML + "ml area=" + asArea + " sceneID=" + asSceneID)
     ; REV-112: the Area string now reaches the fire path (location-variant
     ; dispatch, cum-effects v2 item 2 -- it was dropped here in v1).
-    ; REV-117: state write BEFORE the cue (survives the 15s cooldown suppress).
+    ; REV-126 EVENT-LEVEL SOURCE ENFORCEMENT (ownership ruling of record): the
+    ; OCum Orgasmer payload is PER-EVENT (OCumMaleScript.psc L689-695/L697-704,
+    ; PushForm(Orgasmer) first, one event per application), and a female
+    ; non-futa source does not own our cues OR our state -- her application is
+    ; SN-SexLab's lane entirely. Validated BEFORE the state write (REV-117's
+    ; write-before-cue order is superseded here: her event writes nothing).
+    If !_EventSourceOwnsCum(akHost, orgasmer)
+        Return
+    EndIf
     _WriteCumState(target, asArea, "ocum")
     _FireCumCue(akHost, orgasmer, target, asArea)
 EndFunction
@@ -290,7 +298,11 @@ Function HandleOCumAppliedNPCScene(SkyrimNet_BakaIntegration akHost, Form akOrga
     Actor target = akTarget as Actor
     akHost._Log("[SNBaka] OnOCumApplied [npc-scene]: orgasmer=" + orgasmer.GetDisplayName() + " target=" + (target as Form) + " thread=" + aiThreadID + " amount=" + afAmountML + "ml area=" + asArea + " sceneID=" + asSceneID)
     ; REV-112: Area reaches the fire path here too (location-variant dispatch).
-    ; REV-117: state write before the cue (same as the 5-arg handler).
+    ; REV-126: event-level source enforcement BEFORE the state write (same as
+    ; the 5-arg handler -- the 6-arg payload is likewise per-event Orgasmer).
+    If !_EventSourceOwnsCum(akHost, orgasmer)
+        Return
+    EndIf
     _WriteCumState(target, asArea, "ocum")
     _FireCumCue(akHost, orgasmer, target, asArea)
 EndFunction
@@ -333,6 +345,27 @@ String Function _LocationPhrase(String asArea) Global
     Return ""
 EndFunction
 
+; REV-126: shared event-level source enforcement (ownership ruling of record:
+; our lane = male/futa-source applications; SN-SexLab keeps female-source ones
+; entirely -- no cue, no state write, no ambient debt). Validated against the
+; EVENT'S OWN payload source (P+ SourceRef / OCum Orgasmer -- both per-event,
+; verified against the senders), not the thread's resolved male. Interim
+; actor-model rule unchanged from REV-118: male = _SexOf==0 (leveled-safe
+; ActorBase->GetSex, motherboard L727); the SL futa signal (_sex==4) stays
+; unrecoverable from a plain ActorBase here (futa honesty limit, REV-118).
+; Returns True (no log) on a valid source; False with the ownership sentinel
+; on a female non-futa source. None sources return False silently (the
+; reconciliation leg's honest-skip case -- handled by its own logging).
+Bool Function _EventSourceOwnsCum(SkyrimNet_BakaIntegration akHost, Actor akSource) Global
+    If akSource && SkyrimNet_BakaIntegration._SexOf(akSource) == 0
+        Return True
+    EndIf
+    If akSource
+        akHost._Log("[SNBaka] female-source event declined (SN-SL lane) (REV-126): source=" + akSource.GetDisplayName())
+    EndIf
+    Return False
+EndFunction
+
 ; REV-65: shared outbound leg for both OCum events (was inline in the rev-63 handler).
 ; Shared 15s cum-cue cooldown (with the SL proxy) -- HJ/FJ scenes loop over multiple
 ; givers and multi-fire; one narrator cue per 15s. Cooldown behavior is IDENTICAL to
@@ -350,11 +383,13 @@ Function _FireCumCue(SkyrimNet_BakaIntegration akHost, Actor orgasmer, Actor tar
     ; futa signal (_sex==4) lives inside SL's internal gender model and is not
     ; recoverable from a plain ActorBase GetSex() here; OCum/P+ female sources
     ; are skipped. Futa handling = polish note (cum-effects.md REV-118).
-    ; The cue is NOT fired as-worded on an invalid source; the state write has
-    ; ALREADY happened in the caller (the world happened even if the wording
-    ; does not fit).
+    ; REV-126: BACKSTOP ONLY -- every caller now validates the event's own
+    ; source BEFORE its state write (entry-point enforcement), so a decline
+    ; here means a path was missed (or the reconciliation leg's honest None).
+    ; The sentinel is the REV-126 ownership wording (state: declined events
+    ; write nothing upstream).
     If !orgasmer || SkyrimNet_BakaIntegration._SexOf(orgasmer) != 0
-        akHost._Log("[SNBaka] _FireCumCue: source-invalid (female non-futa), cue skipped (REV-118)")
+        akHost._Log("[SNBaka] _FireCumCue: female-source event declined (SN-SL lane) (REV-126 backstop)")
         Return
     EndIf
     Float nowRT = Utility.GetCurrentRealTime()
@@ -462,6 +497,11 @@ Function HandleSLStageEnd(SkyrimNet_BakaIntegration akHost, Int aiThreadID, Bool
     ; interim actor-model rule -- the first male position (_SexOf==0), else None
     ; (honest skip inside _FireCumCue: the state write above stands, the cue is
     ; simply not misattributed to the wearer).
+    ; REV-126 note: the per-target state write on this leg is legitimate under
+    ; the ownership ruling even when the resolved source is None -- SL's own
+    ; ApplyCumFX gating (sslActorAlias.psc L921-923, male/futa sources only)
+    ; means a Cum keyword present on a position PROVES a male/futa-source
+    ; application; the None case is a resolution miss, not a female-source event.
     Actor srcActor = _ResolveThreadSource(positions)
     Int p = 0
     While p < positions.Length
@@ -485,10 +525,11 @@ Function HandleSLStageEnd(SkyrimNet_BakaIntegration akHost, Int aiThreadID, Bool
     ; source-validation -> cooldown gate -> stamp -> fire. Suppressed/skipped
     ; stage-end passes never touch the window. (Verified same-order in
     ; _FireCumCue: both returns precede its stamp.)
-    ; REV-118 source-validation (same interim actor-model rule as _FireCumCue):
-    ; the proxy's lead actor is the source; female non-futa lead -> cue skipped.
+    ; REV-118 source-validation, REV-126 wording: the proxy's lead actor is the
+    ; resolved source; female non-futa lead -> declined (SN-SL lane -- no cue;
+    ; no state was written on this fallback path).
     If !lead || SkyrimNet_BakaIntegration._SexOf(lead) != 0
-        akHost._Log("[SNBaka] OnSLStageEnd: source-invalid (female non-futa), cue skipped (REV-118)")
+        akHost._Log("[SNBaka] OnSLStageEnd: female-source event declined (SN-SL lane) (REV-126)")
         Return
     EndIf
     ; Shared 15s cum-cue cooldown (see _FireCumCue).
@@ -570,6 +611,15 @@ Function HandleSLApplyCumFX(SkyrimNet_BakaIntegration akHost, Form akTarget, For
         loc = "mouth"
     EndIf
     akHost._Log("[SNBaka] OnSLApplyCumFX [P+]: source=" + source.GetDisplayName() + " target=" + target.GetDisplayName() + " aiType=" + aiType + " -> " + loc)
+    ; REV-126 EVENT-LEVEL SOURCE ENFORCEMENT: validate the EVENT'S OWN SourceRef
+    ; (the ModEvent payload, sslThreadModel.psc L2234-2238 -- not the thread's
+    ; resolved male). SL itself only fires ApplyCumFX for male/futa sources
+    ; (sslActorAlias.psc L921-923, _sex != 1 && _sex != 4), so this is
+    ; defense-in-depth against a stray/foreign delivery -- but a female-source
+    ; event is declined here too: cue AND state write (SN-SL lane).
+    If !_EventSourceOwnsCum(akHost, source)
+        Return
+    EndIf
     _WriteCumState(target, loc, "sexlab_pplus")
     _FireCumCue(akHost, source, target, loc)
 EndFunction
