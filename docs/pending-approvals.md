@@ -485,7 +485,9 @@ lockstep.*
 ## Entry 19 — REV-117/118 ambient cue wording + source-validation rider
 
 **Feature:** INDEX row 9 (`cum-effects`, v2 ambient timer) — **Rev:**
-REV-117 wiring / REV-118 registration repair — **Status:** OPEN.
+REV-117 wiring / REV-118 registration repair — **Status:** CLOSED at REV-125
+(2026-10-17) — **user-edited wording of record, shipped** (the user's own
+fork-register edit, 2026-10-17, applied verbatim to `HandleCumAmbientDue`).
 
 **19. Ambient cue wording draft.** `SNBaka_CumDetectionModule.psc`
 `HandleCumAmbientDue` — the subjectless `sdb_cum_ambient` cue text
@@ -518,3 +520,47 @@ record — edits applied verbatim from the user's own fork-register edits,
 draft + the register-gap repair; source-validation rider appended). Entries
 15 + 16 unchanged, still open. Register holds THREE open entries (15, 16,
 19). Fork copy lockstep.*
+
+---
+
+## Entry 20 — REV-125 sdb_cum_applied template rewrite (name-free; the D8 originator fix)
+
+**Feature:** INDEX row 9 (`cum-effects`) — **Rev:** REV-125 — **Status:**
+OPEN (wording surface; the fix itself is CLOSED — see provenance).
+
+**Provenance (binding constraint, not style):** the user ruled D8 BLOCKING
+(2026-10-1X: role-reversed cues make no semantic sense; wording edits ride
+BEHIND the fix). Investigation (PROJECT_STATE §137) proved `{{ originator }}`
+is NOT a documented template variable (WORKFLOW_TRIGGERS.md Phase 3.3 table)
+and resolves to the CONVERSATION'S OWN ACTOR — each nearby NPC's render says
+the NPC's own name "just came". Event actor args are not templateable at the
+4-arg RegisterEvent (§4832 ruling). The template therefore CANNOT name the
+originator; the only correct shape is name-free. **Constraint for any user
+edit: do not reintroduce `{{ originator }}` or `{{ target }}`.**
+
+**sdb_cum_applied.yaml response content (shipped REV-125, verbatim):**
+
+> Someone nearby just climaxed, finishing all over their partner. Generate the
+> immediate aftermath in one short beat -- a word, a sound, a look, or one
+> line from anyone involved or watching. Match their personality exactly.
+>
+> If this happened during an aggressive or non-consensual encounter, the
+> reaction should carry dominance, conquest, cruelty, or satisfaction.
+>
+> Do not invent which act or body part produced this, and do not name any
+> framework or source -- react only to what is observable in the scene.
+
+(Every line except the first is unchanged from the approved entry-4 wording;
+the first line alone was rewritten. Entry 19's ambient wording — the user's
+own edit — SHIPPED in the same build: `Notices that they are still covered in
+cum from a recent sexual encounter.`; entry 19 CLOSES as wording-of-record.)
+
+**D9-family rider (named, unfixed):** `sdb_spanked.yaml`, `sdb_slapped.yaml`,
+`baka_resist_success.yaml`, `baka_sexlab_trigger.yaml` use the same
+undocumented `{{ originator }}`/`{{ target }}` and misattribute in NPC
+conversations the same way — follow-up rev.
+
+*REV-125 refresh (2026-10-17): entry 19 CLOSED (user-edited wording of record,
+shipped in [REV-125]). Entry 20 ADDED (OPEN — the name-free template rewrite,
+user-editable under the no-{{ originator }} constraint). Register holds THREE
+open entries (15, 16, 20). Fork copy lockstep.*

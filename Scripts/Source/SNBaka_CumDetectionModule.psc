@@ -734,7 +734,7 @@ Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, F
     ; Ambient cue (unchanged REV-117 behavior): sender=None -> subjectless;
     ; the narrator applies it to whoever the moment fits.
     Actor narrTarget = akSender as Actor
-    String desc = "The lingering aftermath of their last encounter is impossible to ignore."    ; DRAFT, §7 approval pending
+    String desc = "Notices that they are still covered in cum from a recent sexual encounter."    ; REV-125: user-edited wording of record (register entry 19, edited 2026-10-17)
     akHost._Log("[SNBaka] sdb_cum_ambient_due: ambient cue fired (sender=" + akSender + "; maintenance pass done, src=" + src + ")")
     SkyrimNetApi.RegisterEvent("sdb_cum_ambient", desc, narrTarget, None)
 EndFunction
