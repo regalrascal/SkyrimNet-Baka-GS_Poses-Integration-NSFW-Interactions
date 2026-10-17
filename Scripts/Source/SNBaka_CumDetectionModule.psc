@@ -18,13 +18,67 @@ Scriptname SNBaka_CumDetectionModule
 ;                                                 or SL FX domain mouth/vagina/rectum)
 ;   cum.last_source      String, actor-keyed   -- "ocum" | "sexlab_pplus" | "sexlab_vanilla" | "sl_proxy"
 ;   cum.last_applied_rt  Float, actor-keyed    -- Utility.GetCurrentRealTime() at write
-; Ambient timer rule (module "cum", rule "ambient"): cadence 120s, predicate class 1
-; (STATE_BOOL_TRUE) on cum.present, failsafe 600s, callback "sdb_cum_ambient_due".
+; Ambient timer rule (module "cum", rule "ambient"): cadence 60s (REV-122: was 120s --
+; the first maintenance/expiry tick must land at 60s; maintenance recast, expiry
+; and the ambient cue all ride this ONE clock), predicate class 1 (STATE_BOOL_TRUE)
+; on cum.present, failsafe 600s, callback "sdb_cum_ambient_due".
 ; Timer events arrive as the standard 4-slot ModEvent shape (EventPump.cpp):
 ; (eventName, strArg, numArg, sender) -- numArg 1 = expired (failsafe), 0 = due tick.
 ; VERBATIM-NARRATION GUARDRAIL (REV-117, in every touched cue): event text is written
 ; for the LLM to narrate VERBATIM -- never summarize, never paraphrase, never fold
 ; into other narration; the event text IS the narration.
+;
+;
+; REV-122 CUM APPLIANCE AUTHORITY (matrix of record, cum-effects.md REV-122): WE
+; apply/maintain the cum visual for the state's duration. Tier routing:
+;   OCum present (OStim+OCum or SL+OCum) -> OCum DRIVE: call OCumMaleScript.
+;     ApplyCum(target, target, area, 1, 1.0, "", 0) -- the GENERIC entry; the
+;     location is a plain String ARGUMENT dispatched to per-area functions
+;     (OCumMaleScript.psc L304-345, [035.00002] tree; ThreadID=0 = the
+;     out-of-scene path). FINAL 0.b ANSWER: the visual is NOT spell-carried --
+;     OCumSpell -> OCumEffect is ONLY a cleanup timer (OnEffectFinish cleans
+;     out-of-scene, re-casts in-scene, OCumEffect.psc L7-13); the overlay itself
+;     is applied by CumOntoArea -> ReadyOverlay (OCumMaleScript.psc L510-536),
+;     so a bare Cast of their spell can NEVER produce a location-correct
+;     visual. The drive point is the SCRIPT call, not the spell form. Quest
+;     resolution: QUST EDIDs in OCum.esp -- "OCumQuest" carries OCumScript,
+;     "OCumMaleQuest" carries OCumMaleScript (esp byte-census 2026-10-17);
+;     Quest.GetQuest needs no hardcoded formIDs.
+;   SL only (SLACS)  -> SexLab's own combo-spell overlays stand (sslActorLibrary
+;     AddCum PPLUS L805 / ClearCum L834; persist-until-dispelled). When OCum is
+;     present we REPLACE them (ClearCum first -- replace-not-stack, the
+;     double-visual guard; also note SL AddCum re-called on an already-cummed
+;     actor ESCALATES the texture tier 1->2, so we never re-AddCum).
+;   neither         -> state-only (documented degradation).
+;   SL proxy (no location) -> never claims overlay application (proxy rule of
+;     record); state-only, no drive call.
+; MAINTENANCE: ambient ticks are sender-None FOREVER (Scheduler.cpp L124/L149 --
+; EventPump::Emit(rule.callbackEvent, nullptr, ...); rule/ambient ticks are not
+; actor-addressed), so the wearer is CACHED at application: DeDService type-4
+; "cum.wearer" state row (the native FormID slot) + a StorageUtil form pointer
+; (None-keyed; PapyrusUtil cosave-persisted, StorageUtil.psc L80/L115) for the
+; sender-None tick to find them. Lifetime N=10min (named constant, all expiry
+; sites read it). Expiry (tick clock) and the 600s failsafe BOTH clear the
+; visual AND the state (REV-117/120 shipped the failsafe as skip-only). Refresh:
+; OCum tier recasts OCumSpell on the wearer each maintenance tick -- their own
+; cleanup timer (MCM default 5min, OCumMCMScript L342) is SHORTER than our
+; lifetime, and the recast resets its duration so OnEffectFinish never cleans
+; before our expiry (their own in-scene re-cast pattern, OCumEffect.psc L12).
+; OCum re-entry is INTENDED: our SL-leg drive calls their ApplyCum, which
+; re-emits ocum_applied_cum (SendCumAppliedEvents, OCumMaleScript.psc L316) ->
+; our handler re-writes state source as "ocum" (the visual IS OCum's now --
+; correct tier for maintenance) and the cue double-fire is eaten by the shared
+; 15s window.
+; D5 STALE-STAMP CLAMP: SNBaka.LastCumCueRT is a GetCurrentRealTime float that
+; PERSISTS in the cosave, and GetCurrentRealTime resets each launch -- a stamp
+; from a longer-prior session reads as "future", so now - stamp < 15.0 locks
+; the shared cum-cue window until the NEW session's clock passes the OLD
+; session's stamp (up to hours). Same class as the rev-17 muse-stamp clamp
+; (SkyrimNet_AnimationsGS.psc L1021, read-time clamp precedent). REV-122 clamps
+; at every OnPlayerLoadGame (motherboard), BEFORE Setup() re-arms anything,
+; plus the same-class player-keyed deadline stamps (class sweep, see
+; ClampStaleRTStamps). NPC-keyed instances of the class cannot be enumerated
+; at load (StorageUtil has no key walk) -- documented degradation, polish note.
 ;
 ; State: NONE of its own. All toggles (bEnabled, bCumDetectionEnabled, bSLProxyEnabled,
 ; iCumCueMode) remain the MOTHERBOARD'S Auto properties (the MCM reads them as
@@ -49,6 +103,67 @@ Bool Function Installed() Global
     EndIf
     StorageUtil.SetIntValue(None, "SNBaka.OCumAbsent", 1)
     Return False
+EndFunction
+
+; ---- REV-122 D5: stale cosave real-time stamp clamp (load-time) ----
+; GetCurrentRealTime() resets each launch, but StorageUtil stamps persist in
+; the cosave -- a stamp written late in a LONGER prior session reads as
+; "future" here, and every `now - stamp < window` check locks until the new
+; session's clock passes the old stamp (up to hours). Same class as the rev-17
+; muse-stamp clamp (SkyrimNet_AnimationsGS.psc L108-116/L1021 -- the precedent
+; clamps at read; REV-122 clamps ONCE at load, BEFORE Setup() re-arms anything,
+; which covers every read in the session at a single site). Called from the
+; motherboard's OnPlayerLoadGame. CLASS SWEEP (fork Sources, 2026-10-17): the
+; None-keyed LastCumCueRT is clamped directly; the same-class PLAYER-keyed
+; deadline stamps (SNBaka.AutoGetUpDeadlineRT / SNBaka.DefeatGraceUntilRT /
+; SNBaka.LastCreatureAttemptRT / SNBaka.LastHitRT / SNAcheron.FreshDownRT /
+; SNAcheron.LastDefeatedRT) are clamped on PlayerRef. NPC-keyed instances of
+; the class exist (Acheron/Baka downed flows stamp akVictim/akA1/akA2) but
+; StorageUtil has no key walk -- they CANNOT be enumerated at load; their
+; stale reads self-heal as the new session's clock advances past the old
+; stamp, and the load-time latch resets already clear the owning flows.
+; Documented degradation; polish note in cum-effects.md REV-122.
+Function ClampStaleRTStamps(SkyrimNet_BakaIntegration akHost) Global
+    Float nowRT = Utility.GetCurrentRealTime()
+    Int clamped = 0
+    ; None-keyed shared cum-cue cooldown stamp (the two read sites: _FireCumCue
+    ; and HandleSLStageEnd).
+    Float stamp = StorageUtil.GetFloatValue(None, "SNBaka.LastCumCueRT", -999.0)
+    If stamp > nowRT
+        StorageUtil.SetFloatValue(None, "SNBaka.LastCumCueRT", 0.0)
+        clamped += 1
+        akHost._Log("[SNBaka] cum cue stamp clamped (stale cosave value): " + stamp + " > now=" + nowRT + " (REV-122 D5)")
+    EndIf
+    ; Player-keyed deadline stamps of the same class (sweep set; see header).
+    Actor player = Game.GetPlayer()
+    If player
+        Int i = 0
+        String[] sweep = New String[6]
+        sweep[0] = "SNBaka.AutoGetUpDeadlineRT"
+        sweep[1] = "SNBaka.DefeatGraceUntilRT"
+        sweep[2] = "SNBaka.LastCreatureAttemptRT"
+        sweep[3] = "SNBaka.LastHitRT"
+        sweep[4] = "SNAcheron.FreshDownRT"
+        sweep[5] = "SNAcheron.LastDefeatedRT"
+        While i < sweep.Length
+            Float pStamp = StorageUtil.GetFloatValue(player, sweep[i], -999.0)
+            If pStamp > nowRT
+                StorageUtil.SetFloatValue(player, sweep[i], 0.0)
+                clamped += 1
+                akHost._Log("[SNBaka] stale cosave stamp clamped (stale cosave value): key=" + sweep[i] + " " + pStamp + " > now=" + nowRT + " (REV-122 D5)")
+            EndIf
+            i += 1
+        EndWhile
+    EndIf
+    If clamped > 0
+        akHost._Log("[SNBaka] stale RT stamp clamp: " + clamped + " key(s) clamped at load (REV-122 D5)")
+    EndIf
+EndFunction
+
+; REV-122: cum visual/state lifetime, seconds (10 min, matrix of record).
+; Named constant -- every expiry site reads this one function.
+Float Function _CumLifetimeSec() Global
+    Return 600.0
 EndFunction
 
 ; ---- REV-117: DeDService presence probe + cum.* state family ----
@@ -79,15 +194,32 @@ Function ArmStateLayer(SkyrimNet_BakaIntegration akHost) Global
     DeDService.RegisterState("cum", "last_location", 2, True, "")
     DeDService.RegisterState("cum", "last_source", 2, True, "")
     DeDService.RegisterState("cum", "last_applied_rt", 1, True, "0.0")
-    ; ambient: cadence 120s, class-1 (STATE_BOOL_TRUE on cum.present),
+    ; REV-122: expiry clock + wearer cache. cum.expires_rt is the state
+    ; lifetime deadline (now + _CumLifetimeSec()); cum.wearer is type 4
+    ; (FormID slot, DeDService.psc L8) so the sender-None ambient tick can
+    ; address the wearer (Scheduler.cpp L124/L149 -- rule ticks are never
+    ; actor-addressed). The StorageUtil form pointer mirrors it for the
+    ; sender-None callback leg.
+    DeDService.RegisterState("cum", "expires_rt", 1, True, "0.0")
+    DeDService.RegisterState("cum", "wearer", 4, True, "")
+    ; ambient: cadence 60s (REV-122; was 120s -- first maintenance/expiry tick
+    ; lands at 60s), class-1 (STATE_BOOL_TRUE on cum.present),
     ; failsafe 600s, callback sdb_cum_ambient_due (4-slot ModEvent shape).
-    DeDService.AddTimerRule("cum", "ambient", 120.0, 1, None, "cum.present", 600.0, "sdb_cum_ambient_due")
-    akHost._Log("[SNBaka] cum-v2 state layer armed: cum.* registered + ambient rule (120s/class-1/600s failsafe)")
+    DeDService.AddTimerRule("cum", "ambient", 60.0, 1, None, "cum.present", 600.0, "sdb_cum_ambient_due")
+    akHost._Log("[SNBaka] cum-v2 state layer armed: cum.* registered + ambient rule (60s/class-1/600s failsafe; REV-122)")
 EndFunction
 
 ; Single write point for every cum application signal (OCum events, P+ listener,
 ; vanilla keyword reconciliation, SL proxy). asLocation "" = unknown -> state
 ; records the source but leaves last_location empty.
+; REV-122: also (re)arms the lifetime deadline and caches the wearer (type-4
+; state row + None-keyed StorageUtil form pointer) for the sender-None ambient
+; tick, and re-applies/maintains the visual per the tier matrix (_ApplyCumVisual)
+; EXCEPT when asSource == "ocum" -- the OCum legs ADOPT the visual their own
+; ApplyCum already applied (drive call only on SL legs; a second call would
+; re-stack their overlays). The ocum_applied_cum re-entry from our own drive
+; call re-lands here with source "ocum" -- that rewrite is the correct
+; maintenance tier, and the shared 15s cue window eats the cue double-fire.
 Function _WriteCumState(Actor akTarget, String asLocation, String asSource) Global
     If !akTarget || !DeD_ServicePresent()
         Return
@@ -96,6 +228,18 @@ Function _WriteCumState(Actor akTarget, String asLocation, String asSource) Glob
     DeDService.SetStateString(akTarget, "cum.last_location", asLocation)
     DeDService.SetStateString(akTarget, "cum.last_source", asSource)
     DeDService.SetStateFloat(akTarget, "cum.last_applied_rt", Utility.GetCurrentRealTime())
+    ; REV-122: expiry + wearer cache. Every application signal REFRESHES the
+    ; deadline (latest-write-wins, matching how OCum re-entries extend the
+    ; visual), and re-points the cache at the latest wearer.
+    Float expiresRT = Utility.GetCurrentRealTime() + _CumLifetimeSec()
+    DeDService.SetStateFloat(akTarget, "cum.expires_rt", expiresRT)
+    DeDService.SetStateFormID(akTarget, "cum.wearer", akTarget)
+    StorageUtil.SetFormValue(None, "SNBaka.CumWearer", akTarget)
+    ; REV-122: visual drive per tier matrix. "ocum" = their ApplyCum already
+    ; applied the overlay (adopt); every other source drives/replaces.
+    If asSource != "ocum"
+        _ApplyCumVisual(akTarget, asLocation)
+    EndIf
 EndFunction
 
 ; ---- CUM DETECTION (OCum / OStim side) ----
@@ -450,21 +594,147 @@ String Function _SLKeywordLocation(Actor akTarget) Global
     Return ""
 EndFunction
 
+; ---- REV-122: CUM APPLIANCE AUTHORITY (visual drive + maintenance) ----
+; Tier matrix of record (header + cum-effects.md REV-122). asLocation is our
+; FX-domain literal ("vagina"|"rectum"|"mouth"). No drive call when the
+; location is unknown or the source is the SL proxy (proxy never claims
+; overlay application) -- state-only, documented degradation.
+Function _ApplyCumVisual(Actor akTarget, String asLocation) Global
+    If !akTarget || !asLocation
+        Return    ; state-only degradation (no location -> no overlay claim)
+    EndIf
+    ; ---- Tier 1: OCum drive (preferred whenever OCum is installed) ----
+    If Installed()
+        OCumMaleScript male = _OCumMale()
+        SexLabFramework sl = None
+        If SkyrimNet_BakaSL.Installed()
+            sl = SkyrimNet_BakaSL._SL()
+        EndIf
+        ; Replace-not-stack: if SLACS overlays are already on the wearer (SL+
+        ; OCum stack case), drop them first -- OCum becomes the sole visual
+        ; authority. Note: we never RE-call SLACS AddCum as maintenance (it
+        ; ESCALATES the texture tier 1->2 on an already-cummed actor).
+        If sl && sl.ActorLib
+            sl.ActorLib.ClearCum(akTarget)
+        EndIf
+        If male
+            ; OCumMaleScript.psc L303-345 (GPL -- cited, not copied): the
+            ; generic entry; Area is a String argument dispatched to
+            ; per-area overlay application (CumOntoArea L523-536).
+            ; ThreadID=0 = the out-of-scene path (our case: we drive
+            ; post-scene). Re-emits ocum_applied_cum (L316) -> our own
+            ; handler re-writes state source as "ocum" (correct maintenance
+            ; tier) and the cue double-fire is eaten by the shared 15s window.
+            male.ApplyCum(akTarget, akTarget, asLocation, 1, 1.0, "", 0)
+            Return
+        EndIf
+        ; OCum installed but the male quest unresolvable: fall through to
+        ; SLACS (next tier) -- documented degradation.
+    EndIf
+    ; ---- Tier 2: SLACS (SL-only: SexLab's own combo-spell overlays) ----
+    If SkyrimNet_BakaSL.Installed()
+        SexLabFramework sl = SkyrimNet_BakaSL._SL()
+        If sl && sl.ActorLib
+            ; sslActorLibrary PPLUS L805/L834: AddCum(Actor, Vaginal, Oral,
+            ; Anal) -- bool flags per area, spells persist-until-dispelled.
+            sl.ActorLib.AddCum(akTarget, asLocation == "vagina", asLocation == "mouth", asLocation == "rectum")
+        EndIf
+        ; SL present but ActorLib unresolvable: state-only degradation.
+        Return
+    EndIf
+    ; ---- Tier 3: neither framework -> state-only (documented degradation) ----
+EndFunction
+
+; Tier removal: clears BOTH systems' visuals. Used by expiry and the 600s
+; failsafe (the failsafe must not orphan the visual past lifetime).
+Function _ClearCumVisual(Actor akTarget) Global
+    If !akTarget
+        Return
+    EndIf
+    If Installed()
+        OCumScript main = _OCumMain()
+        If main
+            main.CleanCumTexturesFromActor(akTarget)    ; OCumScript.psc (cited)
+        EndIf
+    EndIf
+    If SkyrimNet_BakaSL.Installed()
+        SexLabFramework sl = SkyrimNet_BakaSL._SL()
+        If sl && sl.ActorLib
+            sl.ActorLib.ClearCum(akTarget)
+        EndIf
+    EndIf
+EndFunction
+
+; Runtime quest resolvers -- QUST EDIDs byte-confirmed in OCum.esp; no
+; hardcoded formIDs (Quest.GetQuest is the EDID path).
+OCumScript Function _OCumMain() Global
+    Return Quest.GetQuest("OCumQuest") as OCumScript
+EndFunction
+
+OCumMaleScript Function _OCumMale() Global
+    Return Quest.GetQuest("OCumMaleQuest") as OCumMaleScript
+EndFunction
+
 ; Ambient timer handler: sdb_cum_ambient_due arrives as the standard 4-slot
 ; ModEvent shape (eventName, strArg, numArg, sender) -- numArg 1 = failsafe
 ; expired, 0 = due tick. Scheduler.cpp emits with sender=None (rule ticks are
-; not actor-addressed), so the ambient cue is deliberately subjectless -- the
-; narrator applies it to whoever the moment fits.
+; not actor-addressed, L124/L149), so the wearer is recovered from the
+; REV-122 cache (None-keyed StorageUtil form pointer, mirrored by the
+; DeDService type-4 "cum.wearer" row) and the ambient cue stays subjectless.
+; REV-122 REWRITE: the tick is now (in order) failsafe-clear -> expiry-clear
+; -> maintenance refresh -> ambient cue. The failsafe used to be skip-only
+; (REV-117/120) which orphaned the visual past lifetime.
 Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, Form akSender) Global
     If !akHost.bEnabled || !akHost.bCumDetectionEnabled || !DeD_ServicePresent()
         Return
     EndIf
+    Actor wearer = StorageUtil.GetFormValue(None, "SNBaka.CumWearer", None) as Actor
     If afNumArg >= 1.0
-        akHost._Log("[SNBaka] sdb_cum_ambient_due: failsafe-expired tick (numArg=" + afNumArg + ") -- skipped")
+        ; 600s failsafe: rule starved/misarmed past its window -- clear BOTH
+        ; the visual and the state (REV-122; was skip-only).
+        akHost._Log("[SNBaka] sdb_cum_ambient_due: failsafe-expired tick (numArg=" + afNumArg + ") -- clearing visual + state (REV-122)")
+        If wearer
+            _ClearCumVisual(wearer)
+            DeDService.ClearActorState(wearer, "cum")
+        EndIf
+        StorageUtil.UnsetFormValue(None, "SNBaka.CumWearer")
         Return
     EndIf
+    If !wearer
+        Return    ; nothing cached: no state to maintain (or pre-REV-122 state)
+    EndIf
+    ; Expiry: lifetime clock (cum.expires_rt, refreshed by every application
+    ; signal) -- clear BOTH systems' visuals + the state, drop the cache.
+    If Utility.GetCurrentRealTime() >= DeDService.GetStateFloat(wearer, "cum.expires_rt", 0.0)
+        akHost._Log("[SNBaka] sdb_cum_ambient_due: cum lifetime expired (wearer=" + wearer.GetDisplayName() + ") -- clearing visual + state (REV-122)")
+        _ClearCumVisual(wearer)
+        DeDService.ClearActorState(wearer, "cum")
+        StorageUtil.UnsetFormValue(None, "SNBaka.CumWearer")
+        Return
+    EndIf
+    ; Maintenance refresh: keep the visual authoritative for the remaining
+    ; lifetime. OCum tier: recast OCumSpell on the wearer -- their own cleanup
+    ; timer (MCM default 5min) is SHORTER than our 10-min lifetime; the recast
+    ; resets its duration so OnEffectFinish never cleans early (their own
+    ; in-scene re-cast pattern, OCumEffect.psc L12). SLACS tier: nothing to do
+    ; (persist-until-dispelled; re-calling AddCum would ESCALATE the texture
+    ; tier -- never done). State-only tier: nothing to do.
+    String src = DeDService.GetStateString(wearer, "cum.last_source", "")
+    If src == "ocum" && Installed()
+        OCumMaleScript male = _OCumMale()
+        If male && male.OCumSpell
+            male.OCumSpell.Cast(wearer)
+        Else
+            OCumScript main = _OCumMain()
+            If main && main.OCumSpell
+                main.OCumSpell.Cast(wearer)
+            EndIf
+        EndIf
+    EndIf
+    ; Ambient cue (unchanged REV-117 behavior): sender=None -> subjectless;
+    ; the narrator applies it to whoever the moment fits.
     Actor narrTarget = akSender as Actor
     String desc = "The lingering aftermath of their last encounter is impossible to ignore."    ; DRAFT, §7 approval pending
-    akHost._Log("[SNBaka] sdb_cum_ambient_due: ambient cue fired (sender=" + akSender + ")")
+    akHost._Log("[SNBaka] sdb_cum_ambient_due: ambient cue fired (sender=" + akSender + "; maintenance pass done, src=" + src + ")")
     SkyrimNetApi.RegisterEvent("sdb_cum_ambient", desc, narrTarget, None)
 EndFunction

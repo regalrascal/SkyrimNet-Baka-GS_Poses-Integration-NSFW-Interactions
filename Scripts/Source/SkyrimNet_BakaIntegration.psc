@@ -398,6 +398,12 @@ Event OnPlayerLoadGame()
     _bPlayerIsVictim      = False
     _bDruggedEscalation   = False
     _fLastNPCActionTime   = 0.0
+    ; REV-122 D5: clamp stale cosave GetCurrentRealTime stamps BEFORE Setup()
+    ; re-arms anything (a stamp from a longer-prior session reads as "future"
+    ; and locks every `now - stamp < window` check until the new session's
+    ; clock passes it -- up to hours). Same class as the rev-17 muse-stamp
+    ; clamp (SkyrimNet_AnimationsGS.psc L108-116). Sentinels on clamp.
+    SNBaka_CumDetectionModule.ClampStaleRTStamps(Self)
     ; Any in-progress animation is gone after a load — always safe to clear player locks.
     If PlayerRef
         StorageUtil.SetIntValue(PlayerRef, "SNBaka.Locked",        0)

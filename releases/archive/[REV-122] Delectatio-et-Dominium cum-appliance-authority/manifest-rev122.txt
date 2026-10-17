@@ -1,0 +1,6 @@
+# dist manifest - GENERATED at build time (never maintained); option (b) ruling 2026-10-08/09
+# format: SHA256<TAB>size<TAB>relpath  (+ "C" prefix on carried entries)
+# REV-122 [REV-122] cum-appliance-authority changed-set dist: 2 pex (module + motherboard) recompiled 13/13 0/0 via compile_baka.bat (parity gate passed)
+FE0ECDD20BEFAC3C1ED82E14D7EA3816EC830CFE5F37CA3BB514BCEF5B12E86F	267234	Scripts/SkyrimNet_BakaIntegration.pex
+5EA34C114F7FE9F4D24C6C513D39EB61A5FC022B72CD50E7CE5095D6704C3723	17080	Scripts/SNBaka_CumDetectionModule.pex
+BFD241EC439DCABD7395D52C80170FC088958C373674A1D0080D3E6AC6604D74	105180	Delectatio-et-Dominium-rev122-cum-appliance-authority.zip
