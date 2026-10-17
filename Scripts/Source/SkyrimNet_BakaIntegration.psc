@@ -398,12 +398,12 @@ Event OnPlayerLoadGame()
     _bPlayerIsVictim      = False
     _bDruggedEscalation   = False
     _fLastNPCActionTime   = 0.0
-    ; REV-122 D5: clamp stale cosave GetCurrentRealTime stamps BEFORE Setup()
-    ; re-arms anything (a stamp from a longer-prior session reads as "future"
-    ; and locks every `now - stamp < window` check until the new session's
-    ; clock passes it -- up to hours). Same class as the rev-17 muse-stamp
-    ; clamp (SkyrimNet_AnimationsGS.psc L108-116). Sentinels on clamp.
-    SNBaka_CumDetectionModule.ClampStaleRTStamps(Self)
+    ; REV-123: the D5 clamp call that lived HERE (OnPlayerLoadGame) is DEAD CODE on
+    ; this quest -- this script extends Quest and the quest's OnPlayerLoadGame never
+    ; fires (this repo's own receipts: L8992/L9229 comments; the 10-17 session proves
+    ; it -- no clamp sentinel at the 01:59:31 load while the stale cosave stamp
+    ; suppressed the 02:05:45 P+ cue). The clamp now runs from Setup() -- the proven
+    ; load path (OnInit + the MCM OnGameReload chain, "MCM canary reload" sentinel).
     ; Any in-progress animation is gone after a load — always safe to clear player locks.
     If PlayerRef
         StorageUtil.SetIntValue(PlayerRef, "SNBaka.Locked",        0)
@@ -415,6 +415,15 @@ Event OnPlayerLoadGame()
 EndEvent
 
 Function Setup()
+    ; REV-123: the D5 stale-cosave-stamp clamp moved HERE from the quest's
+    ; OnPlayerLoadGame (dead site -- a Quest script never receives that event;
+    ; see the REV-123 receipts: no clamp sentinel at the 10-17 01:59:31 load
+    ; while the stale LastCumCueRT stamp suppressed the 02:05:45 P+ cue).
+    ; Setup() is the PROVEN load path (OnInit + SkyrimNet_BakaIntegration_MCM's
+    ; OnGameReload on every single load -- see L418's own receipt comment), and
+    ; the clamp must run BEFORE anything arms so no arming path can consume a
+    ; stale stamp. Boot (new game) is a no-op pass: stamps are fresh.
+    SNBaka_CumDetectionModule.ClampStaleRTStamps(Self)
     ; Confirmed real bug from testing: THIS is the actual primary re-registration path (called from
     ; SkyrimNet_BakaIntegration_MCM's OnGameReload on every single load -- see that script's own comment;
     ; the OnUpdateGameTime heartbeat in this quest is only a secondary backup), yet it never refreshed

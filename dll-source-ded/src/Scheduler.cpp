@@ -132,10 +132,23 @@ namespace DeD
 			bool fire = true;
 			if (rule.predClass == PredicateClass::STATE_BOOL_TRUE ||
 				rule.predClass == PredicateClass::STATE_BOOL_CHANGED) {
-				StateValue v;
-				const bool present = state.Get(rule.moduleID + "." + rule.predKey,
-					rule.predOwnerFormID, v);
-				const bool isTrue = present && v.type == ValueType::Bool && v.b;
+				// REV-123: a rule armed with a None predicate owner (predOwnerFormID
+				// 0 -- the only shape a boot-time arm can express; the wearer is
+				// unknown at arm) reads the WILDCARD: TRUE when any owner's row is
+				// Bool TRUE. The pre-123 read was a plain owner-0 lookup, which can
+				// never see an actor-keyed write (stored under the actor's formID,
+				// ServiceState.cpp Set L195) -- the ambient rule never fired on the
+				// REV-122b dogfood for exactly this reason (first silent link,
+				// PROJECT_STATE 135).
+				bool isTrue = false;
+				if (rule.predOwnerFormID == 0) {
+					isTrue = state.GetAnyTrue(rule.moduleID + "." + rule.predKey);
+				} else {
+					StateValue v;
+					const bool present = state.Get(rule.moduleID + "." + rule.predKey,
+						rule.predOwnerFormID, v);
+					isTrue = present && v.type == ValueType::Bool && v.b;
+				}
 				if (rule.predClass == PredicateClass::STATE_BOOL_TRUE) {
 					fire = isTrue;
 				} else { // CHANGED: edge-triggered False->True

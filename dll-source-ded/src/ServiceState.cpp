@@ -211,6 +211,29 @@ namespace DeD
 		return true;
 	}
 
+	bool ServiceState::GetAnyTrue(const std::string& a_dotted) const
+	{
+		// REV-123 (ambient-chain diagnosis, first silent link): rule predicates
+		// armed with a None owner read owner-formID 0, but actor-keyed keys store
+		// their rows under the actor's formID -- a plain Get(dotted, 0) can never
+		// see the write and the rule never fires. This read is the fix's read
+		// shape: TRUE when any owner's row is a Bool TRUE (owner-0 row for
+		// non-actor-keyed keys).
+		std::lock_guard lock(m_mutex);
+		auto rit = m_registrations.find(a_dotted);
+		if (rit == m_registrations.end()) return false;
+		auto vit = m_values.find(a_dotted);
+		if (vit == m_values.end()) return false;
+		if (!rit->second.actorKeyed) {
+			auto oit = vit->second.find(0);
+			return oit != vit->second.end() && oit->second.type == ValueType::Bool && oit->second.b;
+		}
+		for (const auto& [owner, v] : vit->second) {
+			if (v.type == ValueType::Bool && v.b) return true;
+		}
+		return false;
+	}
+
 	bool ServiceState::HasState(const std::string& a_dotted, std::uint32_t a_ownerFormID) const
 	{
 		StateValue v;

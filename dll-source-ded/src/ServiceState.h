@@ -92,6 +92,12 @@ namespace DeD
 		const Registration* FindRegistration(const std::string& a_dotted) const;
 		bool Set(const std::string& a_dotted, std::uint32_t a_ownerFormID, const StateValue& a_value);
 		bool Get(const std::string& a_dotted, std::uint32_t a_ownerFormID, StateValue& a_out) const;
+		// REV-123: wildcard read for timer-rule predicates armed with a None owner
+		// (predOwnerFormID 0). For non-actor-keyed keys this is the plain owner-0
+		// row read; for actor-keyed keys it is TRUE when ANY owner's row is a
+		// Bool TRUE -- the only read shape a boot-time-armed rule can express
+		// against actor-keyed state (the wearer is unknown at arm time).
+		bool GetAnyTrue(const std::string& a_dotted) const;
 		bool HasState(const std::string& a_dotted, std::uint32_t a_ownerFormID) const;
 		bool ClearActorState(std::uint32_t a_actorFormID, const std::string& a_moduleID);
 		// Predicate-state clear at timer failsafe expiry (spec section 1.3).
