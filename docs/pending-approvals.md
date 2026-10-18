@@ -713,3 +713,47 @@ CLOSED (shipped in the [REV-127] wording re-cut). Entry 22 unchanged-OPEN
 (rides to draft-and-review). Register holds TWO open entries (15, 16).
 Fork copy lockstep.*
 
+
+---
+
+## Entry 20 rider — REV-128 (2026-10-18): the applied narration's NEW WORDING (user riding ruling 2) — supersedes entry 20's shipped guidance; entry 20 CLOSES on it
+
+**Riding ruling (user, 2026-10-18, this exchange):** the new narration wording below supersedes the shipped REV-127b `response.content` (quoted at entry 20 above); entry 20 closes on it. Quoted VERBATIM — the user's capitalization/bolding as authored:
+
+***User edited***
+```
+THE recent sexual encounter left one of its participants covered in cum.
+Nearby people start to notice and comment on it. They offer praise or
+admonishments to the cum soaked person as the situation, and their
+personality dictates. Use context. Do not make up the source or location
+of the cum.
+```
+
+**Surface + timing (per riding ruling 1, same exchange):** this text is the applied trigger's NARRATION surface (yaml `response.content`), and it DEFERS to SCENE-END +10s — the cue at climax is unchanged; the bystander-solicitation surface defers. Implementation spec (two mechanism options, Option A recommended: module-held second event `sdb_cum_aftermath` at scene-end+10s via a new HookAnimationEnd registration) lives in cum-effects.md REV-128 §2 and rides as register entry 23 (below) — the mechanism RULING is the user's. Ships with the next build after the joint review. **Status: entry 20 CLOSED on this wording** (supersession of record; the shipped REV-127b guidance remains the shipped bytes until the build session lands this set).
+
+---
+
+## Entry 22 amendment — REV-128 (2026-10-18): DRAFTED — the ambient's RESPONSE GUIDANCE SURFACE authored in the construction set; the user's pen pending
+
+Per this entry's own status note, the guidance-surface creation question rode to the decoration draft-and-review — it has now been drafted (cum-effects.md REV-128 §3). The draft would create `sdb_cum_ambient.yaml` (same two-surface control as the applied cue). **DRAFT `response.content` (NOT of record until the user rules/edits):**
+
+```
+A recent sexual encounter left one of the people here covered in cum.
+Someone nearby has noticed. Generate the noticer's remark or reaction --
+praise, admonishment, mockery, or fascination as the situation and their
+personality dictates -- directed at the cum soaked person. Use context.
+Do not make up the source or location of the cum.
+```
+
+**Riding with the draft (all quoted in cum-effects.md REV-128 §3, none assumed):** (a) the wearer-reference construction — the wearer-naming sentence `...directed at {{ get_ded_cum(actor_uuid).wearer_name }}, the cum soaked person...` (decorator-gated; the name-free fallback shape is the draft text above); (b) the three arousal-branch texts (hot/intrigued/taken-aback, tier-keyed to `get_ded_arousal(actor_uuid).tier`, conditionals gated on the build-session probe); (c) the freshness phrasing class (flagged, not forced). The ambient CUE TEXT stays unchanged (entry 19's wording of record, in-code). **Status: DRAFT-AND-REVIEW (the user's pen; the strategist's grammar pass rides jointly per the standing gate).**
+
+---
+
+## Entry 23 — REV-128 (2026-10-18): the SCENE-END+10s DEFERRAL MECHANISM — the ruling rides to the user with the construction set
+
+Riding ruling 1 (user, 2026-10-18): the applied trigger's narration defers to SCENE-END +10s; the cue at climax is unchanged. The implementation is NOT yet ruled — the construction set's spec (cum-effects.md REV-128 §2, cited there in full) puts two viable mechanisms to the user:
+
+- **Option A (RECOMMENDED) — module-held second event:** `sdb_cum_applied` keeps only its cue; a new `sdb_cum_aftermath` event fires at scene-end+10s (new `HookAnimationEnd` registration beside HookStageEnd; `RegisterForSingleUpdate(10.0)`; a new `sdb_cum_aftermath.yaml` carries the new narration wording, entry 20's rider above). Honest failsafe: no scene-end -> no aftermath narration (ambient at +60s still carries the surface).
+- **Option B — trigger-side delay field: ruled OUT on the documented schema** (WORKFLOW_TRIGGERS.md carries no delay/scheduling field; revivable only if the build session's DevKit read surfaces one).
+
+**Status: OPEN — the user rules the mechanism; the build session cuts from the ruled set (the probe first, then the constructions per its verdict).** Register after this session: open entries 15, 16, 22 (drafted), 23. Fork copy lockstep.
