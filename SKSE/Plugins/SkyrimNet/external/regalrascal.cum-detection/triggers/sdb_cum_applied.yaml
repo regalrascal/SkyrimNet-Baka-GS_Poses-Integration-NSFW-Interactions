@@ -7,15 +7,17 @@ eventCriteria:
 response:
   type: "direct_narration"
   content: |
-    Someone nearby just climaxed, finishing all over their partner. Generate the
-    immediate aftermath in one short beat -- a word, a sound, a look, or one
-    line from anyone involved or watching. Match their personality exactly.
+    Look for someone nearby who is noticeably covered in cum from a recent
+    sexual encounter. Generate a response from someone who notices --
+    a comment, praise, or admonishment about their appearance as the
+    situation dictates. Direct it towards the cum covered person.
+    Deliver the dialogue in-character with narration as needed.
 
-    If this happened during an aggressive or non-consensual encounter, the
-    reaction should carry dominance, conquest, cruelty, or satisfaction.
+    If the commenter is aggressive or cruel, the reaction should carry
+    dominance, scorn, cruelty, or satisfaction.
 
-    Do not invent which act or body part produced this, and do not name any
-    framework or source -- react only to what is observable in the scene.
+    Do not invent which act produced the cum or where the cum is
+    visible -- react only to what is observable in the scene based on existing context.
 
 audience: "nearby_npcs"
 

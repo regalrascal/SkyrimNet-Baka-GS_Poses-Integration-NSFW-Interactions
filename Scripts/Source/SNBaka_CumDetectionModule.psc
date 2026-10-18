@@ -329,31 +329,48 @@ EndFunction
 ; register copy, provenance: fork docs/pending-approvals.md L442-453,
 ; 2026-10-16 15:52).
 ; Returns "" for unknown/empty Area -> the caller falls back to the v1 wording.
+; REV-127b (2026-10-18, register entry 18 RE-RULING, user-edited this
+; exchange): the 11 literals now carry the RECEIVER's name ({{receiver}} =
+; target.GetDisplayName(); akTarget param added -- wording plumbing only);
+; the base sentence's "finishing all over {{receiver}}" class is REMOVED
+; (receiver naming deferred to the literals); the unified example is the
+; ONLY phrasing regardless of source framework (no OCum/SL mentions).
+; Discrepancy repairs of record: literal 1's register text carried a stale
+; "B" placeholder -- applied as {{receiver}} per the set's own convention;
+; literal 3's "(chest if male)" is a user ANNOTATION, implemented as a
+; receiver-sex wording selection (breasts/chest), not literal text.
 ; SL LEG LIMIT (stated): the StageEnd proxy has no Area signal and passes ""
 ; -- location-agnostic until the v2 state layer exists.
-String Function _LocationPhrase(String asArea) Global
+String Function _LocationPhrase(String asArea, Actor akTarget = None) Global
+    String t = ""
+    If akTarget
+        t = akTarget.GetDisplayName()
+    EndIf
     If asArea == "belly"
-        Return "the cum splatters across their belly in thick ropes"
+        Return "the cum splatters across " + t + "'s belly in thick ropes"
     ElseIf asArea == "butt"
-        Return "the cum pumps across their backside, basting them with thick globules"
+        Return "the cum pumps across " + t + "'s ass, basting them with thick globules"
     ElseIf asArea == "chest"
-        Return "the cum pumps across their chest, trickling sluggishly down their breasts"
+        If akTarget && SkyrimNet_BakaIntegration._SexOf(akTarget) == 0
+            Return "the cum pumps across " + t + "'s chest, trickling sluggishly down their chest"
+        EndIf
+        Return "the cum pumps across " + t + "'s chest, trickling sluggishly down their breasts"
     ElseIf asArea == "face"
-        Return "the cum sprays across their face in thick ropes"
+        Return "the cum shoots across " + t + "'s face in thick ropes"
     ElseIf asArea == "feet"
-        Return "the cum gushes over their feet"
+        Return "the cum gushes over " + t + "'s feet"
     ElseIf asArea == "hands"
-        Return "the cum pumps out all over their hands"
+        Return "the cum pumps out all over " + t + "'s hands"
     ElseIf asArea == "mouth"
-        Return "their mouth floods with jets of hot cum"
+        Return t + "'s mouth floods with jets of hot cum"
     ElseIf asArea == "rectum"
-        Return "load after load of cum pumps deep into their ass"
+        Return "load after load of cum pumps deep into " + t + "'s ass"
     ElseIf asArea == "thighs"
-        Return "the mess settling across their thighs"
+        Return "the mess settling across " + t + "'s thighs"
     ElseIf asArea == "throat"
-        Return "gouts of hot cum pump deep into their throat"
+        Return "gouts of hot cum pump directly down " + t + "'s throat"
     ElseIf asArea == "vagina"
-        Return "hot, thick cum is pumped deep into their pussy"
+        Return "hot, thick cum is pumped deep into " + t + "'s pussy"
     EndIf
     Return ""
 EndFunction
@@ -411,34 +428,38 @@ Function _FireCumCue(SkyrimNet_BakaIntegration akHost, Actor orgasmer, Actor tar
         Return
     EndIf
     StorageUtil.SetFloatValue(None, "SNBaka.LastCumCueRT", nowRT)
-    String locPhrase = _LocationPhrase(asArea)
+    String locPhrase = _LocationPhrase(asArea, target)
     If locPhrase
         akHost._Log("[SNBaka] _FireCumCue: location variant area=" + asArea)
     EndIf
+    ; REV-127b (register entry 18 re-ruling + unified-only note, user-edited
+    ; 2026-10-18): base sentence is "{{giver}} just came," and the literal
+    ; carries the receiver; the "finishing all over X" class is REMOVED;
+    ; the unified phrasing is the ONLY option regardless of source framework
+    ; -- both mode branches produce the identical unified text (the MCM mode
+    ; toggle no longer changes cue wording).
     String desc
     If akHost.iCumCueMode == 1
-        ; per-source (OStim/OCum) wording -- DRAFT, §7 approval pending
+        ; per-source mode -- wording UNIFIED per the user's ruling (REV-127b)
         If target
             If locPhrase
-                ; REV-112 location variant -- DRAFT, §7 register 18, ruling pending
-                desc = orgasmer.GetDisplayName() + " just came; OCum applies the result to " + target.GetDisplayName() + ", " + locPhrase + "."
+                desc = orgasmer.GetDisplayName() + " just came, " + locPhrase + "."
             Else
-                desc = orgasmer.GetDisplayName() + " just came inside " + target.GetDisplayName() + "; OCum applies the result."
+                desc = orgasmer.GetDisplayName() + " just came."
             EndIf
         Else
-            desc = orgasmer.GetDisplayName() + " just came inside an OStim scene; OCum applies the result."
+            desc = orgasmer.GetDisplayName() + " just came."
         EndIf
     Else
-        ; unified (framework-neutral) wording -- DRAFT, §7 approval pending
+        ; unified (framework-neutral) wording -- wording of record REV-127b
         If target
             If locPhrase
-                ; REV-112 location variant -- DRAFT, §7 register 18, ruling pending
-                desc = orgasmer.GetDisplayName() + " just came, finishing all over " + target.GetDisplayName() + ", " + locPhrase + "."
+                desc = orgasmer.GetDisplayName() + " just came, " + locPhrase + "."
             Else
-                desc = orgasmer.GetDisplayName() + " just came, finishing all over " + target.GetDisplayName() + "."
+                desc = orgasmer.GetDisplayName() + " just came."
             EndIf
         Else
-            desc = orgasmer.GetDisplayName() + " just came, finishing all over their partner."
+            desc = orgasmer.GetDisplayName() + " just came."
         EndIf
     EndIf
     SkyrimNetApi.RegisterEvent("sdb_cum_applied", desc, orgasmer, target)
@@ -553,12 +574,11 @@ Function HandleSLStageEnd(SkyrimNet_BakaIntegration akHost, Int aiThreadID, Bool
     StorageUtil.SetFloatValue(None, "SNBaka.LastCumCueRT", nowRT)
     String desc
     If akHost.iCumCueMode == 1
-        ; per-source (SexLab) wording -- DRAFT, §7 approval pending; proxy rule:
-        ; "release" only, never overlay application.
-        desc = lead.GetDisplayName() + "'s SexLab scene just reached its release."
+        ; per-source mode -- wording UNIFIED per the REV-127b ruling
+        desc = lead.GetDisplayName() + " just came."
     Else
-        ; unified (framework-neutral) wording -- DRAFT, §7 approval pending
-        desc = lead.GetDisplayName() + " just came, finishing all over their partner."
+        ; unified (framework-neutral) wording -- wording of record REV-127b
+        desc = lead.GetDisplayName() + " just came."
     EndIf
     akHost._Log("[SNBaka] OnSLStageEnd: thread=" + threadID + " lead=" + lead.GetDisplayName() + " -> sdb_cum_applied (SL proxy)")
     SkyrimNetApi.RegisterEvent("sdb_cum_applied", desc, lead, None)
@@ -797,7 +817,12 @@ Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, F
     ; Ambient cue (unchanged REV-117 behavior): sender=None -> subjectless;
     ; the narrator applies it to whoever the moment fits.
     Actor narrTarget = akSender as Actor
-    String desc = "Notices that they are still covered in cum from a recent sexual encounter."    ; REV-125: user-edited wording of record (register entry 19, edited 2026-10-17)
+    ; REV-127b (2026-10-18, register entry 19 re-ruling, user-edited this
+    ; exchange): gamemaster-directed phrasing of record. CONSUMER OF RECORD:
+    ; this cue text feeds the GAMEMASTER'S world-direction (a context entry
+    ; the gamemaster turns into speaker direction), NOT a speaker line --
+    ; the phrasing is validated against that consumer model.
+    String desc = "Nearby characters notice that someone is covered in cum from a recent sexual encounter."    ; REV-127b: user-edited wording of record (register entry 19, 2026-10-18)
     akHost._Log("[SNBaka] sdb_cum_ambient_due: ambient cue fired (sender=" + akSender + "; maintenance pass done, src=" + src + ")")
     SkyrimNetApi.RegisterEvent("sdb_cum_ambient", desc, narrTarget, None)
 EndFunction

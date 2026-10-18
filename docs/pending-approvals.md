@@ -446,24 +446,26 @@ OCum `Area` literal (OCumMaleScript ApplyCum dispatch, 11 literals). Each
 phrase appends to the mode-specific base sentence as
 `", <phrase>."` — quoted verbatim, in the stated order:
 
-**User edits applied directly to the phrases below
-1. belly — "the cum splatters across their belly in thick ropes"
-2. butt — "the cum pumps across their backside, basting them with thick globules"
-3. chest — "the cum pumps across their chest, trickling sluggishly down their breasts"
-4. face — "the cum sprays across their face in thick ropes"
-5. feet — "the cum gushes over their feet"
-6. hands — "the cum pumps out all over their hands"
-7. mouth — "their mouth floods with jets of hot cum"
-8. rectum — "load after load of cum pumps deep into their ass"
-9. thighs — "the mess settling across their thighs"
-10. throat — "gouts of hot cum pump deep into their throat"
-11. vagina — "hot, thick cum is pumped deep into their pussy"
+***User: I'm editing the beginning portion of the sentence, " to make it fit better semantically with the second portion (11 litersal).***
+***User: edits applied directly to the phrases below***
+***User: Second round of user edits applied directly below, me writing {{giver}} means the source of the cum and {{receiver}} means the receiving actor.***
 
+***User: The opening phrase that preceeds these variable should be changed from "{{giver}} just came, finishing all over {{receiver}}" to "{{giver}} just came,". This will make the new 11 literals make more senser semantically***
+1. belly — "the cum splatters across B's belly in thick ropes"
+2. butt — "the cum pumps across {{receiver}}'s ass, basting them with thick globules"
+3. chest — "the cum pumps across {{receiver}}'s chest, trickling sluggishly down their breasts (chest if male)"
+4. face — "the cum shoots across {{receiver}}'s face in thick ropes"
+5. feet — "the cum gushes over {{receiver}}'s feet"
+6. hands — "the cum pumps out all over {{receiver}}'s hands"
+7. mouth — "{{receiver}}'s mouth floods with jets of hot cum"
+8. rectum — "load after load of cum pumps deep into {{receiver}}'s ass"
+9. thighs — "the mess settling across {{receiver}}'s thighs"
+10. throat — "gouts of hot cum pump directly down {{receiver}}'s throat"
+11. vagina — "hot, thick cum is pumped deep into {{receiver}}'s pussy"
+
+***User: Unified mode example should be the only phrasing option regardless of the source framework. No need to confuse the LLM with framework details when we don't want it to mention the framework.***
 Composed examples (full sentence shapes, for context):
-- unified mode, target present, Area=face: "A just came, finishing all
-  over B, the mess settling across their face."
-- per-source mode, target present, Area=mouth: "A just came; OCum applies
-  the result to B, the finish settling in their mouth."
+- unified mode, target present, Area=face: "A just came, the cum splatters across B's belly in thick ropes ."
 
 **Honest limit stated in the set (ruling context):** the SL StageEnd proxy
 has no Area signal — it fires location-agnostic until the v2 state layer
@@ -471,7 +473,7 @@ exists. Fallback behavior (unknown/empty Area, or target None) = the v1
 wordings verbatim (already register-prior-class, carried). Ruling
 requested: approve / edit any phrase / drop locations from the set.
 
-**Please note that the above only makes sense for male or futa characters cumming with/in/on a partner character.
+***User note: Please note that the above only makes sense for male or futa characters cumming with/in/on a partner character.***
 
 ---
 
@@ -493,7 +495,8 @@ fork-register edit, 2026-10-17, applied verbatim to `HandleCumAmbientDue`).
 `HandleCumAmbientDue` — the subjectless `sdb_cum_ambient` cue text
 (verbatim):
 
-> The lingering aftermath of their last encounter is impossible to ignore.
+***User: edited to feed more sensibly into gamemaster consideration.***
+> Nearby characters notice that someone is covered in cum from a recent sexual encounter.
 
 **REGISTER-GAP REPAIR (honest record):** REV-117's PROJECT_STATE §128 and
 cum-effects.md item 7 claimed this draft was registered as "entry 19 (bulk)"
@@ -540,15 +543,19 @@ edit: do not reintroduce `{{ originator }}` or `{{ target }}`.**
 
 **sdb_cum_applied.yaml response content (shipped REV-125, verbatim):**
 
-> Someone nearby just climaxed, finishing all over their partner. Generate the
-> immediate aftermath in one short beat -- a word, a sound, a look, or one
-> line from anyone involved or watching. Match their personality exactly.
+***User edited***
+> Look for someone nearby who is noticeably covered in cum from a recent
+> sexual encounter. Generate a response from someone who notices -- 
+> a comment, praise, or admonishment about their appearance as the 
+> situation dictates. Direct it towards the cum covered person.
+> Deliver the dialogue in-character with narration as needed.
 >
-> If this happened during an aggressive or non-consensual encounter, the
-> reaction should carry dominance, conquest, cruelty, or satisfaction.
+> If the commenter is aggressive or cruel, the reaction should carry 
+> dominance, scorn, cruelty, or satisfaction.
 >
-> Do not invent which act or body part produced this, and do not name any
-> framework or source -- react only to what is observable in the scene.
+***User question: does the information for how/where the cum was applied live in the log already? If so, it may not be necessary to fill in the information with decorators in this instance.***
+> Do not invent which act produced the cum or where the cum is visible --
+> react only to what is observable in the scene based on existing context.
 
 (Every line except the first is unchanged from the approved entry-4 wording;
 the first line alone was rewritten. Entry 19's ambient wording — the user's
@@ -607,16 +614,19 @@ text alone cannot reach the guidance's effects.
 **sdb_cum_applied.yaml `response.content` (live tree + [REV-126]/[REV-127]
 dists, 846 B, 2026-10-17) — VERBATIM:**
 
+***User: I edited this text in entry 20, above, but I will do so here as well.
 ```
-Someone nearby just climaxed, finishing all over their partner. Generate the
-immediate aftermath in one short beat -- a word, a sound, a look, or one
-line from anyone involved or watching. Match their personality exactly.
+Look for someone nearby who is noticeably covered in cum from a recent
+sexual encounter. Generate a response from someone who notices -- 
+a comment, praise, or admonishment about their appearance as the 
+situation dictates. Direct it towards the cum covered person.
+Deliver the dialogue in-character with narration as needed.
 
-If this happened during an aggressive or non-consensual encounter, the
-reaction should carry dominance, conquest, cruelty, or satisfaction.
+If the commenter is aggressive or cruel, the reaction should carry 
+dominance, scorn, cruelty, or satisfaction.
 
-Do not invent which act or body part produced this, and do not name any
-framework or source -- react only to what is observable in the scene.
+Do not invent which act produced the cum or where the cum is
+visible -- react only to what is observable in the scene based on existing context.
 ```
 
 Status: OPEN for the user's ruling/edits (the "aftermath" language the user
@@ -637,10 +647,69 @@ give the ambient the same two-surface control the applied cue has.
 `SNBaka_CumDetectionModule.psc`; user-edited wording of record — register
 entry 19, 2026-10-17) — VERBATIM:**
 
+***User edited. I edited this in entry 19 as well.***
 ```
-Notices that they are still covered in cum from a recent sexual encounter.
+Nearby characters notice that someone is covered in cum from a recent sexual encounter.
 ```
 
 Status: OPEN — the yaml-creation decision + (if created) the guidance
 wording are the user's pen; ships with the next build after ruling.
+
+---
+
+## REV-127b refresh (2026-10-18, wording application): entries 18/19/20 CLOSED as re-ruled user-edited wording of record; entry 21 CLOSED-shipped; entry 22 RIDES to the draft-and-review pass
+
+**Provenance:** the user applied all four edits DIRECTLY in this register
+copy this exchange (markers `***User edited***` in entries 18/19/20 and the
+quoted blocks in entries 21/22 are the user's own pen, verbatim). Applied
+verbatim to the register-declared surfaces; byte-verified in the built pex
+and the shipped YAML. Ships as the [REV-127] wording re-cut (same rev label;
+superseded zip archived per the honest-history rule, never deleted).
+
+**Surface map (each edit's actual home; no misplacements found):**
+- Entry 20/21 response guidance -> YAML `sdb_cum_applied.yaml`
+  `response.content` (932 B shipped; no-`{{ originator }}` constraint held).
+- Entry 18's 11 location literals + base sentence -> IN-CODE,
+  `SNBaka_CumDetectionModule.psc` `_LocationPhrase` + `_FireCumCue`/
+  `HandleSLStageEnd` desc strings (register's declared home; consistent).
+- Entry 19 ambient cue -> IN-CODE, `HandleCumAmbientDue` desc.
+
+**Consumer-of-record note (entry 19):** the ambient cue text feeds the
+GAMEMASTER'S world-direction (a context entry the gamemaster turns into
+speaker direction), NOT a speaker line; the user's phrasing validated
+against that model. Recorded in-code above the desc.
+
+**Entry 18 re-ruling, as applied:** base sentence `{{giver}} just came,` +
+literal + `.`; the literals carry `{{receiver}}` (= target.GetDisplayName();
+receiver naming DEFERRED to the literals, the "finishing all over X" class
+REMOVED from all base sentences and fallbacks); the unified example is the
+ONLY phrasing in BOTH MCM mode branches (the mode toggle no longer changes
+cue wording); no framework mentions (OCum/SL/OStim) in any desc. TWO
+DISCREPANCY REPAIRS of record: (1) literal 1's register text carried a
+stale `B` placeholder — applied as `{{receiver}}` per the set's own
+convention; (2) literal 3's `(chest if male)` read as a user ANNOTATION and
+implemented as a receiver-sex wording selection (breasts/chest via the
+interim `_SexOf==0` rule), not literal text. Both repairs reversible on
+the user's word.
+
+**Entry 20's user question, answered:** YES — how/where the cum was applied
+lives in the log already: the applied cue desc (with the location literal)
+lands in the conversation context via RegisterEvent, so it is observable
+scene context. Decorators are not needed to supply it; the new guidance's
+"react only to what is observable ... based on existing context" line rides
+on that fact.
+
+**Entry 22 status per its own note:** the ambient guidance surface STILL
+DOES NOT EXIST — the user's ambient edit was cue-side only, and no register
+edit this exchange rules the yaml created; the guidance-surface creation
+question RIDES to the DECORATION DRAFT-AND-REVIEW pass per the standing
+plan. Register holds TWO open entries (15, 16). Fork copy lockstep.
+
+---
+
+*REV-127b refresh (2026-10-18): entries 18/19/20 CLOSED (user-edited
+re-rulings of record, this exchange; applied + byte-verified). Entry 21
+CLOSED (shipped in the [REV-127] wording re-cut). Entry 22 unchanged-OPEN
+(rides to draft-and-review). Register holds TWO open entries (15, 16).
+Fork copy lockstep.*
 
