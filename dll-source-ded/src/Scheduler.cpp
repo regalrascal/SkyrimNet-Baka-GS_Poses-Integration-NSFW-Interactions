@@ -166,14 +166,39 @@ namespace DeD
 					fire = isTrue;
 				} else { // CHANGED: edge-triggered False->True
 					fire = isTrue && !rule.lastPred;
-					rule.lastPred = isTrue;
+				}
+				// REV-127 (ambient plumbing; 10-18 dogfood): APPLICATION-ANCHORED
+				// PHASING. The pre-127 grid ran from the rule's ARM (nextDueAge =
+				// cadenceSec at AddRule, L89) -- dues kept accruing while the
+				// predicate was False, so an application landing mid-grid fired
+				// ~instantly (10-18: arm 01:41:22, application 01:43:39 at rule-age
+				// 137, dues 60 AND 120 already accrued -> first ambient fire 01:43:40,
+				// ONE SECOND after application). Fix: the predicate's RISING EDGE
+				// (False->True, both classes -- the class-1 rule previously never
+				// latched) re-anchors the rule's whole time base: ageSec = 0,
+				// nextDueAge = cadenceSec. First fire lands application + cadence;
+				// the failsafe lifetime re-anchors too (a fresh application always
+				// gets its full window).
+				const bool rising = isTrue && !rule.lastPred;
+				rule.lastPred = isTrue;
+				if (rising) {
+					rule.ageSec = 0.0;
+					rule.nextDueAge = rule.cadenceSec;
+					SKSE::log::info("[DeDService] rule {}:{} re-anchored on predicate rising edge (application-anchored; REV-127)",
+						rule.moduleID, rule.ruleID);
 				}
 			}
 
 			if (!fire) continue;
 			if (rule.ageSec >= rule.nextDueAge) {
 				EventPump::Emit(rule.callbackEvent, nullptr, 0.f, "");
-				rule.nextDueAge += rule.cadenceSec;
+				// REV-127: snap to the LAST ACTUAL FIRE. The pre-127
+				// nextDueAge += cadence drained every MISSED due in consecutive
+				// 1s-throttled ticks (the 10-18 paired ambient fires 01:43:40/41,
+				// 01:45:33/34, 01:47:33/34 -- catch-up bursts, one due per tick
+				// until the grid caught up). Missed dues are now SKIPPED, never
+				// drained: one fire per cadence from the last actual fire.
+				rule.nextDueAge = rule.ageSec + rule.cadenceSec;
 			}
 		}
 

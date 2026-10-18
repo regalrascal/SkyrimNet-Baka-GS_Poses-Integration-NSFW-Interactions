@@ -22,6 +22,13 @@ Scriptname SNBaka_CumDetectionModule
 ; the first maintenance/expiry tick must land at 60s; maintenance recast, expiry
 ; and the ambient cue all ride this ONE clock), predicate class 1 (STATE_BOOL_TRUE)
 ; on cum.present, failsafe 600s, callback "sdb_cum_ambient_due".
+; REV-127: the rule's time base is APPLICATION-ANCHORED -- the scheduler re-anchors
+; the rule (age=0, next due=cadence) on the predicate's False->True rising edge, so
+; the first ambient cue lands application + 60s (never mid-grid), and missed dues
+; are SKIPPED, never drained as catch-up bursts (the 10-18 paired 1s-apart fires).
+; The 600s failsafe re-anchors with it (a fresh application always gets its full
+; window); if the failsafe DISARMS the rule mid-session, the next _WriteCumState
+; re-arms it (AddTimerRule is key-deduped, so this is a no-op while the rule lives).
 ; Timer events arrive as the standard 4-slot ModEvent shape (EventPump.cpp):
 ; (eventName, strArg, numArg, sender) -- numArg 1 = expired (failsafe), 0 = due tick.
 ; VERBATIM-NARRATION GUARDRAIL (REV-117, in every touched cue): event text is written
@@ -240,6 +247,12 @@ Function _WriteCumState(Actor akTarget, String asLocation, String asSource) Glob
     If asSource != "ocum"
         _ApplyCumVisual(akTarget, asLocation)
     EndIf
+    ; REV-127: keep the ambient rule ALIVE across a mid-session failsafe disarm
+    ; (600s after the last application the rule disarms itself; a later in-session
+    ; application would otherwise run ambient-dead until the next game reload).
+    ; AddTimerRule is key-deduped (Scheduler.cpp L66), so this is a no-op while
+    ; the rule lives -- the re-arm only lands after a failsafe disarm.
+    DeDService.AddTimerRule("cum", "ambient", 60.0, 1, None, "cum.present", 600.0, "sdb_cum_ambient_due")
 EndFunction
 
 ; ---- CUM DETECTION (OCum / OStim side) ----

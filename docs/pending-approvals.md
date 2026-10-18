@@ -589,3 +589,58 @@ overpower YAMLs carry the same undocumented vars AND the same question —
 per-fix method: enumerate the actual application receipts first, then read
 the renders against them (one event cross-rendered = binding; a second
 uncounted event = a missing-enforcement finding).
+
+---
+
+## Entry 21 — REV-127 (2026-10-18): sdb_cum_applied RESPONSE GUIDANCE (the YAML `response.content` surface) — QUOTED VERBATIM; the surface the user's "aftermath direct-ification" edit INTENDED to reach
+
+**Two-surface register note (§7 rider, REV-127):** cue text and response
+guidance are TWO DIFFERENT §7 surfaces, BOTH the user's. CUE TEXT = the
+RegisterEvent `desc` (Papyrus-side; what-happened, rendered to the model as
+event context). RESPONSE GUIDANCE = the trigger YAML's `response.content`
+(how-to-respond instruction block). The 10-18 dogfood proved the split: the
+user-edited cue text (entry 19) landed verbatim in both ambient renders,
+while the model's "aftermath discussion" behavior tracked the APPLIED yaml's
+guidance wording ("Generate the immediate aftermath...") — editing the cue
+text alone cannot reach the guidance's effects.
+
+**sdb_cum_applied.yaml `response.content` (live tree + [REV-126]/[REV-127]
+dists, 846 B, 2026-10-17) — VERBATIM:**
+
+```
+Someone nearby just climaxed, finishing all over their partner. Generate the
+immediate aftermath in one short beat -- a word, a sound, a look, or one
+line from anyone involved or watching. Match their personality exactly.
+
+If this happened during an aggressive or non-consensual encounter, the
+reaction should carry dominance, conquest, cruelty, or satisfaction.
+
+Do not invent which act or body part produced this, and do not name any
+framework or source -- react only to what is observable in the scene.
+```
+
+Status: OPEN for the user's ruling/edits (the "aftermath" language the user
+wanted direct-ified lives HERE, not in the cue text). Ships with the next
+build.
+
+## Entry 22 — REV-127 (2026-10-18): sdb_cum_ambient RESPONSE GUIDANCE — DOES NOT EXIST (finding); the ambient's only text surface today is its CUE TEXT, quoted verbatim
+
+**Finding (REV-127, exhaustive search — fork tree, all dists, modlist):**
+`sdb_cum_ambient.yaml` does not exist. The ambient cue rides SN's native
+handling of a bare RegisterEvent (desc context entry + gamemaster default)
+— the ambient cue has NO response-guidance surface at all; its renders are
+shaped only by the cue text plus SN defaults. Whether to CREATE the yaml
+(with its own `response.content`) is the user's decision; creating it would
+give the ambient the same two-surface control the applied cue has.
+
+**The ambient CUE TEXT (the only surface today; RegisterEvent desc, module
+`SNBaka_CumDetectionModule.psc`; user-edited wording of record — register
+entry 19, 2026-10-17) — VERBATIM:**
+
+```
+Notices that they are still covered in cum from a recent sexual encounter.
+```
+
+Status: OPEN — the yaml-creation decision + (if created) the guidance
+wording are the user's pen; ships with the next build after ruling.
+
