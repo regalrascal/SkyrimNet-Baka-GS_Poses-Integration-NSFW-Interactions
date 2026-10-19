@@ -1086,6 +1086,7 @@ EndFunction
 ; handling); only the timer mechanics differ.
 Float _fCooldownExpiresAtRT = 0.0   ; 0 = no cooldown pending
 Float _fFHUNextPollRT      = 0.0   ; 0 = poll not running
+Float _fCumAftermathDueRT  = 0.0   ; REV-129: 0 = no aftermath hold pending; >0 = due-at real-time (scene-end +10s, Option A)
 Float _RT_POLL_INTERVAL    = 10.0  ; FHU level-poll cadence, real seconds
 
 Function _ArmRealtimeTimer()
@@ -1096,6 +1097,10 @@ Function _ArmRealtimeTimer()
     EndIf
     If _fFHUNextPollRT > 0.0 && _fFHUNextPollRT < next
         next = _fFHUNextPollRT
+    EndIf
+    ; REV-129: the aftermath hold's +10s leg joins the mux (Option A deferral).
+    If _fCumAftermathDueRT > 0.0 && _fCumAftermathDueRT < next
+        next = _fCumAftermathDueRT
     EndIf
     If next < 999998.0
         If next <= now
@@ -1113,6 +1118,12 @@ Event OnUpdate()
         _bCooldownActive = False
         _fCooldownExpiresAtRT = 0.0
     EndIf
+    ; REV-129: aftermath hold fire leg (scene-end +10s; Option A). Clears the
+    ; hold FIRST so a re-arm inside the handler is never eaten by this tick.
+    If _fCumAftermathDueRT > 0.0 && now >= _fCumAftermathDueRT
+        _fCumAftermathDueRT = 0.0
+        SNBaka_CumDetectionModule.HandleAftermathDue(Self)
+    EndIf
     If _fFHUNextPollRT > 0.0 && now >= _fFHUNextPollRT
         ; REV-96 Task 2: poll body extracted to SNBaka_FHUInflationModule.PollLevels
         ; (behavior-preserving move; this multiplexed tick chain stays on the quest).
@@ -1128,6 +1139,15 @@ EndEvent
 ; never executed at save-load (the MCM OnGameReload chain was stale), so the
 ; poll never armed; the heartbeat demonstrably executes every ~3.3 min. A
 ; redundant call while a poll is already pending is a no-op.
+Function _ArmCumAftermathHold(Float afDueRT)
+    ; REV-129: cross-script setter for the aftermath hold (Papyrus script
+    ; variables are not cross-script readable; the cum module arms through
+    ; here). Multi-scene edge: a later scene-end overwrites an earlier pending
+    ; hold (the latest scene-end +10s wins).
+    _fCumAftermathDueRT = afDueRT
+    _ArmRealtimeTimer()
+EndFunction
+
 Function _FHUStartPoll()
     Float nowRT = Utility.GetCurrentRealTime()
     ; Idempotent guard: a VALID pending poll is always within one interval of
@@ -9040,6 +9060,7 @@ Function _RegisterModEvents()
     RegisterForModEvent("ocum_applied_cum",           "OnOCumApplied")
     RegisterForModEvent("ocum_applied_cum_npc_scene", "OnOCumAppliedNPCScene")
     RegisterForModEvent("HookStageEnd",               "OnSLStageEnd")
+    RegisterForModEvent("HookAnimationEnd",           "OnSLAnimationEnd")   ; REV-129: scene-end hook (aftermath deferral, Option A)
     RegisterForModEvent("sr.inflater.start",          "OnFHUStartSignal")
     ; REV-117 cum-v2: the P+ push-time location signal (SexLabApplyCumFX,
     ; 3-push ModEvent: TargetRef, SourceRef, aiType) and the DLL's ambient
@@ -9203,6 +9224,11 @@ Function _RegisterDecorators()
     Debug.Trace("[SNBaka] decorator register: get_spank_state rc=" + rc)
     rc = SkyrimNetApi.RegisterDecorator("get_nearby_furniture_actors", "SkyrimNet_BakaIntegration", "GetNearbyFurnitureActors")
     Debug.Trace("[SNBaka] decorator register: get_nearby_furniture_actors rc=" + rc)
+    ; REV-129: get_ded_arousal -- FRAMEWORK-CLASS, MOTHERBOARD-owned (the §82/§138
+    ; ownership rule's first live application: the arousal chain is shared
+    ; substrate, not cum-specific). Same rc-instrument class as above.
+    rc = SkyrimNetApi.RegisterDecorator("get_ded_arousal", "SkyrimNet_BakaIntegration", "GetDedArousal")
+    Debug.Trace("[SNBaka] decorator register: get_ded_arousal rc=" + rc + " (REV-129)")
     ; baka_flirted decorator removed — the flirt escalations self-gate via their descriptions now.
     ; (GetFlirted is kept below, unused, so any stale SkyrimNet registration still resolves cleanly.)
 EndFunction
@@ -10189,6 +10215,45 @@ Event OnSLStageEnd(Int aiThreadID, Bool abHasPlayer)
     ; REV-96 Task 2: body MOVED VERBATIM to SNBaka_CumDetectionModule.HandleSLStageEnd.
     SNBaka_CumDetectionModule.HandleSLStageEnd(Self, aiThreadID, abHasPlayer)
 EndEvent
+
+; REV-129: SL scene-end hook (the aftermath deferral, Option A -- register
+; entry 23, ruled). SexLab fires HookAnimationEnd once per thread at
+; animation end: the scene-end detection of record. Body lives in the cum
+; module (module-owned mechanism; the hold itself is the motherboard mux leg).
+Event OnSLAnimationEnd(Int aiThreadID, Bool abHasPlayer)
+    SNBaka_CumDetectionModule.HandleSLAnimationEnd(Self, aiThreadID)
+EndEvent
+
+; ---- REV-129: get_ded_arousal DECORATOR (FRAMEWORK-CLASS, motherboard-owned; ----
+; the §82/§138 ownership rule's FIRST LIVE APPLICATION). Reads the WITNESS
+; (the passed actor = the reacting NPC's own arousal), NOT the wearer. Chain:
+; OSL Aroused Reborn (side-effect-free read) -> SL Aroused NG -> none.
+; Tier matrix (planner-ratified 3-band, cum-effects.md REV-128 1.1(b)):
+; 0 = no framework (neutral silence), 1 = LOW (<= 25), 2 = MID, 3 = HIGH (>= 75).
+String Function GetDedArousal(Actor akActor) Global
+    Int arousal = -1
+    String fw = "none"
+    If SKSE.GetPluginVersion("OSLAroused") > 0
+        arousal = OSLArousedNative.GetArousalNoSideEffects(akActor) as Int
+        fw = "reborn"
+    Else
+        slaFrameworkScr kNG = Quest.GetQuest("sla_Framework") as slaFrameworkScr
+        If kNG
+            arousal = kNG.GetActorArousal(akActor)
+            fw = "sl_aroused_ng"
+        EndIf
+    EndIf
+    If arousal < 0
+        Return "{\"arousal\": 0, \"tier\": 0, \"framework\": \"none\"}"
+    EndIf
+    Int tier = 2
+    If arousal >= 75
+        tier = 3
+    ElseIf arousal <= 25
+        tier = 1
+    EndIf
+    Return "{\"arousal\": " + arousal + ", \"tier\": " + tier + ", \"framework\": \"" + fw + "\"}"
+EndFunction
 
 ; REV-117 cum-v2: P+ push-time location signal. Sender's pushes (sslThreadModel
 ; PPLUS V2.18.1 L2234-2238): PushForm(TargetRef), PushForm(SourceRef), PushInt(aiType).

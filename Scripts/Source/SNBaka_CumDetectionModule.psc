@@ -213,6 +213,12 @@ Function ArmStateLayer(SkyrimNet_BakaIntegration akHost) Global
     ; lands at 60s), class-1 (STATE_BOOL_TRUE on cum.present),
     ; failsafe 600s, callback sdb_cum_ambient_due (4-slot ModEvent shape).
     DeDService.AddTimerRule("cum", "ambient", 60.0, 1, None, "cum.present", 600.0, "sdb_cum_ambient_due")
+    ; REV-129: get_ded_cum decorator -- MODULE-OWNED per cum-effects.md REV-128
+    ; 1.1(a) + the §138 ownership ruling (module-specific state schema = module
+    ; logic). Registered at arm so it rides every arm/re-arm pass (idempotent,
+    ; same class as AddTimerRule). rc=0 = registered OK (Phase 6a.1 instrument).
+    Int rcDedCum = SkyrimNetApi.RegisterDecorator("get_ded_cum", "SNBaka_CumDetectionModule", "GetDedCum")
+    akHost._Log("[SNBaka] decorator register: get_ded_cum rc=" + rcDedCum + " (REV-129)")
     akHost._Log("[SNBaka] cum-v2 state layer armed: cum.* registered + ambient rule (60s/class-1/600s failsafe; REV-122)")
 EndFunction
 
@@ -825,4 +831,84 @@ Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, F
     String desc = "Nearby characters notice that someone is covered in cum from a recent sexual encounter."    ; REV-127b: user-edited wording of record (register entry 19, 2026-10-18)
     akHost._Log("[SNBaka] sdb_cum_ambient_due: ambient cue fired (sender=" + akSender + "; maintenance pass done, src=" + src + ")")
     SkyrimNetApi.RegisterEvent("sdb_cum_ambient", desc, narrTarget, None)
+EndFunction
+
+; ---- REV-129: get_ded_cum DECORATOR (module-owned; REV-128 1.1(a) as-built) ----
+; Returns the WEARER-OF-RECORD cum facts as JSON for trigger response
+; templates. Wearer-keyed: resolves the wearer regardless of the passed
+; actor (the state layer carries a singular wearer), with "self" carrying
+; the direction bit. Unmarked or expired world: {"present": false}.
+; Consumers of record: sdb_cum_ambient.yaml / sdb_cum_aftermath.yaml
+; (wearer-naming + freshness class; the documented originator_uuid arg).
+String Function GetDedCum(Actor akActor) Global
+    Actor wearer = StorageUtil.GetFormValue(None, "SNBaka.CumWearer", None) as Actor
+    If !wearer
+        Return "{\"present\": false}"
+    EndIf
+    Float now = Utility.GetCurrentRealTime()
+    Float expiresRT = DeDService.GetStateFloat(wearer, "cum.expires_rt", 0.0)
+    If expiresRT > 0.0 && now >= expiresRT
+        Return "{\"present\": false}"
+    EndIf
+    String wearerName = wearer.GetDisplayName()
+    If wearerName == ""
+        wearerName = "the cum soaked person"
+    EndIf
+    Bool isSelf = (akActor == wearer)
+    String loc = DeDService.GetStateString(wearer, "cum.last_location", "")
+    String src = DeDService.GetStateString(wearer, "cum.last_source", "")
+    Float appliedRT = DeDService.GetStateFloat(wearer, "cum.last_applied_rt", 0.0)
+    Int freshness = (now - appliedRT) as Int
+    If freshness < 0
+        freshness = 0
+    EndIf
+    Int expiresIn = (expiresRT - now) as Int
+    String locArr = "[]"
+    If loc != ""
+        locArr = "[\"" + loc + "\"]"
+    EndIf
+    String s = "{\"present\": true, \"wearer_name\": \"" + wearerName + "\", \"self\": " + isSelf
+    s += ", \"locations\": " + locArr + ", \"source\": \"" + src + "\""
+    s += ", \"applied_rt\": " + appliedRT + ", \"freshness_s\": " + freshness + ", \"expires_in_s\": " + expiresIn + "}"
+    Return s
+EndFunction
+
+; ---- REV-129: THE AFTERMATH DEFERRAL (Option A, ruled; register entry 23) ----
+; HookAnimationEnd receipt: SL fires it once per thread at scene end -- the
+; scene-end detection of record. If a wearer of record is marked (the scene
+; wrote cum), arm the +10s hold on the motherboard's multiplexed real-time
+; tick (REV-63 OnUpdate chain -- the spec's RegisterForSingleUpdate leg joined
+; to the existing mux rather than a second timer chain). No wearer -> no hold
+; -> no aftermath narration (honest failsafe; the ambient at +60s still
+; carries the long-run surface).
+Function HandleSLAnimationEnd(SkyrimNet_BakaIntegration akHost, Int aiThreadID) Global
+    If !akHost.bEnabled || !akHost.bCumDetectionEnabled || !DeD_ServicePresent()
+        Return
+    EndIf
+    Actor wearer = StorageUtil.GetFormValue(None, "SNBaka.CumWearer", None) as Actor
+    If !wearer
+        Return    ; scene ended without a cum write: silence (edge: no scene-cum link)
+    EndIf
+    akHost._ArmCumAftermathHold(Utility.GetCurrentRealTime() + 10.0)
+    akHost._Log("[SNBaka] HookAnimationEnd: cum wearer marked (thread=" + aiThreadID + ", wearer=" + wearer.GetDisplayName() + ") -- aftermath hold armed (+10s, REV-129)")
+EndFunction
+
+; The +10s hold's fire leg (motherboard OnUpdate mux -> here). Fires the
+; module-held aftermath event with a name-free desc cue; the narration
+; surface lives in sdb_cum_aftermath.yaml (the register entry-20 rider
+; wording). Wearer unmarked or lifetime expired at fire time -> silence.
+Function HandleAftermathDue(SkyrimNet_BakaIntegration akHost) Global
+    Actor wearer = StorageUtil.GetFormValue(None, "SNBaka.CumWearer", None) as Actor
+    If !wearer
+        akHost._Log("[SNBaka] sdb_cum_aftermath: hold fired with no wearer -- silence (REV-129)")
+        Return
+    EndIf
+    Float expiresRT = DeDService.GetStateFloat(wearer, "cum.expires_rt", 0.0)
+    If expiresRT > 0.0 && Utility.GetCurrentRealTime() >= expiresRT
+        akHost._Log("[SNBaka] sdb_cum_aftermath: lifetime expired before hold fire -- silence (REV-129)")
+        Return
+    EndIf
+    String desc = "The scene has ended; someone is still covered in cum."
+    akHost._Log("[SNBaka] sdb_cum_aftermath: fired (wearer=" + wearer.GetDisplayName() + "; REV-129 Option A)")
+    SkyrimNetApi.RegisterEvent("sdb_cum_aftermath", desc, wearer, None)
 EndFunction

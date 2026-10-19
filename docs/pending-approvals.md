@@ -737,12 +737,9 @@ of the cum.
 
 Per this entry's own status note, the guidance-surface creation question rode to the decoration draft-and-review — it has now been drafted (cum-effects.md REV-128 §3). The draft would create `sdb_cum_ambient.yaml` (same two-surface control as the applied cue). **DRAFT `response.content` (NOT of record until the user rules/edits):**
 
+***User: Edited to a more narrative tone for use with the direct narration function that consumes it.***
 ```
-A recent sexual encounter left one of the people here covered in cum.
-Someone nearby has noticed. Generate the noticer's remark or reaction --
-praise, admonishment, mockery, or fascination as the situation and their
-personality dictates -- directed at the cum soaked person. Use context.
-Do not make up the source or location of the cum.
+The recent sexual encounter left one of its participants covered in cum. Nearby people start to notice and comment on it. They offer praise or admonishments to the cum soaked person as the situation, and their personality dictates. Use context. **Do not make up the source or location of the cum**.
 ```
 
 **Riding with the draft (all quoted in cum-effects.md REV-128 §3, none assumed):** (a) the wearer-reference construction — the wearer-naming sentence `...directed at {{ get_ded_cum(actor_uuid).wearer_name }}, the cum soaked person...` (decorator-gated; the name-free fallback shape is the draft text above); (b) the three arousal-branch texts (hot/intrigued/taken-aback, tier-keyed to `get_ded_arousal(actor_uuid).tier`, conditionals gated on the build-session probe); (c) the freshness phrasing class (flagged, not forced). The ambient CUE TEXT stays unchanged (entry 19's wording of record, in-code). **Status: DRAFT-AND-REVIEW (the user's pen; the strategist's grammar pass rides jointly per the standing gate).**
@@ -757,3 +754,12 @@ Riding ruling 1 (user, 2026-10-18): the applied trigger's narration defers to SC
 - **Option B — trigger-side delay field: ruled OUT on the documented schema** (WORKFLOW_TRIGGERS.md carries no delay/scheduling field; revivable only if the build session's DevKit read surfaces one).
 
 **Status: OPEN — the user rules the mechanism; the build session cuts from the ruled set (the probe first, then the constructions per its verdict).** Register after this session: open entries 15, 16, 22 (drafted), 23. Fork copy lockstep.
+
+---
+
+## REV-129 closures (2026-10-19, the decoration build session): entries 22 and 23 CLOSED on the user's rulings; branch texts CLOSED as approved
+
+- **Entry 22 — CLOSED** on the user's narrative-voice text (the entry's own amendment block above, `***User: Edited to a more narrative tone for use with the direct narration function that consumes it.***` — the user's pen, in-register, this exchange). The text ships VERBATIM as `sdb_cum_ambient.yaml`'s `response.content` (byte-verified: this register's line contained in the shipped yaml bytes at build AND in the [REV-129] dist; the instruction-tone draft does NOT ship). The riding constructions ship with it per the user's approval: the three arousal branches (tier-keyed), the freshness class (fresh/drying/faded), and the wearer-naming sentence — all via the documented `originator_uuid` form (probe verdict; see PROJECT_STATE §141).
+- **Entry 23 — CLOSED** on **Option A (approved)**: module-held second event `sdb_cum_aftermath` at scene-end+10s (HookAnimationEnd registration beside HookStageEnd; the +10s hold on the motherboard's REV-63 real-time mux; `sdb_cum_applied.yaml` retired — cue only at climax). Built per the REV-128 §2 spec; edge cases (no-wearer / already-ended / multi-scene / interrupted-thread -> honest silence) cited in-code.
+- **Branch texts — CLOSED as approved** (the REV-128 §3(b) texts, `else if` spelling per prompt-file-syntax.md, `actor_uuid` -> documented `originator_uuid`).
+- Register after this session: open entries **15, 16** only. Fork copy lockstep. Receipts: PROJECT_STATE §141 + cum-effects.md REV-129.
