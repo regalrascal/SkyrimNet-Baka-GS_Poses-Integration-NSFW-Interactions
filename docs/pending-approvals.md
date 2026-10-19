@@ -763,3 +763,15 @@ Riding ruling 1 (user, 2026-10-18): the applied trigger's narration defers to SC
 - **Entry 23 — CLOSED** on **Option A (approved)**: module-held second event `sdb_cum_aftermath` at scene-end+10s (HookAnimationEnd registration beside HookStageEnd; the +10s hold on the motherboard's REV-63 real-time mux; `sdb_cum_applied.yaml` retired — cue only at climax). Built per the REV-128 §2 spec; edge cases (no-wearer / already-ended / multi-scene / interrupted-thread -> honest silence) cited in-code.
 - **Branch texts — CLOSED as approved** (the REV-128 §3(b) texts, `else if` spelling per prompt-file-syntax.md, `actor_uuid` -> documented `originator_uuid`).
 - Register after this session: open entries **15, 16** only. Fork copy lockstep. Receipts: PROJECT_STATE §141 + cum-effects.md REV-129.
+
+---
+
+## Entry 24 — REV-130 (2026-10-19): the MORE CUM MCM description — DRAFT, the user's pen
+
+The toggle ships on the cum-detection page; label **"More Cum"** (user-ruled). Behavior spec of record = cum-effects.md REV-130 §2 (SL-scene-scoped: throat applications also apply face + chest via the OCum drive — the external-area calls are the pull-out decal variant by construction, per the user's ruling; OStim-side unchanged; the build rides the NEXT build session). The MCM description DRAFT:
+
+```
+When enabled, SexLab scenes that finish in your partner's throat also leave visible cum on her face and chest, layered with the same decals OCum uses for its pull-out climaxes. Only affects scenes run through SexLab.
+```
+
+**Status: OPEN — the user's pen (edit or approve the draft; the build session cuts from the ruled text).** Register after this session: open entries **15, 16, 24**. Fork copy lockstep. Receipts: PROJECT_STATE §142 + cum-effects.md REV-130.
