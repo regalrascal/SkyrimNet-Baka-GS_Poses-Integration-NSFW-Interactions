@@ -1,0 +1,28 @@
+{# DeD Cum — disposition guidance for witnesses. ACTING-NPC-keyed: the
+   branches read the ACTING NPC's arousal tier (get_ded_arousal), NOT the
+   wearer's — a neutral witness and a fascinated witness react differently to
+   the same marked actor. Eligibility via get_ded_cum_any (module-owned
+   companion decorator, REV-132b): a marked actor in the observer's cell.
+   Tier-0 = silence (the anti-obsession rule; 0171's tier-1 floor).
+
+   REV-132b STAGED DRAFT (2026-10-19) — per cum-prompt-spec.md §3.2 + §7: the
+   tier-keying and gate structure are the spec's FIXED parts; the branch texts
+   below are STRATEGIST DRAFT (register entries 22/23 rider wording, CLOSED as
+   approved in the decorated stash) — the real texts are the USER'S pen
+   (register entry 26), whose ruling gates INSTALL. VERDICT STATUS: this
+   user_final_instructions surface has NO surveyed decorator precedent
+   (BodyLanguage's 0501_exposure is static text) and no actor-bound decorator
+   has been runtime-tested in ANY surface on beta-28 — the first enabled
+   render IS the probe (clean render = LIVE; error box = escalate, the
+   fallback design conversation). #}
+{% if render_mode == "full" %}
+{% if get_ded_cum_any(actor_uuid).any %}
+{% if get_ded_arousal(actor_uuid).tier == 3 %}
+When reacting to the cum-soaked person, run hot — open admiration and appetite; you do not bother hiding your fascination.
+{% else if get_ded_arousal(actor_uuid).tier == 2 %}
+When reacting to the cum-soaked person, be intrigued — curiosity and fascination, appraising without staring.
+{% else if get_ded_arousal(actor_uuid).tier == 1 %}
+When reacting to the cum-soaked person, be taken aback — shock, disgust, or scandalized disapproval.
+{% endif %}
+{% endif %}
+{% endif %}

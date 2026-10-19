@@ -787,3 +787,21 @@ The beta-28 kit census raised the response-rendering question again: beta-28-rc2
 > Does the response-template renderer evaluate custom decorators (e.g. `get_ded_cum`) used inside conditionals or text in `response.content` YAMLs? In beta-26-rc4 a decorated conditional in a response template produced a PromptEngineRender-class error and the template text was posted verbatim into chat (WORKFLOW_TRIGGERS.md's "template posted verbatim" path). Beta-28's docs don't cover response rendering, so: is this supported (and the beta-26 case a bug), unsupported-by-design (flat text is the contract), or changed in the overhaul?
 
 **Status: OPEN — the USER sends (review/edit first); the answer gates the decorated-template stash (stays CLOSED pending the probe/answer; flat fallbacks build regardless).** Register after this session: open entries **15, 16, 24, 25**. Fork copy lockstep. Receipts: PROJECT_STATE §143 + cum-prompt-spec.md §6.
+
+---
+
+## REV-132b register actions (2026-10-19, evening): entry 24 CLOSED; entry 26 OPENED
+
+- **Entry 24 — CLOSED (scope growth):** the More Cum MCM build rides REV-133 with the user's RULED text (§144's ruling: the edited description + the additional-decals scope). The draft above is superseded by the ruled text in PROJECT_STATE §144 (GS repo).
+- **Entry 25 — STILL OPEN, now with runtime receipts:** verdict (c) adjudicated AGAINST response-content decorators on beta-28 (the decorated ambient failed at fire time — engine fell back to the event-desc cue with `- **` debris; PROJECT_STATE §145). The note's premise stands and is now STRONGER; the user still sends.
+- **Register open entries after this session: 15, 16, 26.**
+
+---
+
+## Entry 26 — REV-132b (2026-10-19): the PROMPT FRAGMENT TEXTS + the DECORATED-TEMPLATE STASH — the user's pen
+
+1. **The staged fragment texts (SHIPPED as drafts in the [REV-132b] dist, install GATED on this ruling):** `character_bio/0175_ded_cum.prompt` (facts: self/other split + freshness bands per cum-prompt-spec.md §3) and `user_final_instructions/0520_ded_cum_disposition.prompt` (acting-NPC arousal-tiered disposition; tier-keying + gates fixed, texts draftable). Ruling the drafts (edit or approve) = the INSTALL gate per the §7 staging shape. Enabling them also runs the first runtime test of bio-surface decorators (verdicts (a)/(b) were never obtained — the probe never deployed).
+2. **The decorated-template stash (the REV-129 riders + branches, REMOVED from `sdb_cum_ambient.yaml` by the REV-132b flattening; verbatim text preserved in git history `dc3fceb^` and the [REV-129] dist):** the reopening asset — returns only if/when response-content decorator rendering is fixed upstream (entry 25's note).
+
+**Status: OPEN — the user's pen.** Receipts: PROJECT_STATE §145 (GS repo) + cum-prompt-spec.md §8 (as-built).
+

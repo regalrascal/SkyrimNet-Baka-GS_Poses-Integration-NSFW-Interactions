@@ -6,20 +6,22 @@ eventCriteria:
 
 response:
   type: "direct_narration"
-  # REV-129: the ambient's FIRST response-guidance surface (register entry 22
-  # ruled-closed on the user's narrative-voice text, VERBATIM below) + the
-  # approved rider constructions: the wearer-naming sentence and the freshness
-  # class (both gated on get_ded_cum) and the three arousal branches (gated on
-  # get_ded_arousal). All conditionals per the DevKit beta26-rc4 documented
-  # contract (WORKFLOW_TRIGGERS.md L133-152: prompt-engine render, decorators
-  # usable via originator_uuid; prompt-file-syntax.md L47-56: {% if %} syntax).
+  # REV-132b (2026-10-19): FLAT -- the pre-ruled fallback executed at last.
+  # The beta-28 session receipts: the DECORATED content (register entry 22's
+  # rider sentences + get_ded_cum/get_ded_arousal branches, REV-129) failed at
+  # fire time (PromptEngineRender.cpp:372 class, observed by the user; the
+  # openrouter_input receipts show the engine falling back to the event desc
+  # cue with template debris `- **` at the 21:53 ambient fires). Base text =
+  # register entry 22's ruled narrative-voice wording, VERBATIM below. The
+  # DECORATED STASH stays registered (pending-approvals register entry 26) as
+  # the reopening asset -- riders + branches return only if/when response
+  # -content decorator rendering is fixed upstream. Wearer-naming, freshness
+  # classes and arousal branches now ride the STAGED PROMPT FRAGMENTS
+  # (prompts/submodules/character_bio/0175_ded_cum.prompt + user_final_
+  # instructions/0520_ded_cum_disposition.prompt) -- the bio-render surface,
+  # a different lane than response.content.
   content: |
     The recent sexual encounter left one of its participants covered in cum. Nearby people start to notice and comment on it. They offer praise or admonishments to the cum soaked person as the situation, and their personality dictates. Use context. **Do not make up the source or location of the cum**.
-    {% if get_ded_cum(originator_uuid).present %}The cum soaked person is {{ get_ded_cum(originator_uuid).wearer_name }}.{% endif %}
-    {% if get_ded_arousal(originator_uuid).tier == 3 %}Their reaction runs hot -- open admiration and appetite; they do not bother hiding their fascination with the cum soaked person.
-    {% else if get_ded_arousal(originator_uuid).tier == 2 %}Their reaction is intrigued -- curiosity and fascination, appraising without staring.
-    {% else if get_ded_arousal(originator_uuid).tier == 1 %}Their reaction is taken aback -- shock, disgust, or scandalized disapproval at the cum soaked person.
-    {% endif %}{% if get_ded_cum(originator_uuid).present %}{% if get_ded_cum(originator_uuid).freshness_s < 120 %}The cum is still fresh and unmistakable.{% else if get_ded_cum(originator_uuid).freshness_s < 400 %}The cum is drying, settling in.{% else %}The cum has faded, almost passable.{% endif %}{% endif %}
 
 audience: "nearby_npcs"
 
@@ -27,3 +29,4 @@ enabled: true
 probability: 1
 cooldownSeconds: 30
 priority: 7
+

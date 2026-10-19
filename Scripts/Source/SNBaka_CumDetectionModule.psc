@@ -219,6 +219,12 @@ Function ArmStateLayer(SkyrimNet_BakaIntegration akHost) Global
     ; same class as AddTimerRule). rc=0 = registered OK (Phase 6a.1 instrument).
     Int rcDedCum = SkyrimNetApi.RegisterDecorator("get_ded_cum", "SNBaka_CumDetectionModule", "GetDedCum")
     akHost._Log("[SNBaka] decorator register: get_ded_cum rc=" + rcDedCum + " (REV-129)")
+    ; REV-132b: get_ded_cum_any decorator -- module-owned companion (cum-prompt
+    ; -spec.md §3.3): the witness-eligibility read (any tracked actor in the
+    ; observer's cell marked) WITHOUT exposing the full state JSON to rule
+    ; operators. Same arm-site idempotence as get_ded_cum above.
+    Int rcDedCumAny = SkyrimNetApi.RegisterDecorator("get_ded_cum_any", "SNBaka_CumDetectionModule", "GetDedCumAny")
+    akHost._Log("[SNBaka] decorator register: get_ded_cum_any rc=" + rcDedCumAny + " (REV-132b)")
     akHost._Log("[SNBaka] cum-v2 state layer armed: cum.* registered + ambient rule (60s/class-1/600s failsafe; REV-122)")
 EndFunction
 
@@ -248,6 +254,14 @@ Function _WriteCumState(Actor akTarget, String asLocation, String asSource) Glob
     DeDService.SetStateFloat(akTarget, "cum.expires_rt", expiresRT)
     DeDService.SetStateFormID(akTarget, "cum.wearer", akTarget)
     StorageUtil.SetFormValue(None, "SNBaka.CumWearer", akTarget)
+    ; REV-132b: bio-fragment windowing (cum-prompt-spec.md §3.1, the 0171
+    ; SADirt_PromptShow precedent): the show window REOPENS immediately on
+    ; every application so state updates land in the next bio render without
+    ; hygiene-style repetition; the ambient maintenance pass (60s tick)
+    ; advances the open/close cadence (~1 min open per ~10 min marked).
+    StorageUtil.SetFloatValue(akTarget, "DeD_Cum_PromptShowUntil", Utility.GetCurrentRealTime() + 60.0)
+    StorageUtil.SetFloatValue(akTarget, "DeD_Cum_PromptNextOpenRT", 0.0)
+    StorageUtil.SetIntValue(akTarget, "DeD_Cum_PromptShow", 1)
     ; REV-122: visual drive per tier matrix. "ocum" = their ApplyCum already
     ; applied the overlay (adopt); every other source drives/replaces.
     If asSource != "ocum"
@@ -785,6 +799,11 @@ Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, F
         If wearer
             _ClearCumVisual(wearer)
             DeDService.ClearActorState(wearer, "cum")
+            ; REV-132b: windowing keys ride the same clear (else a stale
+            ; show flag survives the state clear into the next marked period).
+            StorageUtil.UnsetIntValue(wearer, "DeD_Cum_PromptShow")
+            StorageUtil.UnsetFloatValue(wearer, "DeD_Cum_PromptShowUntil")
+            StorageUtil.UnsetFloatValue(wearer, "DeD_Cum_PromptNextOpenRT")
         EndIf
         StorageUtil.UnsetFormValue(None, "SNBaka.CumWearer")
         Return
@@ -798,6 +817,10 @@ Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, F
         akHost._Log("[SNBaka] sdb_cum_ambient_due: cum lifetime expired (wearer=" + wearer.GetDisplayName() + ") -- clearing visual + state (REV-122)")
         _ClearCumVisual(wearer)
         DeDService.ClearActorState(wearer, "cum")
+        ; REV-132b: windowing keys ride the same clear (see failsafe leg).
+        StorageUtil.UnsetIntValue(wearer, "DeD_Cum_PromptShow")
+        StorageUtil.UnsetFloatValue(wearer, "DeD_Cum_PromptShowUntil")
+        StorageUtil.UnsetFloatValue(wearer, "DeD_Cum_PromptNextOpenRT")
         StorageUtil.UnsetFormValue(None, "SNBaka.CumWearer")
         Return
     EndIf
@@ -819,6 +842,26 @@ Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, F
                 main.OCumSpell.Cast(wearer)
             EndIf
         EndIf
+    EndIf
+    ; REV-132b: windowing advance (cum-prompt-spec.md §3.1): ~1 min open per
+    ; ~10 min of marked time (the 0171 SADirt_PromptShow precedent). Tick
+    ; logic: inside the open window -> show=1; window closed -> show=0 and arm
+    ; the next open at +9 min; next-open due -> reopen for 60s. Every
+    ; application REOPENS immediately (_WriteCumState) so state updates land.
+    Float winNow = Utility.GetCurrentRealTime()
+    Float winShowUntil = StorageUtil.GetFloatValue(wearer, "DeD_Cum_PromptShowUntil", 0.0)
+    Float winNextOpen = StorageUtil.GetFloatValue(wearer, "DeD_Cum_PromptNextOpenRT", 0.0)
+    If winNow < winShowUntil
+        StorageUtil.SetIntValue(wearer, "DeD_Cum_PromptShow", 1)
+    ElseIf winNextOpen > 0.0 && winNow >= winNextOpen
+        StorageUtil.SetFloatValue(wearer, "DeD_Cum_PromptShowUntil", winNow + 60.0)
+        StorageUtil.SetFloatValue(wearer, "DeD_Cum_PromptNextOpenRT", 0.0)
+        StorageUtil.SetIntValue(wearer, "DeD_Cum_PromptShow", 1)
+    Else
+        If winNextOpen == 0.0
+            StorageUtil.SetFloatValue(wearer, "DeD_Cum_PromptNextOpenRT", winNow + 540.0)
+        EndIf
+        StorageUtil.SetIntValue(wearer, "DeD_Cum_PromptShow", 0)
     EndIf
     ; Ambient cue (unchanged REV-117 behavior): sender=None -> subjectless;
     ; the narrator applies it to whoever the moment fits.
@@ -871,6 +914,35 @@ String Function GetDedCum(Actor akActor) Global
     s += ", \"locations\": " + locArr + ", \"source\": \"" + src + "\""
     s += ", \"applied_rt\": " + appliedRT + ", \"freshness_s\": " + freshness + ", \"expires_in_s\": " + expiresIn + "}"
     Return s
+EndFunction
+
+; ---- REV-132b: get_ded_cum_any DECORATOR (module-owned companion; cum-prompt-spec.md §3.3) ----
+; The witness-eligibility read: {"any": true, "nearest": "<name>"} when the
+; wearer of record is marked, unexpired, and shares the observer's cell (or
+; IS the observer); {"any": false} otherwise. Deliberately minimal -- rule
+; operators get eligibility + the nearest name, never the full state JSON
+; (the speaker/target rule, prompts-and-decorators.md L57, applies: the
+; observer is always the actor in scope, compliant by construction).
+String Function GetDedCumAny(Actor akObserver) Global
+    Actor wearer = StorageUtil.GetFormValue(None, "SNBaka.CumWearer", None) as Actor
+    If !wearer
+        Return "{\"any\": false}"
+    EndIf
+    Float now = Utility.GetCurrentRealTime()
+    Float expiresRT = DeDService.GetStateFloat(wearer, "cum.expires_rt", 0.0)
+    If expiresRT > 0.0 && now >= expiresRT
+        Return "{\"any\": false}"
+    EndIf
+    If akObserver != wearer
+        If !akObserver || !wearer.GetParentCell() || akObserver.GetParentCell() != wearer.GetParentCell()
+            Return "{\"any\": false}"
+        EndIf
+    EndIf
+    String nearest = wearer.GetDisplayName()
+    If nearest == ""
+        nearest = "the cum soaked person"
+    EndIf
+    Return "{\"any\": true, \"nearest\": \"" + nearest + "\"}"
 EndFunction
 
 ; ---- REV-129: THE AFTERMATH DEFERRAL (Option A, ruled; register entry 23) ----

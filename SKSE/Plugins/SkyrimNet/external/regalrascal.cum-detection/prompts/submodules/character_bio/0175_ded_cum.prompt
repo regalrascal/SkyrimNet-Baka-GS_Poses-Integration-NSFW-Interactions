@@ -1,0 +1,38 @@
+{# DeD Cum — body-state facts. INFORMATIVE ONLY, never directive. Tier-0
+   (unmarked) renders NOTHING. Windowed: DeD_Cum_PromptShow opens ~1 min per
+   10 min of marked time, reopened immediately on application, so state
+   updates land without hygiene-style repetition (the 0171 windowing
+   precedent applied to cum). Brace-balanced.
+
+   REV-132b STAGED DRAFT (2026-10-19) — per cum-prompt-spec.md §3 (the drafted
+   construction of record) + §7 (the staging shape: mechanism ships with draft
+   texts; the real texts are the USER'S pen — register entry 26). VERDICT
+   STATUS: response-content decorators are BROKEN on beta-28 (REV-132b
+   receipts: ambient render failure at PromptEngineRender.cpp:372); this
+   BIO-RENDER surface is a different lane and its decorator/conditional
+   behavior (the §4 probe's verdicts a/b) was NEVER RUNTIME-TESTED — the
+   probe was never deployed (install-tree + log receipts, §145). This
+   fragment's first enabled render IS the probe: the self/other branch lines
+   below, resolving cleanly in a bio render = verdict (a)/(b) LIVE; an error
+   box = NOT (escalate, the fallback design conversation). The user's
+   entry-26 ruling gates INSTALL. #}
+{% if render_mode == "full" or render_mode == "thoughts" or render_mode == "transform" or render_mode == "action" %}
+{% if get_ded_cum(actor_uuid).present %}
+{% set cum = get_ded_cum(actor_uuid) %}
+{% set show = papyrus_util("GetIntValue", actor.UUID, "DeD_Cum_PromptShow", 1) %}
+{% if show == 1 %}
+## Your Body
+{% if cum.self %}
+{% if cum.freshness_s < 600 %}
+You have fresh cum on you — in your mouth and on your skin — from a very recent sexual encounter.
+{% elif cum.freshness_s < 3600 %}
+You have dried cum on your skin and hair from a recent sexual encounter.
+{% else %}
+There is an old, faded residue on you from a past sexual encounter.
+{% endif %}
+{% else %}
+{{ cum.wearer_name }} is marked with cum{% if cum.freshness_s < 600 %}, still fresh{% endif %} — visible at {{ cum.locations | join(", ") }}.
+{% endif %}
+{% endif %}
+{% endif %}
+{% endif %}
