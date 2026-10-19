@@ -1,0 +1,24 @@
+name: "sdb_probe_render"
+description: "REV-132 Task 1.2(c) PROBE — THROWAWAY, DELETE AT PROBE CONCLUSION. Response-content decorated-conditional render test on beta-28."
+
+# Fires on the aftermath event so the probe needs NO code build. During the
+# probe leg: DISABLE the shipped sdb_cum_aftermath trigger (dashboard triggers
+# page) and ENABLE this one; restore both afterwards. Receipts: a clean
+# branch-resolved PROBE-RC line = decorators render in response.content;
+# a PromptEngineRender-class error + template posted verbatim (WORKFLOW_TRIGGERS
+# .md L152) = the beta-26 failure reproduced on beta-28 (flat stands).
+eventCriteria:
+  eventType: "sdb_cum_aftermath"
+
+response:
+  type: "direct_narration"
+  content: |
+    PROBE-RC-9901 control text. The scene has ended.
+    {% if get_ded_cum(originator_uuid).present %}PROBE-RC-9901 branch TRUE: wearer {{ get_ded_cum(originator_uuid).wearer_name }}, freshness_s {{ get_ded_cum(originator_uuid).freshness_s }}.{% else %}PROBE-RC-9901 branch FALSE (decorator evaluated, branch resolved).{% endif %}
+
+audience: "nearby_npcs"
+
+enabled: false
+probability: 1
+cooldownSeconds: 30
+priority: 7
