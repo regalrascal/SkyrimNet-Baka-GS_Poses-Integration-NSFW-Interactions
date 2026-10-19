@@ -770,8 +770,20 @@ Riding ruling 1 (user, 2026-10-18): the applied trigger's narration defers to SC
 
 The toggle ships on the cum-detection page; label **"More Cum"** (user-ruled). Behavior spec of record = cum-effects.md REV-130 §2 (SL-scene-scoped: throat applications also apply face + chest via the OCum drive — the external-area calls are the pull-out decal variant by construction, per the user's ruling; OStim-side unchanged; the build rides the NEXT build session). The MCM description DRAFT:
 
+***User edited, I would also like this setting to apply thigh cum decals to vaginal and anal climaxes. No change in toggle text required. Textures do not need to be from OCum, they should come from whichever framework is being used***
 ```
-When enabled, SexLab scenes that finish in your partner's throat also leave visible cum on her face and chest, layered with the same decals OCum uses for its pull-out climaxes. Only affects scenes run through SexLab.
+When enabled, sex scenes will generate cum decals on additional body parts.
 ```
 
 **Status: OPEN — the user's pen (edit or approve the draft; the build session cuts from the ruled text).** Register after this session: open entries **15, 16, 24**. Fork copy lockstep. Receipts: PROJECT_STATE §142 + cum-effects.md REV-130.
+
+---
+
+## Entry 25 — REV-131 (2026-10-19): SN NOTE DRAFT — response-template rendering with custom decorators (beta-28 report; the USER SENDS)
+
+***User approved, but ruled not urgent. We will proceed with prompts as our main render option from now on.***
+The beta-28 kit census raised the response-rendering question again: beta-28-rc2 docs are byte-identical to beta-26-rc4 on the decorator/response surfaces, the conversation overhaul (GamePlugin PR #754 + the 10-19 Conversation System doc) states response rendering untouched, and the beta-26-rc4 runtime repro (decorator call inside a `response.content` conditional → PromptEngineRender-class error, template posted verbatim per WORKFLOW_TRIGGERS.md L152) remains the reproducible case. VERDICT (c): indeterminate from kit sources — the runtime probe (REV-132's first task) adjudicates. The NOTE DRAFT (full quoted text of record = cum-prompt-spec.md §6):
+
+> Does the response-template renderer evaluate custom decorators (e.g. `get_ded_cum`) used inside conditionals or text in `response.content` YAMLs? In beta-26-rc4 a decorated conditional in a response template produced a PromptEngineRender-class error and the template text was posted verbatim into chat (WORKFLOW_TRIGGERS.md's "template posted verbatim" path). Beta-28's docs don't cover response rendering, so: is this supported (and the beta-26 case a bug), unsupported-by-design (flat text is the contract), or changed in the overhaul?
+
+**Status: OPEN — the USER sends (review/edit first); the answer gates the decorated-template stash (stays CLOSED pending the probe/answer; flat fallbacks build regardless).** Register after this session: open entries **15, 16, 24, 25**. Fork copy lockstep. Receipts: PROJECT_STATE §143 + cum-prompt-spec.md §6.
