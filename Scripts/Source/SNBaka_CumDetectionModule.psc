@@ -246,6 +246,22 @@ Function _WriteCumState(Actor akTarget, String asLocation, String asSource) Glob
     DeDService.SetStateBool(akTarget, "cum.present", True)
     DeDService.SetStateString(akTarget, "cum.last_location", asLocation)
     DeDService.SetStateString(akTarget, "cum.last_source", asSource)
+    ; REV-133 (cum-prompt-spec.md s9, the null contract): the LOCATION SET is
+    ; accumulated as a StorageUtil string list (unique append, capped at 6 --
+    ; the per-location bio construction's data source; the decorator's
+    ; "locations" field reads THIS list and is therefore never null and never
+    ; larger than 6 entries). cum.last_location stays the single newest write
+    ; (the cue's wording source, unchanged).
+    If asLocation != ""
+        ; REV-133: unique-append with recency refresh via StringListFind/Remove
+        ; (the PapyrusUtil StorageUtil API: Find/Remove, not Get/RemoveAt).
+        If StorageUtil.StringListFind(akTarget, "DeD_Cum_Locations", asLocation) >= 0
+            StorageUtil.StringListRemove(akTarget, "DeD_Cum_Locations", asLocation, True)
+        ElseIf StorageUtil.StringListCount(akTarget, "DeD_Cum_Locations") >= 6
+            StorageUtil.StringListRemoveAt(akTarget, "DeD_Cum_Locations", 0)
+        EndIf
+        StorageUtil.StringListAdd(akTarget, "DeD_Cum_Locations", asLocation, False)
+    EndIf
     DeDService.SetStateFloat(akTarget, "cum.last_applied_rt", Utility.GetCurrentRealTime())
     ; REV-122: expiry + wearer cache. Every application signal REFRESHES the
     ; deadline (latest-write-wins, matching how OCum re-entries extend the
@@ -804,6 +820,8 @@ Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, F
             StorageUtil.UnsetIntValue(wearer, "DeD_Cum_PromptShow")
             StorageUtil.UnsetFloatValue(wearer, "DeD_Cum_PromptShowUntil")
             StorageUtil.UnsetFloatValue(wearer, "DeD_Cum_PromptNextOpenRT")
+            ; REV-133: the accumulated location set rides the same clear.
+            StorageUtil.StringListClear(wearer, "DeD_Cum_Locations")
         EndIf
         StorageUtil.UnsetFormValue(None, "SNBaka.CumWearer")
         Return
@@ -821,6 +839,8 @@ Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, F
         StorageUtil.UnsetIntValue(wearer, "DeD_Cum_PromptShow")
         StorageUtil.UnsetFloatValue(wearer, "DeD_Cum_PromptShowUntil")
         StorageUtil.UnsetFloatValue(wearer, "DeD_Cum_PromptNextOpenRT")
+        ; REV-133: the accumulated location set rides the same clear.
+        StorageUtil.StringListClear(wearer, "DeD_Cum_Locations")
         StorageUtil.UnsetFormValue(None, "SNBaka.CumWearer")
         Return
     EndIf
@@ -871,9 +891,110 @@ Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, F
     ; this cue text feeds the GAMEMASTER'S world-direction (a context entry
     ; the gamemaster turns into speaker direction), NOT a speaker line --
     ; the phrasing is validated against that consumer model.
-    String desc = "Nearby characters notice that someone is covered in cum from a recent sexual encounter."    ; REV-127b: user-edited wording of record (register entry 19, 2026-10-18)
+    ; REV-133 (Task 3.1, cum-prompt-spec.md s9): the ambient cue is now
+    ; PRE-SHAPED per-fire in Papyrus from the phrase pieces -- wearer-naming,
+    ; freshness-banded (<600 fresh / <3600 dried / else faded -- the 0175 band
+    ; matrix of record), location-aware (the accumulated set, plain-English
+    ; join) -- ALL PLAIN TEXT, zero template syntax, so it cannot inherit the
+    ; beta-28 response-content render failure class (the .cpp:372 receipts).
+    ; Wording posture: the "Nearby characters notice that ..." prefix is
+    ; register entry 19's ruled wording of record (kept verbatim); the
+    ; name/freshness/location insertions are STRATEGIST DRAFT and ride the
+    ; entry-26 batch (the user rules the phrase family once). The subjectless
+    ; base (entry 19 verbatim, "someone is covered in cum ...") remains the
+    ; no-wearer / no-pieces fallback -- the ruled text is always reachable.
+    String desc = _AmbientDesc(wearer)
     akHost._Log("[SNBaka] sdb_cum_ambient_due: ambient cue fired (sender=" + akSender + "; maintenance pass done, src=" + src + ")")
     SkyrimNetApi.RegisterEvent("sdb_cum_ambient", desc, narrTarget, None)
+EndFunction
+
+; ---- REV-133: THE PRE-SHAPED AMBIENT (Task 3.1; entry-26 phrase batch) ----
+; Plain-text phrase pieces composed per-fire. Location nouns (the bio
+; fragment's s9 table mirrored ONE-WORD-CLASS-SIMPLER for the one-line cue):
+; a body-place noun per location key; unknown keys contribute nothing (the
+; freshness phrase still lands). Freshness bands = the 0175 matrix of record.
+String Function _LocationNoun(String asArea) Global
+    If asArea == "belly"
+        Return "belly"
+    ElseIf asArea == "butt"
+        Return "ass"
+    ElseIf asArea == "chest"
+        Return "chest"
+    ElseIf asArea == "face"
+        Return "face"
+    ElseIf asArea == "feet"
+        Return "feet"
+    ElseIf asArea == "hands"
+        Return "hands"
+    ElseIf asArea == "mouth"
+        Return "mouth"
+    ElseIf asArea == "rectum"
+        Return "ass"
+    ElseIf asArea == "thighs"
+        Return "thighs"
+    ElseIf asArea == "throat"
+        Return "throat"
+    ElseIf asArea == "vagina"
+        Return "pussy"
+    EndIf
+    Return ""
+EndFunction
+
+String Function _AmbientDesc(Actor wearer) Global
+    String base = "Nearby characters notice that someone is covered in cum from a recent sexual encounter."
+    If !wearer
+        Return base
+    EndIf
+    String nm = wearer.GetDisplayName()
+    If nm == ""
+        Return base
+    EndIf
+    ; Location pieces: plain-English join over the accumulated set (REV-133;
+    ; dedupe by noun so butt/rectum collapse, order = recency).
+    String pieces = ""
+    Int nLoc = StorageUtil.StringListCount(wearer, "DeD_Cum_Locations")
+    Int iLoc = 0
+    While iLoc < nLoc
+        String noun = _LocationNoun(StorageUtil.StringListGet(wearer, "DeD_Cum_Locations", iLoc))
+        If noun != "" && StringUtil.Find(pieces, noun) < 0
+            If pieces != ""
+                pieces = pieces + ", "
+            EndIf
+            pieces = pieces + noun
+        EndIf
+        iLoc += 1
+    EndWhile
+    ; Freshness band (the 0175 matrix of record; applied_rt==0 = not-yet-set ->
+    ; fresh band, the s9 null contract's never-null default).
+    Float appliedRT = DeDService.GetStateFloat(wearer, "cum.last_applied_rt", 0.0)
+    Int fresh = (Utility.GetCurrentRealTime() - appliedRT) as Int
+    If fresh < 0
+        fresh = 0
+    EndIf
+    String freshPhrase = ""
+    If fresh < 600
+        freshPhrase = "still fresh"
+    ElseIf fresh < 3600
+        freshPhrase = "dried"
+    Else
+        freshPhrase = "an old, faded residue"
+    EndIf
+    ; Composition: entry 19's ruled prefix shape ("Nearby characters notice
+    ; that ..."), wearer-named, freshness-banded, location-aware tail.
+    String desc = "Nearby characters notice that " + nm + " is covered in cum"
+    If pieces != ""
+        desc = desc + " on the " + pieces
+    EndIf
+    desc = desc + " from a recent sexual encounter"
+    If freshPhrase == "still fresh"
+        desc = desc + ", still fresh"
+    ElseIf freshPhrase == "dried"
+        desc = desc + ", now dried"
+    Else
+        desc = desc + ", an old faded residue now"
+    EndIf
+    desc = desc + "."
+    Return desc
 EndFunction
 
 ; ---- REV-129: get_ded_cum DECORATOR (module-owned; REV-128 1.1(a) as-built) ----
@@ -906,10 +1027,23 @@ String Function GetDedCum(Actor akActor) Global
         freshness = 0
     EndIf
     Int expiresIn = (expiresRT - now) as Int
-    String locArr = "[]"
-    If loc != ""
-        locArr = "[\"" + loc + "\"]"
-    EndIf
+    ; REV-133 (the null contract, cum-prompt-spec.md s9): "locations" reads the
+    ; ACCUMULATED DeD_Cum_Locations string list -- always a well-formed JSON
+    ; array (possibly empty, never null), unique, recency-ordered, capped at 6.
+    ; freshness_s is an Int >= 0 (never null; not-yet-set -> 0 = fresh band).
+    ; source may be "" when a write path skipped the source arg (documented:
+    ; "" = unknown source; fragments must not branch on it being non-empty).
+    String locArr = "["
+    Int nLoc = StorageUtil.StringListCount(wearer, "DeD_Cum_Locations")
+    Int iLoc = 0
+    While iLoc < nLoc
+        If iLoc > 0
+            locArr = locArr + ", "
+        EndIf
+        locArr = locArr + "\"" + StorageUtil.StringListGet(wearer, "DeD_Cum_Locations", iLoc) + "\""
+        iLoc += 1
+    EndWhile
+    locArr = locArr + "]"
     String s = "{\"present\": true, \"wearer_name\": \"" + wearerName + "\", \"self\": " + isSelf
     s += ", \"locations\": " + locArr + ", \"source\": \"" + src + "\""
     s += ", \"applied_rt\": " + appliedRT + ", \"freshness_s\": " + freshness + ", \"expires_in_s\": " + expiresIn + "}"
