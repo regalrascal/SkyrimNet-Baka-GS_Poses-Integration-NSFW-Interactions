@@ -53,6 +53,8 @@ Int _tiedHoursOID
 ; REV-63 detection + inflation triggers (Plugins page)
 Int _cumDetectOID
 Int _slProxyOID
+; REV-133c Task 2.2: More Cum (register 24, ruled) -- additional cum decals.
+Int _moreCumOID
 Int _fhuAwareOID
 ; REV-68 "Downed State (Acheron Bridge)" section (Plugins page) — consolidated from the
 ; bridge's own MCM. Settings stay in StorageUtil (player-keyed, same SNAcheron.* keys and
@@ -120,8 +122,11 @@ EndEvent
 ; REV-74: bumped to 7 -- SlaveTats section gained the REV-74 options (module-wide default
 ; color, removal-on-release, ambient observation). No data migration (new keys only; the
 ; v7 marker distinguishes the crossing save for dogfood).
+; REV-133c: bumped to 8 -- the "More Cum" toggle joined the Cum Detection section
+; (Plugins page; register 24, ruled). New option on an existing page needs the bump
+; on existing saves. No data migration (new motherboard property only).
 Int Function GetVersion()
-    Return 7
+    Return 8
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -145,6 +150,13 @@ Event OnVersionUpdate(Int aVersion)
         ; removal-on-release / observation options. Dogfood probe (grep SNBaka.ST.MCMv7).
         StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.ST.MCMv7", 1)
         Debug.Trace("[SNBaka] MCM v7: SlaveTats REV-74 options added (SNBaka.ST.MCMv7=1 marker set)")
+    EndIf
+    If aVersion < 8
+        ; REV-133c marker (one-time, per-player): the More Cum toggle joined the
+        ; Cum Detection section (register 24, ruled). Dogfood probe (grep
+        ; SNBaka.MCMv8 in Papyrus.0.log); not read by code.
+        StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMv8", 1)
+        Debug.Trace("[SNBaka] MCM v8: More Cum toggle added to the Cum Detection section (SNBaka.MCMv8=1 marker set)")
     EndIf
     _BuildPages()
 EndEvent
@@ -283,9 +295,17 @@ Event OnPageReset(String page)
             Else
                 _slProxyOID = AddToggleOption("SexLab Climax Proxy Share", Main.bSLProxyEnabled, OPTION_FLAG_DISABLED)
             EndIf
+            ; REV-133c Task 2.2 (register 24, ruled): the user's label; the
+            ; description rides the register text. Gate follows the cum-cue master.
+            If Main.bCumDetectionEnabled
+                _moreCumOID = AddToggleOption("More Cum", Main.bMoreCumEnabled)
+            Else
+                _moreCumOID = AddToggleOption("More Cum", Main.bMoreCumEnabled, OPTION_FLAG_DISABLED)
+            EndIf
         Else
             _cumDetectOID = AddToggleOption("Cum Cues (OCum not installed)", False, OPTION_FLAG_DISABLED)
             _slProxyOID   = -1
+            _moreCumOID   = -1
         EndIf
         AddHeaderOption("FHU Inflation Awareness")
         If Main._FHUInstalled()
@@ -381,6 +401,7 @@ Event OnOptionSelect(Int option)
         Main.bCumDetectionEnabled = !Main.bCumDetectionEnabled
         SetToggleOptionValue(_cumDetectOID, Main.bCumDetectionEnabled)
         SetOptionFlags(_slProxyOID, OPTION_FLAG_DISABLED * ((!Main.bCumDetectionEnabled) as Int))
+        SetOptionFlags(_moreCumOID, OPTION_FLAG_DISABLED * ((!Main.bCumDetectionEnabled) as Int))
         If Main.bCumDetectionEnabled
             Main.Setup()
             Debug.Notification("Cum cues enabled.")
@@ -390,6 +411,15 @@ Event OnOptionSelect(Int option)
     ElseIf option == _slProxyOID
         Main.bSLProxyEnabled = !Main.bSLProxyEnabled
         SetToggleOptionValue(_slProxyOID, Main.bSLProxyEnabled)
+    ElseIf option == _moreCumOID
+        ; REV-133c Task 2.2 (register 24, ruled)
+        Main.bMoreCumEnabled = !Main.bMoreCumEnabled
+        SetToggleOptionValue(_moreCumOID, Main.bMoreCumEnabled)
+        If Main.bMoreCumEnabled
+            Debug.Notification("More Cum enabled: scenes will apply decals on additional body parts.")
+        Else
+            Debug.Notification("More Cum disabled.")
+        EndIf
     ElseIf option == _fhuAwareOID
         Main.bFHUInflationEnabled = !Main.bFHUInflationEnabled
         SetToggleOptionValue(_fhuAwareOID, Main.bFHUInflationEnabled)

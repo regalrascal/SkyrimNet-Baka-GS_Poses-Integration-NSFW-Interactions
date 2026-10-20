@@ -239,7 +239,7 @@ EndFunction
 ; re-stack their overlays). The ocum_applied_cum re-entry from our own drive
 ; call re-lands here with source "ocum" -- that rewrite is the correct
 ; maintenance tier, and the shared 15s cue window eats the cue double-fire.
-Function _WriteCumState(Actor akTarget, String asLocation, String asSource) Global
+Function _WriteCumState(SkyrimNet_BakaIntegration akHost, Actor akTarget, String asLocation, String asSource) Global
     If !akTarget || !DeD_ServicePresent()
         Return
     EndIf
@@ -280,8 +280,43 @@ Function _WriteCumState(Actor akTarget, String asLocation, String asSource) Glob
     StorageUtil.SetIntValue(akTarget, "DeD_Cum_PromptShow", 1)
     ; REV-122: visual drive per tier matrix. "ocum" = their ApplyCum already
     ; applied the overlay (adopt); every other source drives/replaces.
+    ; REV-133c: the drive is now SCENE-SOURCE-TIERED (see _ApplyCumVisual).
     If asSource != "ocum"
-        _ApplyCumVisual(akTarget, asLocation)
+        _ApplyCumVisual(akTarget, asLocation, asSource)
+    EndIf
+    ; REV-133c Task 2.2 (register 24, ruled): MORE CUM -- when enabled, sex
+    ; scenes generate cum decals on additional body parts. Throat finishes
+    ; (the oral lane's literals: "throat" on the OCum side, "mouth" on the
+    ; SL/P+ side) ALSO apply face+chest via the routed appliance; vaginal and
+    ; anal finishes ALSO apply thighs. Per-tier resolution follows the
+    ; appliance: the OCum appliance draws face/chest/thighs natively; the
+    ; SLACS combo-spell appliance has three flags only (the additional-decals
+    ; scope resolved by what the decals actually draw -- SLACS-lane extras
+    ; land as visual no-ops there). RE-ENTRY HONESTY (OCum lane): the extra
+    ; ApplyCum drives re-emit ocum_applied_cum, whose re-entry rewrites
+    ; last_location to the extra area and joins it to DeD_Cum_Locations (the
+    ; documented re-entry behavior, L239-241) -- the decal areas ARE
+    ; observable cum areas, so their presence in the ambient wording is
+    ; honest; the extras themselves never re-branch (face/chest/thighs are
+    ; not in the extras map). SLACS lane: no re-entry (no event emitted).
+    If asLocation != "" && akHost && akHost.bMoreCumEnabled
+        String extraA = ""
+        String extraB = ""
+        If asLocation == "throat" || asLocation == "mouth"
+            extraA = "face"
+            extraB = "chest"
+        ElseIf asLocation == "vagina" || asLocation == "pussy" || asLocation == "rectum" || asLocation == "ass"
+            extraA = "thighs"
+        EndIf
+        If extraA != ""
+            String extraList = extraA
+            If extraB != ""
+                _ApplyCumVisual(akTarget, extraB, asSource)
+                extraList = extraA + "+" + extraB
+            EndIf
+            _ApplyCumVisual(akTarget, extraA, asSource)
+            akHost._Log("[SNBaka] More Cum: " + asLocation + " -> additional decals (" + extraList + ") via " + asSource + " appliance (REV-133c)")
+        EndIf
     EndIf
     ; REV-127: keep the ambient rule ALIVE across a mid-session failsafe disarm
     ; (600s after the last application the rule disarms itself; a later in-session
@@ -329,7 +364,7 @@ Function HandleOCumApplied(SkyrimNet_BakaIntegration akHost, Form akOrgasmer, Fo
     If !_EventSourceOwnsCum(akHost, orgasmer)
         Return
     EndIf
-    _WriteCumState(target, asArea, "ocum")
+    _WriteCumState(akHost, target, asArea, "ocum")
     _FireCumCue(akHost, orgasmer, target, asArea)
 EndFunction
 
@@ -352,7 +387,7 @@ Function HandleOCumAppliedNPCScene(SkyrimNet_BakaIntegration akHost, Form akOrga
     If !_EventSourceOwnsCum(akHost, orgasmer)
         Return
     EndIf
-    _WriteCumState(target, asArea, "ocum")
+    _WriteCumState(akHost, target, asArea, "ocum")
     _FireCumCue(akHost, orgasmer, target, asArea)
 EndFunction
 
@@ -579,7 +614,7 @@ Function HandleSLStageEnd(SkyrimNet_BakaIntegration akHost, Int aiThreadID, Bool
         If pos
             String kloc = _SLKeywordLocation(pos)
             If kloc
-                _WriteCumState(pos, kloc, "sexlab_vanilla")
+                _WriteCumState(akHost, pos, kloc, "sexlab_vanilla")
                 ; cue: location-variant via the shared fire path (15s cooldown applies)
                 _FireCumCue(akHost, srcActor, pos, kloc)
                 akHost._Log("[SNBaka] OnSLStageEnd: thread=" + threadID + " position=" + pos.GetDisplayName() + " keyword-reconciled location=" + kloc + " (proxy wording skipped)")
@@ -689,7 +724,7 @@ Function HandleSLApplyCumFX(SkyrimNet_BakaIntegration akHost, Form akTarget, For
     If !_EventSourceOwnsCum(akHost, source)
         Return
     EndIf
-    _WriteCumState(target, loc, "sexlab_pplus")
+    _WriteCumState(akHost, target, loc, "sexlab_pplus")
     _FireCumCue(akHost, source, target, loc)
 EndFunction
 
@@ -718,50 +753,81 @@ EndFunction
 ; FX-domain literal ("vagina"|"rectum"|"mouth"). No drive call when the
 ; location is unknown or the source is the SL proxy (proxy never claims
 ; overlay application) -- state-only, documented degradation.
-Function _ApplyCumVisual(Actor akTarget, String asLocation) Global
+; REV-133c Task 2.1 (ruled): the appliance is tiered BY SCENE SOURCE, not by
+; install order. OCum-source scenes (OStim/OCum events) use the OCum appliance;
+; SL/P+ scenes use the SL overlay appliance (sl.ActorLib.AddCum combo spells).
+; SLACS inventory note (2.2 ruling: resolved by what the decals actually
+; draw): SLACS_2_SCO_v079_5 is a TEXTURE REPLACER -- verified present in the
+; LoreRim modlist (build-time receipt, rev133c_presence.txt) -- it overrides
+; the textures the SAME AddCum combo spells draw, so no runtime detection is
+; needed or possible; base SL textures render when it is absent. Replace-
+; not-stack is now SYMMETRIC: whichever appliance takes ownership drops the
+; other system's visual first (OCum clean when SLACS takes over; SLACS
+; ClearCum when OCum takes over). Maintenance re-drives never re-call SLACS
+; AddCum (it ESCALATES the texture tier 1->2 on an already-cummed actor).
+Function _ApplyCumVisual(Actor akTarget, String asLocation, String asSource) Global
     If !akTarget || !asLocation
         Return    ; state-only degradation (no location -> no overlay claim)
     EndIf
-    ; ---- Tier 1: OCum drive (preferred whenever OCum is installed) ----
-    If Installed()
-        OCumMaleScript male = _OCumMale()
-        SexLabFramework sl = None
-        If SkyrimNet_BakaSL.Installed()
-            sl = SkyrimNet_BakaSL._SL()
+    ; ---- OCum lane: OCum-source scenes (and any OCum re-drive) ----
+    If asSource == "ocum"
+        If Installed()
+            OCumMaleScript male = _OCumMale()
+            If male
+                ; OCumMaleScript.psc L303-345 (GPL -- cited, not copied): the
+                ; generic entry; Area is a String argument dispatched to
+                ; per-area overlay application (CumOntoArea L523-536).
+                ; ThreadID=0 = the out-of-scene path. Re-emits ocum_applied_cum
+                ; (L316) -> our own handler re-writes state source as "ocum"
+                ; and the cue double-fire is eaten by the shared 15s window.
+                ; REV-133c: area routed through _LocationNoun (our literals ->
+                ; OCum's own nouns; OCum's own nouns pass through unchanged).
+                String ocumArea = _LocationNoun(asLocation)
+                If ocumArea == ""
+                    ocumArea = asLocation
+                EndIf
+                male.ApplyCum(akTarget, akTarget, ocumArea, 1, 1.0, "", 0)
+                Return
+            EndIf
         EndIf
-        ; Replace-not-stack: if SLACS overlays are already on the wearer (SL+
-        ; OCum stack case), drop them first -- OCum becomes the sole visual
-        ; authority. Note: we never RE-call SLACS AddCum as maintenance (it
-        ; ESCALATES the texture tier 1->2 on an already-cummed actor).
-        If sl && sl.ActorLib
-            sl.ActorLib.ClearCum(akTarget)
-        EndIf
-        If male
-            ; OCumMaleScript.psc L303-345 (GPL -- cited, not copied): the
-            ; generic entry; Area is a String argument dispatched to
-            ; per-area overlay application (CumOntoArea L523-536).
-            ; ThreadID=0 = the out-of-scene path (our case: we drive
-            ; post-scene). Re-emits ocum_applied_cum (L316) -> our own
-            ; handler re-writes state source as "ocum" (correct maintenance
-            ; tier) and the cue double-fire is eaten by the shared 15s window.
-            male.ApplyCum(akTarget, akTarget, asLocation, 1, 1.0, "", 0)
-            Return
-        EndIf
-        ; OCum installed but the male quest unresolvable: fall through to
-        ; SLACS (next tier) -- documented degradation.
+        ; OCum lane degraded (OCum absent or quest unresolvable): fall
+        ; through to the SLACS lane below -- documented degradation.
     EndIf
-    ; ---- Tier 2: SLACS (SL-only: SexLab's own combo-spell overlays) ----
+    ; ---- SLACS lane: SL/P+ scenes (the SL overlay appliance) ----
     If SkyrimNet_BakaSL.Installed()
         SexLabFramework sl = SkyrimNet_BakaSL._SL()
         If sl && sl.ActorLib
+            ; Replace-not-stack (symmetric): if OCum textures are on the
+            ; wearer (stack case), drop them first -- SLACS becomes the sole
+            ; visual authority for SL scenes (REV-133c matrix).
+            If Installed()
+                OCumScript main = _OCumMain()
+                If main
+                    main.CleanCumTexturesFromActor(akTarget)
+                EndIf
+            EndIf
             ; sslActorLibrary PPLUS L805/L834: AddCum(Actor, Vaginal, Oral,
             ; Anal) -- bool flags per area, spells persist-until-dispelled.
-            sl.ActorLib.AddCum(akTarget, asLocation == "vagina", asLocation == "mouth", asLocation == "rectum")
+            ; REV-133c: throat resolves to the ORAL decal (the SLACS
+            ; inventory question -- resolved by what the decals actually
+            ; draw: the combo spells have exactly three flags).
+            sl.ActorLib.AddCum(akTarget, asLocation == "vagina", asLocation == "mouth" || asLocation == "throat", asLocation == "rectum")
         EndIf
         ; SL present but ActorLib unresolvable: state-only degradation.
         Return
     EndIf
-    ; ---- Tier 3: neither framework -> state-only (documented degradation) ----
+    ; ---- SL absent: OCum fallback appliance (documented degradation) ----
+    If Installed()
+        OCumMaleScript male = _OCumMale()
+        If male
+            String ocumArea = _LocationNoun(asLocation)
+            If ocumArea == ""
+                ocumArea = asLocation
+            EndIf
+            male.ApplyCum(akTarget, akTarget, ocumArea, 1, 1.0, "", 0)
+        EndIf
+    EndIf
+    ; ---- Neither framework -> state-only (documented degradation) ----
 EndFunction
 
 ; Tier removal: clears BOTH systems' visuals. Used by expiry and the 600s
@@ -788,6 +854,30 @@ EndFunction
 ; hardcoded formIDs (Quest.GetQuest is the EDID path).
 OCumScript Function _OCumMain() Global
     Return Quest.GetQuest("OCumQuest") as OCumScript
+EndFunction
+
+; REV-133c Task 2.3, leg 2: BATH-COMPLETION CLEAR (SLACS-2's DnB_CleanActorDirt,
+; the 1-Form-push ModEvent from Dirty_BathingQuest.PlayBatheAnimation L140-145
+; -- source-verified in SLACS_2_SCO_v079_5\Scripts\Source). The state + visual
+; clear TOGETHER; only the WEARER OF RECORD is affected (a bath by anyone else
+; touches nothing -- the singular-wearer state model). Registration is
+; presence-gated on the motherboard (Game.IsPluginInstalled("SLACS_2_Plus_SCO.esp")).
+Function HandleBathClean(SkyrimNet_BakaIntegration akHost, Form akBathing) Global
+    If !akHost.bEnabled || !akHost.bCumDetectionEnabled
+        Return
+    EndIf
+    Actor wearer = StorageUtil.GetFormValue(None, "SNBaka.CumWearer", None) as Actor
+    If !wearer || akBathing != (wearer as Form)
+        Return    ; not the wearer of record: the bath touches no cum state
+    EndIf
+    akHost._Log("[SNBaka] DnB_CleanActorDirt: bath-completion clear (wearer=" + wearer.GetDisplayName() + ", visual + state, REV-133c)")
+    _ClearCumVisual(wearer)
+    DeDService.ClearActorState(wearer, "cum")
+    StorageUtil.UnsetIntValue(wearer, "DeD_Cum_PromptShow")
+    StorageUtil.UnsetFloatValue(wearer, "DeD_Cum_PromptShowUntil")
+    StorageUtil.UnsetFloatValue(wearer, "DeD_Cum_PromptNextOpenRT")
+    StorageUtil.StringListClear(wearer, "DeD_Cum_Locations")
+    StorageUtil.UnsetFormValue(None, "SNBaka.CumWearer")
 EndFunction
 
 OCumMaleScript Function _OCumMale() Global
@@ -828,6 +918,25 @@ Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, F
     EndIf
     If !wearer
         Return    ; nothing cached: no state to maintain (or pre-REV-122 state)
+    EndIf
+    ; REV-133c Task 2.3 (ruled): BATH/WATER CLEARING, leg 1 -- SWIMMING.
+    ; Swimming = full immersion -- the visual + state clear TOGETHER on the
+    ; next ambient tick (swimming-only degradation; no timer chain of its
+    ; own). Leg 2 -- the bath-completion surface -- is the presence-gated
+    ; DnB_CleanActorDirt listener (HandleBathClean below; SLACS-2 verified
+    ; installed: SLACS_2_Plus_SCO.esp). BiS Renewed's own quest is NOT in
+    ; the LoreRim modlist (the SLACS-2 quest is the same surface family and
+    ; IS the one present) -- the listener never fires if the plugin is absent.
+    If wearer.IsSwimming()
+        akHost._Log("[SNBaka] sdb_cum_ambient_due: wearer swimming -- bath clear, visual + state (REV-133c)")
+        _ClearCumVisual(wearer)
+        DeDService.ClearActorState(wearer, "cum")
+        StorageUtil.UnsetIntValue(wearer, "DeD_Cum_PromptShow")
+        StorageUtil.UnsetFloatValue(wearer, "DeD_Cum_PromptShowUntil")
+        StorageUtil.UnsetFloatValue(wearer, "DeD_Cum_PromptNextOpenRT")
+        StorageUtil.StringListClear(wearer, "DeD_Cum_Locations")
+        StorageUtil.UnsetFormValue(None, "SNBaka.CumWearer")
+        Return
     EndIf
     ; Expiry: lifetime clock (cum.expires_rt, refreshed by every application
     ; signal) -- clear BOTH systems' visuals + the state, drop the cache.
@@ -883,29 +992,29 @@ Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, F
         EndIf
         StorageUtil.SetIntValue(wearer, "DeD_Cum_PromptShow", 0)
     EndIf
-    ; Ambient cue (unchanged REV-117 behavior): sender=None -> subjectless;
-    ; the narrator applies it to whoever the moment fits.
-    Actor narrTarget = akSender as Actor
-    ; REV-127b (2026-10-18, register entry 19 re-ruling, user-edited this
-    ; exchange): gamemaster-directed phrasing of record. CONSUMER OF RECORD:
-    ; this cue text feeds the GAMEMASTER'S world-direction (a context entry
-    ; the gamemaster turns into speaker direction), NOT a speaker line --
-    ; the phrasing is validated against that consumer model.
-    ; REV-133 (Task 3.1, cum-prompt-spec.md s9): the ambient cue is now
-    ; PRE-SHAPED per-fire in Papyrus from the phrase pieces -- wearer-naming,
-    ; freshness-banded (<600 fresh / <3600 dried / else faded -- the 0175 band
-    ; matrix of record), location-aware (the accumulated set, plain-English
-    ; join) -- ALL PLAIN TEXT, zero template syntax, so it cannot inherit the
-    ; beta-28 response-content render failure class (the .cpp:372 receipts).
-    ; Wording posture: the "Nearby characters notice that ..." prefix is
-    ; register entry 19's ruled wording of record (kept verbatim); the
-    ; name/freshness/location insertions are STRATEGIST DRAFT and ride the
-    ; entry-26 batch (the user rules the phrase family once). The subjectless
-    ; base (entry 19 verbatim, "someone is covered in cum ...") remains the
-    ; no-wearer / no-pieces fallback -- the ruled text is always reachable.
-    String desc = _AmbientDesc(wearer)
-    akHost._Log("[SNBaka] sdb_cum_ambient_due: ambient cue fired (sender=" + akSender + "; maintenance pass done, src=" + src + ")")
-    SkyrimNetApi.RegisterEvent("sdb_cum_ambient", desc, narrTarget, None)
+    ; REV-133c Task 1.1 (ruled 2026-10-20, rider 2.5a CONSERVATIVE): the separate
+    ; DirectNarration event call is RETIRED. The ambient yaml
+    ; (sdb_cum_ambient.yaml) remains the consumer-of-record for the
+    ; sdb_cum_ambient event type, its response.content carrying ONLY the
+    ; approved cue-guidance text (relocated from the applied cue's approved
+    ; guidance wording; byte-verified: no DirectNarration machinery, no
+    ; template syntax).
+    ; ORPHAN SEMANTICS, as far as evidence allows (trigger-engine source
+    ; LOCATED: D:\Modlists\LoreRim\mods\skyrimnet-beta28-rc2\Source\Scripts\
+    ; SkyrimNetApi.psc -- RegisterEvent(eventType, content, originatorActor,
+    ; targetActor) is the NATIVE trigger-bus entry; the C++ matching internals
+    ; are not present in the installed trees): with the PSC emitter deleted,
+    ; no sdb_cum_ambient event is registered, so the yaml has no fire source
+    ; on current evidence. The ambient MOMENT still stands at +60s via the
+    ; staged prompt fragments (0175_ded_cum / 0520_ded_cum_disposition, the
+    ; bio lane) + the get_ded_cum decorator. Whether an emitter-less yaml has
+    ; any residual lane is the DEMOTED orphan question (records/curiosity;
+    ; rides the SN-team follow-up via the entry-25 note).
+    ; _AmbientDesc + _LocationNoun are RETAINED DORMANT: the pre-shaped
+    ; phrase pieces are the reopening asset for the delayed-ambient design
+    ; conversation (the room-too-quiet findings -> cum-effects.md reopening
+    ; notes).
+    akHost._Log("[SNBaka] sdb_cum_ambient_due: maintenance tick done (src=" + src + "; ambient DirectNarration retired REV-133c)")
 EndFunction
 
 ; ---- REV-133: THE PRE-SHAPED AMBIENT (Task 3.1; entry-26 phrase batch) ----
@@ -1002,7 +1111,9 @@ EndFunction
 ; templates. Wearer-keyed: resolves the wearer regardless of the passed
 ; actor (the state layer carries a singular wearer), with "self" carrying
 ; the direction bit. Unmarked or expired world: {"present": false}.
-; Consumers of record: sdb_cum_ambient.yaml / sdb_cum_aftermath.yaml
+; Consumers of record: sdb_cum_ambient.yaml (REV-133c: consumer-of-record,
+; emitter retired; see the orphan-semantics note in HandleCumAmbientDue) and
+; the staged prompt fragments (0175/0520)
 ; (wearer-naming + freshness class; the documented originator_uuid arg).
 String Function GetDedCum(Actor akActor) Global
     Actor wearer = StorageUtil.GetFormValue(None, "SNBaka.CumWearer", None) as Actor
@@ -1079,42 +1190,12 @@ String Function GetDedCumAny(Actor akObserver) Global
     Return "{\"any\": true, \"nearest\": \"" + nearest + "\"}"
 EndFunction
 
-; ---- REV-129: THE AFTERMATH DEFERRAL (Option A, ruled; register entry 23) ----
-; HookAnimationEnd receipt: SL fires it once per thread at scene end -- the
-; scene-end detection of record. If a wearer of record is marked (the scene
-; wrote cum), arm the +10s hold on the motherboard's multiplexed real-time
-; tick (REV-63 OnUpdate chain -- the spec's RegisterForSingleUpdate leg joined
-; to the existing mux rather than a second timer chain). No wearer -> no hold
-; -> no aftermath narration (honest failsafe; the ambient at +60s still
-; carries the long-run surface).
-Function HandleSLAnimationEnd(SkyrimNet_BakaIntegration akHost, Int aiThreadID) Global
-    If !akHost.bEnabled || !akHost.bCumDetectionEnabled || !DeD_ServicePresent()
-        Return
-    EndIf
-    Actor wearer = StorageUtil.GetFormValue(None, "SNBaka.CumWearer", None) as Actor
-    If !wearer
-        Return    ; scene ended without a cum write: silence (edge: no scene-cum link)
-    EndIf
-    akHost._ArmCumAftermathHold(Utility.GetCurrentRealTime() + 10.0)
-    akHost._Log("[SNBaka] HookAnimationEnd: cum wearer marked (thread=" + aiThreadID + ", wearer=" + wearer.GetDisplayName() + ") -- aftermath hold armed (+10s, REV-129)")
-EndFunction
-
-; The +10s hold's fire leg (motherboard OnUpdate mux -> here). Fires the
-; module-held aftermath event with a name-free desc cue; the narration
-; surface lives in sdb_cum_aftermath.yaml (the register entry-20 rider
-; wording). Wearer unmarked or lifetime expired at fire time -> silence.
-Function HandleAftermathDue(SkyrimNet_BakaIntegration akHost) Global
-    Actor wearer = StorageUtil.GetFormValue(None, "SNBaka.CumWearer", None) as Actor
-    If !wearer
-        akHost._Log("[SNBaka] sdb_cum_aftermath: hold fired with no wearer -- silence (REV-129)")
-        Return
-    EndIf
-    Float expiresRT = DeDService.GetStateFloat(wearer, "cum.expires_rt", 0.0)
-    If expiresRT > 0.0 && Utility.GetCurrentRealTime() >= expiresRT
-        akHost._Log("[SNBaka] sdb_cum_aftermath: lifetime expired before hold fire -- silence (REV-129)")
-        Return
-    EndIf
-    String desc = "The scene has ended; someone is still covered in cum."
-    akHost._Log("[SNBaka] sdb_cum_aftermath: fired (wearer=" + wearer.GetDisplayName() + "; REV-129 Option A)")
-    SkyrimNetApi.RegisterEvent("sdb_cum_aftermath", desc, wearer, None)
-EndFunction
+; ---- REV-133c Task 1.2 (ruled 2026-10-20, rider 2.5b): THE AFTERMATH
+; ---- RETIREMENT. The scene-end +10s hold chain (REV-129 Option A) is RETIRED
+; ---- whole: this HandleSLAnimationEnd receipt + HandleAftermathDue below
+; ---- are DELETED, the motherboard's _ArmCumAftermathHold/mux leg/listener
+; ---- with them, and sdb_cum_aftermath.yaml removed from the layer. The
+; ---- two-moment structure of record STANDS: application cue at climax (the
+; ---- fact) + ambient at +60s (the room). Both retirements' reopening notes
+; ---- live in cum-effects.md (room-too-quiet findings -> the delayed-ambient
+; ---- design conversation).

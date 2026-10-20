@@ -6,22 +6,37 @@ eventCriteria:
 
 response:
   type: "direct_narration"
-  # REV-132b (2026-10-19): FLAT -- the pre-ruled fallback executed at last.
-  # The beta-28 session receipts: the DECORATED content (register entry 22's
-  # rider sentences + get_ded_cum/get_ded_arousal branches, REV-129) failed at
-  # fire time (PromptEngineRender.cpp:372 class, observed by the user; the
-  # openrouter_input receipts show the engine falling back to the event desc
-  # cue with template debris `- **` at the 21:53 ambient fires). Base text =
-  # register entry 22's ruled narrative-voice wording, VERBATIM below. The
-  # DECORATED STASH stays registered (pending-approvals register entry 26) as
-  # the reopening asset -- riders + branches return only if/when response
-  # -content decorator rendering is fixed upstream. Wearer-naming, freshness
-  # classes and arousal branches now ride the STAGED PROMPT FRAGMENTS
-  # (prompts/submodules/character_bio/0175_ded_cum.prompt + user_final_
-  # instructions/0520_ded_cum_disposition.prompt) -- the bio-render surface,
-  # a different lane than response.content.
+  # REV-133c (2026-10-20, rider 2.5a CONSERVATIVE, ruled): the yaml is RETAINED
+  # as the consumer-of-record for the sdb_cum_ambient event type, and its
+  # response.content now carries ONLY the approved cue-guidance text --
+  # RELOCATED VERBATIM from the applied cue's approved guidance wording
+  # (public-staging sdb_cum_applied.yaml content, the shipped/ruled text).
+  # BYTE-VERIFIED SHAPE: no DirectNarration machinery (no register entry-22
+  # narration text, no decorated riders/branches), no template syntax. The
+  # separate PSC DirectNarration event call (the module's RegisterEvent at the
+  # +60s tick) is DELETED per the same ruling.
+  # ORPHAN SEMANTICS (as far as evidence allows -- trigger-engine source
+  # located: skyrimnet-beta28-rc2 Source\Scripts\SkyrimNetApi.psc;
+  # RegisterEvent(eventType, content, originator, target) is the native
+  # trigger-bus entry, and the C++ matching internals are not in the installed
+  # trees): with the emitter deleted, no sdb_cum_ambient event is registered,
+  # so on current evidence this yaml has no fire source. Whether an
+  # emitter-less yaml has any residual lane is the DEMOTED orphan question
+  # (records/curiosity; rides the SN-team follow-up via the entry-25 note).
+  # The ambient MOMENT stands at +60s via the staged prompt fragments
+  # (0175_ded_cum / 0520_ded_cum_disposition) + the get_ded_cum decorator.
   content: |
-    The recent sexual encounter left one of its participants covered in cum. Nearby people start to notice and comment on it. They offer praise or admonishments to the cum soaked person as the situation, and their personality dictates. Use context. **Do not make up the source or location of the cum**.
+    Look for someone nearby who is noticeably covered in cum from a recent
+    sexual encounter. Generate a response from someone who notices --
+    a comment, praise, or admonishment about their appearance as the
+    situation dictates. Direct it towards the cum covered person.
+    Deliver the dialogue in-character with narration as needed.
+
+    If the commenter is aggressive or cruel, the reaction should carry
+    dominance, scorn, cruelty, or satisfaction.
+
+    Do not invent which act produced the cum or where the cum is
+    visible -- react only to what is observable in the scene based on existing context.
 
 audience: "nearby_npcs"
 

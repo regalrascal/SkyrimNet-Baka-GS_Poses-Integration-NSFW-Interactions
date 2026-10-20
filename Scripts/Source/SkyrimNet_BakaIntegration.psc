@@ -226,6 +226,11 @@ Bool  Property bMatchHeight             = True  Auto  ; height-match paired-anim
 ; TRIGGERS section near the tail for the full design notes).
 Bool  Property bCumDetectionEnabled = True Auto  ; master: OCum + SL-proxy cum cues (sdb_cum_applied)
 Bool  Property bSLProxyEnabled      = True Auto  ; SexLab orgasm-hook proxy share of the cum cue
+; REV-133c Task 2.2 (register 24, ruled text): "When enabled, sex scenes will
+; generate cum decals on additional body parts." Throat finishes also apply
+; face+chest; vaginal/anal finishes also apply thighs. Driven in
+; SNBaka_CumDetectionModule._WriteCumState (per-scene-source appliance).
+Bool  Property bMoreCumEnabled     = True Auto  ; More Cum: additional cum decals on additional body parts
 Bool  Property bFHUInflationEnabled = True Auto  ; FHU inflation level awareness (sdb_fhu_inflate/deflate)
 ; Per-source vs unified cum-cue shaping (amendment 2b): 0 = unified (framework-neutral,
 ; default -- the proposal awaiting §7 ruling), 1 = per-source wording.
@@ -1084,9 +1089,13 @@ EndFunction
 ; EARLIEST pending consumer, and OnUpdate re-arms only while something is pending.
 ; Cooldown logic itself is unchanged (same expiry duration, same _bCooldownActive
 ; handling); only the timer mechanics differ.
+; REV-133c Task 1.2 (ruled, rider 2.5b): the aftermath hold chain is RETIRED
+; whole (decl/mux leg/fire leg/_ArmCumAftermathHold + the OnSLAnimationEnd
+; listener + the RegisterForModEvent arm + sdb_cum_aftermath.yaml). The
+; two-moment structure of record STANDS: application cue at climax + ambient
+; at +60s; nothing else fires.
 Float _fCooldownExpiresAtRT = 0.0   ; 0 = no cooldown pending
 Float _fFHUNextPollRT      = 0.0   ; 0 = poll not running
-Float _fCumAftermathDueRT  = 0.0   ; REV-129: 0 = no aftermath hold pending; >0 = due-at real-time (scene-end +10s, Option A)
 Float _RT_POLL_INTERVAL    = 10.0  ; FHU level-poll cadence, real seconds
 
 Function _ArmRealtimeTimer()
@@ -1097,10 +1106,6 @@ Function _ArmRealtimeTimer()
     EndIf
     If _fFHUNextPollRT > 0.0 && _fFHUNextPollRT < next
         next = _fFHUNextPollRT
-    EndIf
-    ; REV-129: the aftermath hold's +10s leg joins the mux (Option A deferral).
-    If _fCumAftermathDueRT > 0.0 && _fCumAftermathDueRT < next
-        next = _fCumAftermathDueRT
     EndIf
     If next < 999998.0
         If next <= now
@@ -1118,12 +1123,6 @@ Event OnUpdate()
         _bCooldownActive = False
         _fCooldownExpiresAtRT = 0.0
     EndIf
-    ; REV-129: aftermath hold fire leg (scene-end +10s; Option A). Clears the
-    ; hold FIRST so a re-arm inside the handler is never eaten by this tick.
-    If _fCumAftermathDueRT > 0.0 && now >= _fCumAftermathDueRT
-        _fCumAftermathDueRT = 0.0
-        SNBaka_CumDetectionModule.HandleAftermathDue(Self)
-    EndIf
     If _fFHUNextPollRT > 0.0 && now >= _fFHUNextPollRT
         ; REV-96 Task 2: poll body extracted to SNBaka_FHUInflationModule.PollLevels
         ; (behavior-preserving move; this multiplexed tick chain stays on the quest).
@@ -1139,14 +1138,6 @@ EndEvent
 ; never executed at save-load (the MCM OnGameReload chain was stale), so the
 ; poll never armed; the heartbeat demonstrably executes every ~3.3 min. A
 ; redundant call while a poll is already pending is a no-op.
-Function _ArmCumAftermathHold(Float afDueRT)
-    ; REV-129: cross-script setter for the aftermath hold (Papyrus script
-    ; variables are not cross-script readable; the cum module arms through
-    ; here). Multi-scene edge: a later scene-end overwrites an earlier pending
-    ; hold (the latest scene-end +10s wins).
-    _fCumAftermathDueRT = afDueRT
-    _ArmRealtimeTimer()
-EndFunction
 
 Function _FHUStartPoll()
     Float nowRT = Utility.GetCurrentRealTime()
@@ -9060,7 +9051,7 @@ Function _RegisterModEvents()
     RegisterForModEvent("ocum_applied_cum",           "OnOCumApplied")
     RegisterForModEvent("ocum_applied_cum_npc_scene", "OnOCumAppliedNPCScene")
     RegisterForModEvent("HookStageEnd",               "OnSLStageEnd")
-    RegisterForModEvent("HookAnimationEnd",           "OnSLAnimationEnd")   ; REV-129: scene-end hook (aftermath deferral, Option A)
+    ; REV-133c: HookAnimationEnd arm RETIRED (aftermath rider 2.5b).
     RegisterForModEvent("sr.inflater.start",          "OnFHUStartSignal")
     ; REV-117 cum-v2: the P+ push-time location signal (SexLabApplyCumFX,
     ; 3-push ModEvent: TargetRef, SourceRef, aiType) and the DLL's ambient
@@ -9068,6 +9059,14 @@ Function _RegisterModEvents()
     ; (vanilla SL never sends the former; the DLL absent = no timer emission).
     RegisterForModEvent("SexLabApplyCumFX",           "OnSLApplyCumFX")
     RegisterForModEvent("sdb_cum_ambient_due",        "OnCumAmbientDue")
+    ; REV-133c Task 2.3: the bath-completion surface -- SLACS-2's
+    ; Dirty_BathingQuest fires DnB_CleanActorDirt with the bathing actor as
+    ; the single Form push (source-verified: SLACS_2_SCO_v079_5
+    ; Scripts\Source\Dirty_BathingQuest.psc L140-145). Presence-gated (the
+    ; 0171 Game.IsPluginInstalled convention); absent plugin = never fires.
+    If Game.IsPluginInstalled("SLACS_2_Plus_SCO.esp")
+        RegisterForModEvent("DnB_CleanActorDirt", "OnDnBCleanActorDirt")
+    EndIf
     _Log("[SNBaka] _RegisterModEvents: REV-65 detection triggers armed (OCum x2 [5-arg + 6-arg npc_scene], SL HookStageEnd [2-arg], FHU start [0-arg]) + REV-117 cum-v2 (P+ ApplyCumFX [3-arg], ambient due [4-slot])")
     ; REV-116 instrumentation (report-only; PROJECT_STATE 125 open item): the
     ; arm-time gate ECHO -- what the detection gates are RIGHT NOW, so MCM
@@ -10211,17 +10210,12 @@ EndEvent
 ; REV-65: signature derived from the sender's ACTUAL pushes (sslThreadModel
 ; PPLUS V2.18.1, SetupThreadEvent L2261-2268: PushInt(thread_id),
 ; PushBool(HasPlayer) -- 2 args). The rev-63 4-slot shape is retired.
+; REV-133c Task 1.2 (ruled): the OnSLAnimationEnd listener is RETIRED with
+; the whole aftermath chain (rider 2.5b; the motherboard recompile is the
+; declared, receipted scope -- clean removal beats archaeology-dust).
 Event OnSLStageEnd(Int aiThreadID, Bool abHasPlayer)
     ; REV-96 Task 2: body MOVED VERBATIM to SNBaka_CumDetectionModule.HandleSLStageEnd.
     SNBaka_CumDetectionModule.HandleSLStageEnd(Self, aiThreadID, abHasPlayer)
-EndEvent
-
-; REV-129: SL scene-end hook (the aftermath deferral, Option A -- register
-; entry 23, ruled). SexLab fires HookAnimationEnd once per thread at
-; animation end: the scene-end detection of record. Body lives in the cum
-; module (module-owned mechanism; the hold itself is the motherboard mux leg).
-Event OnSLAnimationEnd(Int aiThreadID, Bool abHasPlayer)
-    SNBaka_CumDetectionModule.HandleSLAnimationEnd(Self, aiThreadID)
 EndEvent
 
 ; ---- REV-129: get_ded_arousal DECORATOR (FRAMEWORK-CLASS, motherboard-owned; ----
@@ -10265,6 +10259,12 @@ EndEvent
 ; shape from EventPump.cpp: eventName, strArg, numArg, sender).
 Event OnCumAmbientDue(String eventName, String strArg, Float numArg, Form sender)
     SNBaka_CumDetectionModule.HandleCumAmbientDue(Self, numArg, sender)
+EndEvent
+
+; REV-133c Task 2.3: bath-completion handler (presence-gated registration --
+; see _RegisterModEvents); body module-owned (the wearer-only clear).
+Event OnDnBCleanActorDirt(Form akActor)
+    SNBaka_CumDetectionModule.HandleBathClean(Self, akActor)
 EndEvent
 
 ; ---- FHU INFLATION AWARENESS (Task 3b: fallback poll design) ----
