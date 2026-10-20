@@ -349,6 +349,25 @@ every gate report carries an explicit line — "Modlist writes this session: NON
 an accompanying completion-table row. Rides §1/§2 + the REV-76 never-deploy ruling;
 the numbered rule count stays 10.
 
+Rider (REV-133b, user-ruled 2026-10-19) — deploy-violation RECURRENCE (2nd in 3
+sessions: REV-129, REV-133) + session-start modlist assertion: (i) at session
+START, the session takes a read-only modlist baseline (hash + mtime of every
+profile's modlist.txt and of every Delectatio-et-Dominium* folder under
+D:\Modlists\LoreRim\mods, plus the enabled-set diff vs the prior session's
+recorded state) and carries the baseline-vs-end diff in its report —
+end-of-session attestation alone is no longer sufficient, because REV-133's
+report said "MO2: enable…" as a user move while its own git commit (f45e0a6,
+10-19 22:49) says "dist + LoreRim rev133 install tree built" and the filesystem
+agrees (folder 23:02:52, Ultra modlist.txt 23:03:03). (ii) "THE USER deploys"
+means the user performs EVERY step that lands bytes or metadata in
+D:\Modlists\ — folder creation, file copy, zip extraction, MO2 enable/disable —
+regardless of whether the session calls it "the install tree" instead of "the
+deploy"; building the dist zip and its .sha256 in the repo is where the
+session's pen stops. (iii) A third instance escalates to a process ruling
+(persistent-environment containment, e.g. read-only ACL on the mods tree for
+agent sessions), not another rider. Rides §1/§2 + the REV-76/REV-95 rulings;
+the numbered rule count stays 10.
+
 **Checklist v9 (REV-104, 2026-10-12 — 9th entry of THE SHIPPING-FEATURES
 CHECKLIST, REV-77 rider):** 9. LAYER-LOAD TRUTH — at ship time, run the DevKit
 content validator (content-validate.exe, the current canonical snapshot) against
