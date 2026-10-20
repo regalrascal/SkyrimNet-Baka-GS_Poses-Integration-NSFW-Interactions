@@ -803,5 +803,27 @@ The beta-28 kit census raised the response-rendering question again: beta-28-rc2
 1. **The staged fragment texts (SHIPPED as drafts in the [REV-132b] dist, install GATED on this ruling):** `character_bio/0175_ded_cum.prompt` (facts: self/other split + freshness bands per cum-prompt-spec.md §3) and `user_final_instructions/0520_ded_cum_disposition.prompt` (acting-NPC arousal-tiered disposition; tier-keying + gates fixed, texts draftable). Ruling the drafts (edit or approve) = the INSTALL gate per the §7 staging shape. Enabling them also runs the first runtime test of bio-surface decorators (verdicts (a)/(b) were never obtained — the probe never deployed).
 2. **The decorated-template stash (the REV-129 riders + branches, REMOVED from `sdb_cum_ambient.yaml` by the REV-132b flattening; verbatim text preserved in git history `dc3fceb^` and the [REV-129] dist):** the reopening asset — returns only if/when response-content decorator rendering is fixed upstream (entry 25's note).
 
+***User note: It's pretty good, but it specifies the location arbitrarily. Are we able to pull decorator data to resolve exactly where the cum is applied? Like: 
+
+"You have cum " {{get_ded_cum_locaiton(actor_uuid)}}
+{%if ded_cum_locaiton == ass}
+dripping copiously out of your asshole onto the floor.
+{elsif ded_cum_locaiton == face]
+you all over your face and hair, dripping from your chin and the corner of your mouth. You can taste its salty tang.
+etc.
+
+Permutations could exist for each location, and per freshness level. This structure should exist for both the bio and disposition prompts, but rather than freshness the disposition prompt would still evaluate observer arousal like it does now.***
+
 **Status: OPEN — the user's pen.** Receipts: PROJECT_STATE §145 (GS repo) + cum-prompt-spec.md §8 (as-built).
+
+---
+
+## REV-133 register actions (2026-10-19, late): entry 26's construction EXECUTED; drafts re-staged null-hardened
+
+- **The user's entry-26 note is now IMPLEMENTED, not just drafted** (their exact question — "pull decorator data to resolve exactly where the cum is applied" — is answered by the mechanism): `_WriteCumState` accumulates a per-wearer `DeD_Cum_Locations` StorageUtil string list (unique, recency-ordered, capped 6; both expiry legs clear it), and `GetDedCum` emits it as the `locations` array in the decorator JSON — so the fragments now branch on the ACTUAL application locations, with per-location phrase permutations (11 locations) and per-freshness bands (<600 fresh / <3600 dried / else faded), exactly the note's structure, both perspectives. The disposition prompt keeps observer-arousal evaluation as the note allows.
+- **Null-hardening (the 132b render-failure root cause, fixed):** 0175 uses `actorUUID` + `decnpc(actorUUID)` (0171 precedent) and `default()`+`isNumber` guards; 0520 uses `npc.UUID` (ufi-lane precedent) with the `render_mode` gate REMOVED (no surveyed ufi fragment reads it — unknown-variable risk); tier guarded to 0 = silence. The ambient cue is now pre-shaped plain Papyrus text (`_AmbientDesc`/`_LocationNoun`) — immune to the RenderTemplate error class by construction.
+- **Verdict constraint carried:** the bio-fragment's first enabled render IS the decorator probe (clean = verdict (a)/(b) LIVE; error box = escalate). The user's ruling on the drafted phrase texts remains the INSTALL gate.
+- **Build receipts:** psc compile 0/0 (`run_compile_rev133.bat`, compile-out-rev133); dist `[REV-133] ... cum-null-hardening` built from the [REV-132b] base + overlays (pex/psc/0175/0520/bat; SHA256 pex 4A1EE68A...E8909 hash-verified in dist and in the LoreRim mod tree `Delectatio-et-Dominium-rev133-cum-null-hardening`, 276 files each). Repo commit `f45e0a6`. MO2 enable switch for the rev133 tree = the user's move (rev132b tree must be disabled to avoid duplicate esp/scripts).
+- **Scope deferred (named, per capacity):** Overlay/More-Cum/bath composition rides 133b if capacity runs out.
+
 
