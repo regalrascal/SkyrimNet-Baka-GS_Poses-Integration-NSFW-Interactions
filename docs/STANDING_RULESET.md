@@ -422,3 +422,23 @@ carry the same proof burden as presence claims — they gate the same gates);
 the numbered rule count stays 10. Receipts: PROJECT_STATE §123.1 (audit) +
 §124 (remediation).
 
+**REV-134b rider (2026-10-20 — occurrence #1 of the retired-artifact-shadow
+class; strike to reject):** (a) **DIST DENYLIST** — the compile bat gains an
+exit-failing assertion that RETIRED artifact names (current list:
+`SNBaka_MCM.*`; `SkyrimNet_BakaIntegration_MCM.*` upon its REV-134c
+retirement) appear NOWHERE in the dist output tree — a retired script must
+never ship, and a disabled/backup modlist folder must never satisfy a
+name lookup (all sweeps `-LiteralPath`; `-Include` silently skips
+`[...]`-bracket folders). (b) **MCM-OF-RECORD RECEIPTS** — any MCM build
+receipt must cite the esp→quest→script chain (verified from the esp's VMAD
+bytes), never pex byte-contains alone; a byte-contains receipt on a
+wrong-generation artifact passes while the live menu never changes (grounds:
+REV-133c built More Cum + the v8 bump into the retired
+`SkyrimNet_BakaIntegration_MCM` while the live `DeD_MCM` (GetVersion 10)
+went unchanged — §148's receipt verified the wrong pex). (c) **ONE-LINEAGE
+RULE** — nothing is "kept in tree (record)" in shipped trees: history lives
+in git + dist archive only; the shipped tree carries exactly one MCM
+lineage. Rides §3 (compile integrity) + §5 (deploy hygiene) + the v10
+covering-truth precedent; the numbered rule count stays 10. Receipts:
+PROJECT_STATE §149.
+
