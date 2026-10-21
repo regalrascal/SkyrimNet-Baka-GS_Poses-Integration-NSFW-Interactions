@@ -1,62 +1,240 @@
-Scriptname SkyrimNet_BakaIntegration_MCM extends SKI_ConfigBase
+Scriptname DeD_MCM extends SKI_ConfigBase
 
-SkyrimNet_BakaIntegration Property Main Auto
+; ============================================================================
+; DeD_MCM (renamed from SNBaka_MCM at REV-107) — REV-76 REPLACEMENT MCM quest
+; ("Delectatio et Dominium").
+;
+; Lineage: the direct successor of SkyrimNet_BakaIntegration_MCM (the v7 MCM).
+; The old quest was neutered at REV-76 (script detached, record kept; its
+; cached save-instance was pathological beyond version dispatch — see
+; PROJECT_STATE §75/§76). This quest is a FRESH formID (QUST 04000D99): an
+; existing save spins up a fresh instance and registers fresh.
+;
+; CANARY RULE (user ruling, REV-76 — standing for every MCM-touching build):
+;   - versioned marker key  SNBaka.MCMDeD.vN  (written once, first registration)
+;   - load-time self-check sentinel: ONE greppable "[SNBaka] MCM canary" line
+;     at first registration AND at every OnGameReload delivery (which doubles
+;     as the SKI_PlayerLoadGameAlias delivery probe — the exact event the old
+;     quest never received).
+;   - every MCM-touching revision's dogfood includes the EXISTING-SAVE RENDER
+;     GATE (old save: all pages render, all sections present).
+;
+; CLEAN BASELINE (user ruling): version restarts at 1; post-replacement
+; updates flow through GetVersion -> OnVersionUpdate on this baseline. The
+; old quest's v5/v6/v7 migration markers are NOT re-run here (the saves that
+; crossed those revs carry the markers already; they are probes, not data).
+;
+; Settings: zero migration (REV-76 Task-1 audit) — all player state lives in
+; StorageUtil (SNBaka.*, SNBaka.ST.*, SNAcheron.*, player-keyed) or as
+; properties on the surviving MAIN quest (04000D62). Known pre-existing skew
+; (fEscapeGraceDuration dual-write, old script L793) carried unchanged.
+; ============================================================================
 
-Int _enabledOID
-Int _panicOID
-Int _lapSitOID
-Int _playerTargetOID
-Int _femaleOnlyOID
-Int _animatedTearsOID
-Int _hugDurOID
-Int _molestDurOID
-Int _kissDurOID
-Int _touchDurOID
-Int _stageDurOID
-Int _cooldownOID
-Int _resistEnabledOID
-Int _resistDifficultyOID
-Int _npcEscapeChanceOID
-Int _npcStageTimeOID
-Int _escalationWindowOID
-Int _escalationDifficultyOID
-Int _spankPlayerOID
-Int _spankMaleOID
-Int _spankFurnitureOID
-Int _spankTatIntensityOID
-Int _spankHealFactorOID
-Int _sexBackendOID
-Int _expressionsOID
-Int _exprIntensityOID
-Int _creatureEscOID
-Int _creatureOnPCOID
-Int _creatureCombatOID
-Int _creatureFollowerHitOID
-Int _creatureSceneOID
-Int _llmGateOID
-Int _notifyOID
-Int _debugLogOID
-Int _creatureVictimSexOID
-Int _creatureBackendOID
-Int _creatureSuccessOID
-Int _creatureHitChanceOID
-Int _humanOnHitOID
-Int _humanHitChanceOID
-Int _escapeGraceOID
-Int _creatureStruggleDurOID
-Int _creatureGraceOID
-Int _creatureGroupSizeOID
-Int _sellSlaveryOID
-Int _followerSlaveryOID
-Int _slaveryDistOID
-Int _tiedHoursOID
-; REV-63 detection + inflation triggers (Plugins page)
-Int _cumDetectOID
-Int _slProxyOID
-; REV-133c Task 2.2: More Cum (register 24, ruled) -- additional cum decals.
-Int _moreCumOID
-Int _fhuAwareOID
-; REV-68 "Downed State (Acheron Bridge)" section (Plugins page) — consolidated from the
+; ============================================================================
+; REV-106 SEVERANCE (user ruling of record 2026-10-1X, "Boundary S4a" - the SHAPE
+; OF RECORD): the MCM quest is the FRAMEWORK's config surface - every module hangs
+; its pages on it presence-gated; Baka's settings become module pages like any
+; other; the eventual PHYSICAL host is a DeD Framework esp (S4b, esp session -
+; this session is script-only, no esp bytes, scriptname/EDID unchanged; the rename
+; rides S4b). Task 1.1: the MCM stops using the compiled `Main` property (the esp
+; VMAD auto-fill link is what kept the MCM hostage to the motherboard quest) and
+; resolves the motherboard AT RUNTIME via GetFormFromFile(0xD62, Baka esp) + cast
+; - the same resolution pattern as SkyrimNet_BakaIntegration.GetMain (that script,
+; L1207) and SkyrimNet_BakaInteg_SpankPartner (L13). Absent motherboard = None =
+; the Baka pages don't build (§74 precedent); the MCM itself lives on. Setting
+; storage is UNCHANGED (§73/§75 discipline: no new migration; the resolver hands
+; back the exact same quest instance the compiled link used to).
+; NOTE (physical reachability, recorded §112): today the MCM quest record and the
+; motherboard quest record are co-homed in SkyrimNet_BakaIntegration.esp, so the
+; absent-motherboard state is not physically reachable until S4b moves the MCM
+; quest record to the framework esp. This machinery is the logical re-home; the
+; S4b gate activates it.
+; ============================================================================
+
+; ============================================================================
+; REV-107 S4b (the PHYSICAL re-home): the MCM quest record MOVED from
+; SkyrimNet_BakaIntegration.esp (QUST 04000D99) to the NEW DeD_Framework.esp
+; (fresh formID 02000800, masters Skyrim+Update ONLY). Scriptname + EDID renamed
+; SNBaka_MCM -> DeD_MCM; the esp VMAD re-binds the renamed script with ZERO
+; compiled properties (the S4a resolver is the only motherboard link now; the
+; old VMAD's stale `main` property binding is not carried over).
+; IDENTITY BOUNDARY (byte-verified this rev): ModName "Delectatio et Dominium",
+; all StorageUtil keys (SNBaka.*, SNBaka.ST.*, SNAcheron.*), all "[SNBaka] *"
+; log markers, and every GetFormFromFile literal are UNCHANGED — the rename
+; touches the script FILE only, exactly like the LoadAlias-era lesson.
+; Existing-save expectation: the old 04000D99 cosave instance is orphaned on
+; first load after the move (dead cached MCM config instance, KNOWN-BENIGN per
+; the REV-76 replacement history; settings live in StorageUtil per §75) —
+; one-session cosmetic cost; the new quest instance registers fresh.
+; ============================================================================
+
+; ============================================================================
+; REV-109 MCM RESTRUCTURE (user ruling 2026-10-1X, era roadmap item 7 + the
+; REV-88 planner ticket of record - the productization restructure):
+;   - framework-level configurables gather under a NEW "Settings" page (first
+;     page): master enable (Enable Mod, moved from General), the global action
+;     cooldown (moved from General), the stuck-state reset (moved from
+;     General's Maintenance section), the debug log (moved from Scenes & FX),
+;     plus the title header + tagline (first-page rider, REV-76 convention).
+;   - the five Baka pages fold under a "Baka Interactions" section: SkyUI
+;     SKI_ConfigBase Pages[] is a FLAT left-pane list with NO sub-page
+;     nesting, so the section is realized as prefixed sibling pages
+;     ("Baka - General" / "Baka - Timing" / "Baka - Resist" / "Baka - Spank"
+;     / "Baka - Scenes & FX"), grouped contiguously - the §81 precedent
+;     (separate expandable pages, not one long page); choice FLAGGED for the
+;     user gate (Task 2.1).
+;   - module pages UNCHANGED in position/content (Lap Sitting / Cum Effects /
+;     Fill Her Up / Acheron / SlaveTats / GS Poses).
+;   - NO NEW OPTIONS (no-stubbing rule): what does not exist today (clean
+;     uninstall, stop-all beyond the panic reset, framework-native settings)
+;     is the REV-109 gap list (era doc; polish pool), not built here.
+;   - RIDERS (user ruling 2026-10-1X): the full-surface ASCII sweep (receipt:
+;     0 non-ASCII in every runtime string literal, swept comment-stripped
+;     this rev) + the display-length audit (labels >40 chars / values >30
+;     chars = findings; fixes per class (a) shorten / (b) label-vs-info split;
+;     every reworded string -> §7 register, bulk entry).
+; ============================================================================
+
+; ============================================================================
+; REV-109c MCM RESTRUCTURE PASS 3 (user ruling 2026-10-1X): the "Baka
+; Interactions" page is ONE page whose body STACKS the six family sections
+; (General / Timing / Resist / Spank / Scenes & FX / Lap Sitting - the
+; user's own wording), each preceded by a section-header row:
+;   - SUPERSESSION BANNER (not silent deletion): REV-109b's in-page
+;     section-NAVIGATION model - the _biSection state, the index render,
+;     the "Open" rows, the "<< Back" rows, the nav OIDs + the
+;     CurrentPage-guarded handler chain - is REMOVED by this pass per the
+;     user's ruling. Register entry 17a ("Open"/"<< Back" drafts) is VOIDED
+;     with it: the strings it gated no longer exist.
+;   - PAGE HEADER: the REV-76 title + tagline rider (carried from the
+;     Settings header pair).
+;   - SECTION HEADERS: the REV-80 house pattern - spacer + header row
+;     (the "Auto-Apply Sets" exemplar, SlaveTats page).
+;   - CENSUS (Task 1.3): every REV-109 option present EXACTLY ONCE in the
+;     stacked body, zero lost, zero duplicated (before == after enforced;
+;     receipt in the build record).
+;   - ASCII sweep (Task 1.5): the new surfaces are the page/section header
+;     rows + spacers; the six section names are the user's own list
+;     (register 17b, cited not gated).
+; ============================================================================
+
+SkyrimNet_BakaIntegration Main    ; REV-106: plain member variable, NOT a compiled
+                                  ; Auto property - resolved at runtime below. All
+                                  ; consumer sites are unchanged (same name, same
+                                  ; members); only the BINDING changed.
+
+Bool _gsFound = False             ; REV-106: cached GS esp presence (a found state
+                                  ; is permanent for a save's lifetime; an absent
+                                  ; esp re-probes at the next _BuildPages - the
+                                  ; GetFormFromFile-on-absent-esp hard-error rule
+                                  ; cited at SNBaka_CumDetectionModule L22).
+
+; REV-106 Task 1.1 - the motherboard resolution, presence-gated, sentinel-once:
+; when found, the result is cached for the session (plugins can't change mid-run),
+; so the "found" sentinel logs ONCE; when absent, _ResolveMain re-probes at every
+; OnGameReload, so the "absent" sentinel logs ONCE PER LOAD (the REV-105
+; busy-service probe's once-per-load discipline; grep
+; "[SNBaka] MCM motherboard resolution" in Papyrus.0.log).
+SkyrimNet_BakaIntegration Function _ResolveMain()
+    If Main != None
+        Return Main
+    EndIf
+    Main = Game.GetFormFromFile(0xD62, "SkyrimNet_BakaIntegration.esp") as SkyrimNet_BakaIntegration
+    If Main != None
+        Debug.Trace("[SNBaka] MCM motherboard resolution (REV-106 S4a): found - module pages build")
+    Else
+        Debug.Trace("[SNBaka] MCM motherboard resolution (REV-106 S4a): ABSENT - Baka module pages not built (framework MCM carries on)")
+    EndIf
+    Return Main
+EndFunction
+
+; REV-106 Task 1.3 - GS Poses presence gate (the leaked one: the page previously
+; rendered unconditionally and wrote GSAnim.GenderPolicy even with the GS esp
+; absent - a dead page per the §74 class). Same probe the motherboard's module-arm
+; uses (SkyrimNet_BakaIntegration L9068: GetFormFromFile(0xD61, GS esp)). Log-only
+; sentinel; no player-facing text.
+Bool Function _GSInstalled()
+    If _gsFound
+        Return True
+    EndIf
+    If Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None
+        _gsFound = True
+        Debug.Trace("[SNBaka] MCM GS-poses probe (REV-106 S4a): present")
+        Return True
+    EndIf
+    Debug.Trace("[SNBaka] MCM GS-poses probe (REV-106 S4a): absent - GS Poses page not built")
+    Return False
+EndFunction
+
+
+Int _enabledOID = -1
+Int _panicOID = -1
+Int _lapSitOID = -1
+Int _playerTargetOID = -1
+Int _femaleOnlyOID = -1
+Int _execGateOID = -1      ; REV-93 Task 1: ported from the DEAD v7 script (REV-92 built it there by
+                      ; mistake — SkyrimNet_BakaIntegration_MCM is the neutered pre-REV-76 quest;
+                      ; THIS quest is the live MCM). Levels: 0 Unlimited / 1 Companions ask /
+                      ; 2 Always ask; key SNBaka.ExecuteGateLevel (player-keyed StorageUtil).
+                      ; REV-94 Task 2.2: DEFAULT = 0 (Unlimited) USER-CONFIRMED 2026-10-11
+                      ; (literal default in _ExecGateLevel below and in _ExecuteGateLevel on
+                      ; the integration side: GetIntValue(..., 0) both).
+Int _animatedTearsOID = -1
+Int _hugDurOID = -1
+Int _molestDurOID = -1
+Int _kissDurOID = -1
+Int _touchDurOID = -1
+Int _stageDurOID = -1
+Int _cooldownOID = -1
+Int _resistEnabledOID = -1
+Int _resistDifficultyOID = -1
+Int _npcEscapeChanceOID = -1
+Int _npcStageTimeOID = -1
+Int _escalationWindowOID = -1
+Int _escalationDifficultyOID = -1
+Int _qteKeysOID = -1        ; REV-109 length audit (class (b) split): the QTE-keys
+                            ; text option gains an OID purely to carry its detail
+                            ; in InfoText (label short, detail in the info).
+Int _spankPlayerOID = -1
+Int _spankMaleOID = -1
+Int _spankFurnitureOID = -1
+Int _spankTatIntensityOID = -1
+Int _spankHealFactorOID = -1
+Int _sexBackendOID = -1
+Int _expressionsOID = -1
+Int _exprIntensityOID = -1
+Int _creatureEscOID = -1
+Int _creatureOnPCOID = -1
+Int _creatureCombatOID = -1
+Int _creatureFollowerHitOID = -1
+Int _creatureSceneOID = -1
+Int _llmGateOID = -1
+Int _notifyOID = -1
+Int _debugLogOID = -1
+Int _creatureVictimSexOID = -1
+Int _creatureBackendOID = -1
+Int _creatureSuccessOID = -1
+Int _creatureHitChanceOID = -1
+Int _humanOnHitOID = -1
+Int _humanHitChanceOID = -1
+Int _escapeGraceOID = -1
+Int _creatureStruggleDurOID = -1
+Int _creatureGraceOID = -1
+Int _creatureGroupSizeOID = -1
+Int _sellSlaveryOID = -1
+Int _followerSlaveryOID = -1
+Int _slaveryDistOID = -1
+Int _tiedHoursOID = -1
+; REV-63 detection + inflation triggers (own pages since REV-80: Cum Effects / Fill Her Up)
+Int _cumDetectOID = -1
+Int _slProxyOID = -1
+Int _fhuAwareOID = -1
+; REV-134c: More Cum (register 24, ruled at REV-133c but mis-built into the RETIRED
+; v7 script -- the §148 wrong-script root cause) is finally built HERE, in the live
+; script. Default OFF (user ruling, REV-134c; motherboard property bMoreCumEnabled
+; flipped to False in the same rev).
+Int _moreCumOID = -1
+; REV-68 "Downed State (Acheron Bridge)" settings (own "Acheron" page since REV-79) — consolidated from the
 ; bridge's own MCM. Settings stay in StorageUtil (player-keyed, same SNAcheron.* keys and
 ; defaults as the bridge MCM — no CK property link, no data migration; the bridge quest
 ; reads them each tick via _LoadSettings).
@@ -68,7 +246,7 @@ Int _achHandoffOID
 Int _achGetUpKeyOID
 Int _achEngageOID
 Int _achDebugOID
-; REV-72 "SlaveTats Degradation Sets" section (Plugins page) — SNBaka_SlaveTatsModule state
+; REV-72 "SlaveTats Degradation Sets" section (own "SlaveTats" page since REV-79) — SNBaka_SlaveTatsModule state
 ; (SNBaka.ST.* StorageUtil keys, player-keyed). Set section/name values are picked from the
 ; PrismaUI SlaveTats menu (SNSlaveTats_Menu view) rather than typed here; the MCM exposes
 ; the event toggles + Refresh + status, presence-gated like the other plugin sections.
@@ -83,16 +261,26 @@ Int _stPickOID
 Int _stDefaultColorOID
 Int _stRemoveOnReleaseOID
 Int _stObserveOID
-; REV-92 Task 2.1 — Execute-gate MCM cycling option ("Execution Action Use", General page).
-; Player-keyed StorageUtil key "SNBaka.ExecuteGateLevel": 0 = Unlimited (default, strategist-
-; recommended + user-flagged for confirm in the REV-92 gate report), 1 = Companions ask,
-; 2 = Always ask. Read directly via GetIntValue (same StorageUtil pattern as the SNAcheron.*
-; options - no CK property link; Execute_Execute is the enforcement point).
-Int _execGateOID
+; REV-85 Phase B — GS Poses top-level page: the gender policy mode selector
+; (GSAnim.GenderPolicy StorageUtil int on None; 0 = female-only default).
+Int _gsGenderPolicyOID = -1
+Int _stIntroOID = -1        ; REV-109 length audit (class (b) split): the ST intro
+                            ; text option - short label, full sentence in InfoText.
+Int _gsIntroOID = -1        ; REV-109 length audit (class (b) split): the GS Poses
+                            ; intro text option - same shape.
+; REV-109c: the REV-109b in-page navigation state + nav OIDs (_biSection,
+; _biBackOID, _biNav*OID) are REMOVED with the navigation model per the
+; pass-3 ruling (supersession banner at the file header). The stacked body
+; renders every section unconditionally - no section state, no nav OIDs.
 
 Event OnConfigInit()
-    ModName = "Baka SkyrimNet"
+    ModName = "Delectatio et Dominium"
+    _ResolveMain()   ; REV-106 S4a: runtime motherboard resolution BEFORE the page build
     _BuildPages()
+    ; REV-76 canary — first-registration sentinel (one-time, per-player): versioned
+    ; marker + the one greppable line. Grep "[SNBaka] MCM canary" in Papyrus.0.log.
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v1", 1)
+    Debug.Trace("[SNBaka] MCM canary: Delectatio et Dominium registered (v" + GetVersion() + ", pages=" + Pages.Length + " [incl Acheron + SlaveTats], Main=" + Main + ")")
 EndEvent
 
 ; SkyUI MCM quests DO reliably receive OnGameReload on every load — unlike a bare Quest, whose
@@ -101,84 +289,257 @@ EndEvent
 ; This is what makes the creature hand-off and the AEL/menu events work after a reload.
 Event OnGameReload()
     Parent.OnGameReload()
+    _ResolveMain()   ; REV-106 S4a: re-probe per load while the motherboard is absent
+                     ; (once-per-load sentinel; a found result is cached, never re-probed)
+    ; REV-76 canary — load-time self-check sentinel (doubles as the alias-delivery
+    ; probe: this event is dispatched via SKI_PlayerLoadGameAlias, the exact event
+    ; the OLD quest's instance never received on the Hadrian save; grep
+    ; "[SNBaka] MCM canary reload").
+    Debug.Trace("[SNBaka] MCM canary reload: OnGameReload delivered, Main=" + Main)
     If Main
         Main.Setup()
     EndIf
 EndEvent
 
-; Bumped to 2 in v1.1 (added the "Scenes & FX" page), to 3 for the "Plugins" page (Lap Sitting).
-; REV-63: bumped to 4 -- added the detection-trigger toggles (Cum Detection / FHU Inflation) to
-; the EXISTING "Plugins" page. Version-field lesson (confirmed live, see rev notes above): an
-; existing save keeps whatever Pages[]/_BuildPages state it last wrote UNLESS the version is
-; bumped so SkyUI fires OnVersionUpdate. No NEW page this time, but new OPTIONS on an existing
-; page still need the bump on existing saves (the page content is cached with the save too).
-; REV-68: bumped to 5 -- the "Downed State (Acheron Bridge)" section was consolidated onto the
-; Plugins page (the bridge's own standalone MCM quest remains in its esp but is superseded by
-; this section). Same StorageUtil keys/defaults as the bridge MCM (SNAcheron.*, player-keyed) —
-; NO data migration: a save that used the old MCM reads identical values here.
-; REV-72: bumped to 6 -- the "SlaveTats Degradation Sets" section was added to the Plugins
-; page (SNBaka_SlaveTatsModule state: SNBaka.ST.* StorageUtil keys, player-keyed, defaults
-; set in the module). No data migration (new keys only).
-; REV-74: bumped to 7 -- SlaveTats section gained the REV-74 options (module-wide default
-; color, removal-on-release, ambient observation). No data migration (new keys only; the
-; v7 marker distinguishes the crossing save for dogfood).
-; REV-133c: bumped to 8 -- the "More Cum" toggle joined the Cum Detection section
-; (Plugins page; register 24, ruled). New option on an existing page needs the bump
-; on existing saves. No data migration (new motherboard property only).
+; ============================================================================
+; VERSION — REV-76 CLEAN BASELINE (user ruling): this quest is a fresh
+; replacement (QUST 04000D99), so the version restarts at 1. An existing save
+; has no cached state for THIS quest's formID — everything OnConfigInit builds
+; is fresh, so no v-bump is needed for the replacement itself. Future content
+; changes to pages/options bump this number (the canonical path from here;
+; the SkyUI version-field lesson documented at length in the old script's
+; header applies unchanged).
+; The old quest's v1..v7 lineage (REV-68 Acheron consolidation, REV-72
+; SlaveTats section, REV-74 color/release/observation) is history — see
+; PROJECT_STATE §75/§76. Migration markers are NOT re-run: zero migration
+; was the audit's ruling (Task 1), and old markers stay as dogfood probes.
+; ============================================================================
 Int Function GetVersion()
-    Return 8
+    ; REV-79: FIRST canonical bump on the REV-76 clean baseline (v1 -> v2) —
+    ; the MCM restructure is user-visible (Acheron + SlaveTats promote to
+    ; top-level pages), which is exactly what this machinery exists for.
+    ; REV-80: SECOND canonical bump (v2 -> v3) — the Plugins page DISSOLVES:
+    ; each integration becomes its own top-level page (user ruling); the
+    ; SlaveTats page's set-assignment section is retitled "Auto-Apply Sets"
+    ; (configuration-vs-picker clarity, §7-approved copy).
+    ; REV-85: THIRD canonical bump (v3 -> v4) — the "GS Poses" top-level page
+    ; joins (gender policy home, posing-gender.md §2b; page-count 10 -> 11).
+    ; REV-93: FOURTH canonical bump (v4 -> v5) — the Execute-gate option
+    ; (REV-92, mis-built in the DEAD v7 script) is ported into THIS live
+    ; script's General page (dogfood-failure fix; wrong-script defect).
+    ; REV-106: FIFTH canonical bump (v5 -> v6) — S4a severance: the MCM becomes the
+    ; framework's config surface; pages go presence-gated (motherboard resolution for
+    ; the 8 Baka pages, GS esp probe for GS Poses). Page STRUCTURE is now combo-
+    ; dependent, so every pre-severance save crosses this bump once and rebuilds.
+    ; REV-107: SIXTH canonical bump (v6 -> v7) — S4b physical re-home: the quest
+    ; record moves to DeD_Framework.esp (02000800) and the script/EDID rename to
+    ; DeD_MCM. No page/OID change; the bump exists for the fresh-instance canary
+    ; (every existing save spins the moved quest's fresh instance and crosses it).
+    ; REV-109: SEVENTH canonical bump (v7 -> v8) — the productization MCM
+    ; restructure: a new first "Settings" page; the five Baka pages renamed into
+    ; the "Baka - " section prefix; page-count 11 -> 12 (Main+GS combo). Page
+    ; STRUCTURE changed, so every existing save crosses this bump once and
+    ; rebuilds (the four-saga rule; the v2 canary lesson applies - rebuild
+    ; before the canary trace).
+    ; REV-109b: EIGHTH canonical bump (v8 -> v9) - the Option A restructure
+    ; fix: the five "Baka - " prefix pages + the Lap Sitting page fold into
+    ; ONE "Baka Interactions" page hosting six in-page sections; page-count
+    ; 12 -> 7 (Main+GS combo). Page STRUCTURE changed, so every existing
+    ; save crosses this bump once and rebuilds (the four-saga rule; rebuild
+    ; before the canary trace, the v2 lesson standing).
+    ; REV-109c: NINTH canonical bump (v9 -> v10) - restructure pass 3: the
+    ; section NAVIGATION model is removed; the six sections STACK in the one
+    ; page body under section headers. Page COUNT is unchanged (7/6), but
+    ; the page BODY structure changed, so every existing save crosses this
+    ; bump once and rebuilds (the four-saga rule; v2 lesson standing).
+    ; REV-134c: TENTH canonical bump (v10 -> v11) - the More Cum toggle joins
+    ; the Cum Effects page (register 24, ruled; mis-built into the retired
+    ; v7 script at REV-133c, §148 root cause) and every Cum-page option
+    ; gains a plain-language description row. New option on an existing
+    ; page + visible body change: every existing save crosses this bump
+    ; once and rebuilds. No data migration (motherboard property only,
+    ; default flipped to OFF by user ruling).
+    Return 11
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
-    If aVersion < 5
-        ; REV-68 consolidation marker (one-time, per-player): distinguishes a Hadrian-era save
-        ; (pre-consolidation, bridge MCM era) that has been migrated onto the unified MCM from a
-        ; fresh install. Deliberately NOT read by any code yet — it is the dogfood/headline probe
-        ; key for the migration test (grep SNBaka.MCMConsolidated in Papyrus.0.log).
-        StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMConsolidated", 5)
-        Debug.Trace("[SNBaka] MCM v5: Acheron-bridge settings consolidated onto the Plugins page (SNBaka.MCMConsolidated=5 marker set)")
-    EndIf
-    If aVersion < 6
-        ; REV-72 self-migration marker (one-time, per-player): distinguishes a save that crossed
-        ; the SlaveTats-section rev from a fresh install. Dogfood probe (grep SNBaka.ST.MCMv6 in
-        ; Papyrus.0.log); not read by code.
-        StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.ST.MCMv6", 1)
-        Debug.Trace("[SNBaka] MCM v6: SlaveTats degradation-set section added to the Plugins page (SNBaka.ST.MCMv6=1 marker set)")
-    EndIf
-    If aVersion < 7
-        ; REV-74 marker (one-time, per-player): SlaveTats section gained default-color /
-        ; removal-on-release / observation options. Dogfood probe (grep SNBaka.ST.MCMv7).
-        StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.ST.MCMv7", 1)
-        Debug.Trace("[SNBaka] MCM v7: SlaveTats REV-74 options added (SNBaka.ST.MCMv7=1 marker set)")
-    EndIf
-    If aVersion < 8
-        ; REV-133c marker (one-time, per-player): the More Cum toggle joined the
-        ; Cum Detection section (register 24, ruled). Dogfood probe (grep
-        ; SNBaka.MCMv8 in Papyrus.0.log); not read by code.
-        StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMv8", 1)
-        Debug.Trace("[SNBaka] MCM v8: More Cum toggle added to the Cum Detection section (SNBaka.MCMv8=1 marker set)")
-    EndIf
+    ; REV-76 clean baseline: no migration blocks. Future bumps append their
+    ; markers here (versioned SNBaka.MCMDeD.vN per the canary rule).
+    ; REV-79 v2 (restructure): canary marker + the module-facing MCM marker
+    ; lineage (SNBaka.ST.MCMv7 -> MCMv8, REV-74's convention continued).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v2", 1)
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.ST.MCMv8", 1)
+    ; REV-80 v3 (Plugins dissolved): canary marker + MCM marker lineage
+    ; continued (MCMv8 -> MCMv9). Pages rebuilt FIRST so the canary reports
+    ; the NEW page count (the v2 canary traced before _BuildPages and printed
+    ; the stale cached count on existing saves — flaw noted at dogfood).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v3", 1)
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.ST.MCMv9", 1)
+    ; REV-85 v4 (GS Poses page): canary marker — pages rebuilt FIRST so the
+    ; canary reports the NEW page count (the v2 lesson, applied by convention).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v4", 1)
+    ; REV-93 v5 (Execute-gate option ported from the dead v7 script into the
+    ; live General page): canary marker — pages rebuilt FIRST (the v2 lesson).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v5", 1)
+    ; REV-106 v6 (S4a severance): canary marker — pages rebuilt FIRST (the v2
+    ; lesson; the rebuild now resolves the motherboard + probes GS so the canary
+    ; reports the new combo-dependent page set).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v6", 1)
+    ; REV-107 v7 (S4b physical re-home): canary marker — record now lives in
+    ; DeD_Framework.esp; ModName/keys/markers unchanged (identity boundary).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v7", 1)
+    ; REV-109 v8 (productization MCM restructure): canary marker — pages rebuilt
+    ; FIRST so the canary reports the NEW page count (the v2 lesson, standing).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v8", 1)
+    ; REV-109b v9 (Option A restructure fix): canary marker - the six Baka
+    ; family pages fold into the single "Baka Interactions" section page;
+    ; the Pages rebuild below reports the 7/6-page shape (v2 lesson, standing).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v9", 1)
+    ; REV-109c v10 (restructure pass 3): canary marker - the navigation model
+    ; is removed; the six Baka family sections stack under section headers in
+    ; the one page body; the Pages rebuild below reports the unchanged
+    ; 7/6-page shape (v2 lesson, standing).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v10", 1)
+    ; REV-134c v11 (More Cum + Cum-page descriptions): canary marker - pages
+    ; rebuilt FIRST (the v2 lesson, standing). Marker SNBaka.MCMDeD.v11; the
+    ; retired v7 script's SNBaka.MCMv8 marker (REV-133c) is NOT re-run here:
+    ; that marker belonged to the wrong-lineage receipt (§148) and is history.
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v11", 1)
     _BuildPages()
+    Debug.Trace("[SNBaka] MCM canary: v11 OnVersionUpdate (REV-134c: More Cum toggle on the live Cum Effects page + option descriptions, presence-gated pages: " + Pages.Length + ", Main=" + Main + ")")
 EndEvent
 
+; ============================================================================
+; REV-79 MCM RESTRUCTURE (user ruling, §80 Task 4 item 5): each plugin
+; INTEGRATION gets its own top-level page — one integration, one page. The
+; two integration-scale sections left "Plugins" ("Acheron", "SlaveTats"); the
+; three toggle-scale detection sections stay grouped there (Lap Sitting /
+; Cum Detection / FHU Inflation — promoting each would be three near-empty
+; pages; judgment call recorded in the REV-79 gate report). Every integration
+; page greys out with "(mod not installed)" at PAGE level when the underlying
+; mod is absent (the existing per-section presence gates, extended).
+;
+; REV-80 POLISH RIDER (user rulings, §81): the Plugins page is DISSOLVED —
+; "one integration, one page" is now total: Lap Sitting / Cum Effects /
+; Fill Her Up each promote to their own top-level page (expandable later;
+; the REV-79 near-empty-pages judgment is superseded by the user ruling).
+; No residual Plugins page remains. Absent states stay page-level grey-outs
+; "(mod not installed)". The SlaveTats page's set-assignment section is
+; retitled "Auto-Apply Sets" (it configures which set fires automatically
+; per event; the in-game picker always offers the full range — §7 copy).
+; ============================================================================
+
 Function _BuildPages()
-    Pages    = new String[6]
-    Pages[0] = "General"
-    Pages[1] = "Timing"
-    Pages[2] = "Resist"
-    Pages[3] = "Spank"
-    Pages[4] = "Scenes & FX"
-    Pages[5] = "Plugins"
+    ; REV-80: 10 pages — the Plugins page is dissolved; every integration is
+    ; a top-level left-pane page (one integration, one page, expandable later).
+    ; REV-85: 11 pages — "GS Poses" joins as a top-level page (gender policy
+    ; home, posing-gender.md §2b ruling: MCM-page home, page-count bump).
+    ; REV-106 S4a: the page set is PRESENCE-GATED (the framework-MCM ruling):
+    ;   - the 8 Baka module pages build ONLY when the motherboard resolves;
+    ;   - GS Poses builds ONLY when the GS esp is present (Task 1.3 — the page
+    ;     previously leaked: it rendered unconditionally with the GS esp absent,
+    ;     a dead page writing unread keys);
+    ;   - Acheron + SlaveTats are ALWAYS present (framework pages: they carry
+    ;     no motherboard dependency — see the de-Mained consumer sites).
+    ; Both-installed users see the IDENTICAL 11-page set as [REV-105], ORDER
+    ; preserved (the Pages array is positional). Combo table recorded §112.
+    _ResolveMain()
+    If Main
+        ; REV-109b (Option A): ONE "Baka Interactions" page hosts the six
+        ; family sections via in-page section navigation (Task 0.1 pattern;
+        ; SL Defeat precedent). Pages[]: 7 (Main+GS) / 6 (Main-only). The
+        ; five "Baka - " prefix pages and the Lap Sitting page are GONE as
+        ; left-pane entries - replaced, not patched.
+        If _GSInstalled()
+            Pages    = new String[7]
+            Pages[0] = "Settings"
+            Pages[1] = "Baka Interactions"
+            Pages[2] = "Cum Effects"
+            Pages[3] = "Fill Her Up"
+            Pages[4] = "Acheron"
+            Pages[5] = "SlaveTats"
+            Pages[6] = "GS Poses"
+        Else
+            Pages    = new String[6]
+            Pages[0] = "Settings"
+            Pages[1] = "Baka Interactions"
+            Pages[2] = "Cum Effects"
+            Pages[3] = "Fill Her Up"
+            Pages[4] = "Acheron"
+            Pages[5] = "SlaveTats"
+        EndIf
+    ElseIf _GSInstalled()
+        ; REV-109: the Settings page rides the motherboard gate in this session:
+        ; every option on it is motherboard state TODAY (the honest-scope gap
+        ; list is the era doc's; framework-native settings don't exist yet), so
+        ; a motherboard-less combo has no real Settings content and the page
+        ; does not build (§74 dead-page precedent).
+        Pages    = new String[3]
+        Pages[0] = "Acheron"
+        Pages[1] = "SlaveTats"
+        Pages[2] = "GS Poses"
+    Else
+        Pages    = new String[2]
+        Pages[0] = "Acheron"
+        Pages[1] = "SlaveTats"
+    EndIf
 EndFunction
 
 Event OnPageReset(String page)
-    If page == "General"
+    ; REV-106 S4a (count amended REV-109b): the module pages (Baka
+    ; Interactions incl. Lap Sitting, Cum Effects, Fill Her Up) carry a motherboard presence rider —
+    ; when the motherboard is absent they are never in Pages[] (see _BuildPages);
+    ; this belt-and-suspenders guard makes the render bodies unreachable even if a
+    ; stale cached Pages array ever named one (defensive only — no behavior delta
+    ; in any combo reachable today; activates with the S4b quest-record move).
+    If page == "Settings" && Main
+        ; REV-109 MCM RESTRUCTURE (era roadmap item 7): the framework-level
+        ; configurables page. Ships with WHAT EXISTS TODAY (the no-stubbing
+        ; rule): master enable, the global action cooldown, the stuck-state
+        ; reset, the debug log - all MOVED existing options (handler blocks
+        ; unchanged; OIDs are position-free). The title header + tagline ride
+        ; the FIRST page (the REV-76 rider, carried from General).
+        ; GAP LIST (registered, era doc REV-109 section - polish pool, NOT
+        ; built here): clean-uninstall; stop-all beyond the panic reset;
+        ; framework-native (non-motherboard) settings.
         SetCursorFillMode(TOP_TO_BOTTOM)
+        AddHeaderOption("Delectatio et Dominium")
+        AddTextOption("Bedroom drama for SkyrimNet", "", OPTION_FLAG_DISABLED)
+        AddEmptyOption()
+        AddHeaderOption("Framework")
         _enabledOID        = AddToggleOption("Enable Mod",            Main.bEnabled)
+        _cooldownOID       = AddSliderOption("AI Action Cooldown",    Main.fNPCGlobalCooldown, "{0}s")
+        _debugLogOID       = AddToggleOption("Enable Debug Logging",   Main.bDebugLog)
+        AddEmptyOption()
+        AddHeaderOption("Maintenance")
+        ; Panic button: force-clears every hold Baka (or a stale Acheron pacify) could have left on
+        ; any loaded actor -- for actors stuck non-aggressive/untargetable after something went wrong.
+        ; Leaves genuinely downed/defeated actors alone (HelpUp / the get-up key is their way out).
+        _panicOID = AddTextOption("EMERGENCY: reset stuck actor states", "RUN")
+    ElseIf page == "Baka Interactions" && Main
+        ; REV-109c (user ruling, MCM restructure pass 3, 2026-10-1X): ONE page,
+        ; the six family sections STACKED in the body - NO navigation, NO state
+        ; machine (REV-109b's _biSection model is REMOVED per the ruling;
+        ; supersession banner at the file header). Page header = the REV-76
+        ; title + tagline rider (the Settings header pair); each section rides
+        ; the REV-80 section-header pattern - spacer row + header row (the
+        ; "Auto-Apply Sets" exemplar, SlaveTats page). Section bodies are the
+        ; REV-109/109b bodies MOVED VERBATIM (+ de-indent only; Lap Sitting
+        ; folds in per the user's list): census before == after, zero options
+        ; lost, zero duplicated; handlers UNCHANGED - OIDs are position-free,
+        ; so every option's load/save path is identical (1.4: layout + the
+        ; fold + the version machinery ONLY; any settings semantics delta =
+        ; STOP). Presence gating UNCHANGED: the page rides the motherboard
+        ; gate (Pages[] build); the Lap Sitting toggle keeps its own grey-out.
+        SetCursorFillMode(TOP_TO_BOTTOM)
+        AddHeaderOption("Baka Interactions")
+        AddTextOption("Bedroom drama for SkyrimNet", "", OPTION_FLAG_DISABLED)
+        AddEmptyOption()
+        ; ---- General (the former "Baka - General" body, moved verbatim) ----
+        AddHeaderOption("General")
         _playerTargetOID   = AddToggleOption("Player Can Be Target",  Main.bPlayerCanBeTarget)
         _femaleOnlyOID     = AddMenuOption("Target Sex",   _targetSexName(Main.iTargetSex))
         _animatedTearsOID  = AddToggleOption("Animated Tears",        Main.bAnimatedTearsEnabled)
-        _cooldownOID       = AddSliderOption("AI Action Cooldown",    Main.fNPCGlobalCooldown, "{0}s")
         AddEmptyOption()
         AddHeaderOption("Capture")
         ; OFF removes the Sell-to-Slavery action entirely (not offered to the LLM). Detection first:
@@ -188,48 +549,37 @@ Event OnPageReset(String page)
         If Main.IsSimpleSlaveryInstalled()
             _sellSlaveryOID = AddToggleOption("Allow Sell to Slavery",  Main.bSellToSlavery)
         Else
-            _sellSlaveryOID = AddToggleOption("Allow Sell to Slavery (Simple Slavery++ not installed)", False, OPTION_FLAG_DISABLED)
+            _sellSlaveryOID = AddToggleOption("Allow Sell to Slavery (not installed)", False, OPTION_FLAG_DISABLED)
         EndIf
         ; Same presence-gated pattern for the FOLLOWER slavery action (Follower Slavery Mod). Its
         ; readiness flag only flips after the player clicks Install in FSM's own MCM.
         If Main.IsFollowerSlaveryInstalled()
             _followerSlaveryOID = AddToggleOption("Allow Follower Enslavement", Main.bFollowerSlavery)
         Else
-            _followerSlaveryOID = AddToggleOption("Allow Follower Enslavement (FSM not installed)", False, OPTION_FLAG_DISABLED)
+            _followerSlaveryOID = AddToggleOption("Follower Enslavement (not installed)", False, OPTION_FLAG_DISABLED)
         EndIf
         _slaveryDistOID = AddSliderOption("Player Distance to Allow It", Main.fSlaveryPlayerDistance, "{0}")
         _tiedHoursOID   = AddSliderOption("Tied Prisoner Duration",      Main.fTiedHours, "{0} h")
-        AddEmptyOption()
-        AddHeaderOption("Maintenance")
-        ; Panic button: force-clears every hold Baka (or a stale Acheron pacify) could have left on
-        ; any loaded actor -- for actors stuck non-aggressive/untargetable after something went wrong.
-        ; Leaves genuinely downed/defeated actors alone (HelpUp / the get-up key is their way out).
-        _panicOID = AddTextOption("EMERGENCY: reset stuck actor states", "RUN")
-        AddEmptyOption()
-        ; REV-93 DOGFOOD-FIXTURE: this script is the REV-76-NEUTERED DEAD QUEST (detached
-        ; from the quest record — SNBaka_MCM.psc is the LIVE MCM). The REV-92 Execute-gate
-        ; option block below was BUILT HERE BY MISTAKE and never rendered in-game. REV-93
-        ; Task 1 PORTED the whole block (declaration/option/dialog legs/name fns/InfoText)
-        ; into the live SNBaka_MCM.psc (GetVersion 4 -> 5 there). It is retained here,
-        ; comment-out of render lines intentionally NOT done (dead script, never runs) —
-        ; but treat this block as HISTORICAL only; do not extend it.
-        ; REV-92 Task 2.1 — Execute-gate cycling option (family convention: menu option + name
-        ; function, like "Target Sex"/"Scene Framework"). Level names user-ruled 2026-10-10.
+        ; REV-109: the Maintenance section (panic reset) moved to Settings
+        ; (framework-level, per the restructure); the Execute-gate stays here -
+        ; it is capture behavior, not framework state.
         _execGateOID = AddMenuOption("Execution Action Use", _execGateName(_ExecGateLevel()))
-    ElseIf page == "Timing"
-        SetCursorFillMode(TOP_TO_BOTTOM)
+        ; ---- Timing (the former "Baka - Timing" body, moved verbatim) ----
+        AddHeaderOption("Timing")
+        AddEmptyOption()
         AddHeaderOption("Animation Durations")
         _hugDurOID    = AddSliderOption("Hug Loop Duration",         Main.fHugLoopDuration,    "{0}s")
         _molestDurOID = AddSliderOption("Molest Loop Duration",      Main.fMolestLoopDuration, "{0}s")
         _kissDurOID   = AddSliderOption("Kiss Duration (per stage)", Main.fKissLoopDuration,   "{0}s")
         _touchDurOID  = AddSliderOption("Touch Duration",            Main.fTouchLoopDuration,  "{0}s")
         _stageDurOID  = AddSliderOption("Sequence Stage Duration",   Main.fSequenceStageTimer, "{0}s")
-    ElseIf page == "Resist"
-        SetCursorFillMode(TOP_TO_BOTTOM)
+        ; ---- Resist (the former "Baka - Resist" body, moved verbatim) ----
+        AddHeaderOption("Resist")
+        AddEmptyOption()
         AddHeaderOption("Struggle QTE")
         _resistEnabledOID        = AddToggleOption("Enable Resist Minigame",    Main.bResistEnabled)
         _resistDifficultyOID     = AddSliderOption("Escape Difficulty",          Main.fResistDifficulty,    "{0}%")
-        AddTextOption("QTE Keys", "Configured in Flash Games - Struggling QTE  (WASD / d-pad)", OPTION_FLAG_DISABLED)
+        _qteKeysOID = AddTextOption("QTE Keys", "Flash Games - Struggling QTE", OPTION_FLAG_DISABLED)
         AddEmptyOption()
         AddHeaderOption("NPC-vs-NPC Struggle (no QTE, auto-rolled)")
         _npcEscapeChanceOID = AddSliderOption("Victim Escape Chance", Main.fNPCEscapeChance, "{0}%")
@@ -239,8 +589,9 @@ Event OnPageReset(String page)
         AddHeaderOption("Defeat window (fallback only)")
         _escalationWindowOID     = AddSliderOption("Escalation Window",  Main.fEscalationWindow,    "{0}s")
         _escalationDifficultyOID = AddSliderOption("Escalation QTE",     Main.fEscalationDifficulty, "{0}%")
-    ElseIf page == "Spank"
-        SetCursorFillMode(TOP_TO_BOTTOM)
+        ; ---- Spank (the former "Baka - Spank" body, moved verbatim) ----
+        AddHeaderOption("Spank")
+        AddEmptyOption()
         AddHeaderOption("Behaviour")
         _spankPlayerOID    = AddToggleOption("Player Can Be Spanked",  Main.bPlayerCanBeSpanked)
         _spankMaleOID      = AddToggleOption("Allow Male Targets",     Main.bSpankMaleTargets)
@@ -249,8 +600,9 @@ Event OnPageReset(String page)
         AddHeaderOption("Tattoo Marks")
         _spankTatIntensityOID = AddSliderOption("Spanks Per Stage", Main.SpankTatIntensity as Float, "{0}")
         _spankHealFactorOID   = AddSliderOption("Hours Per Stage",  Main.SpankHealFactor as Float,   "{0} hr")
-    ElseIf page == "Scenes & FX"
-        SetCursorFillMode(TOP_TO_BOTTOM)
+        ; ---- Scenes & FX (the former "Baka - Scenes & FX" body, moved verbatim) ----
+        AddHeaderOption("Scenes & FX")
+        AddEmptyOption()
         AddHeaderOption("Sex Framework")
         _sexBackendOID    = AddMenuOption("Scene Framework", _backendName(Main.iSexBackend))
         AddEmptyOption()
@@ -265,7 +617,7 @@ Event OnPageReset(String page)
         _creatureSceneOID     = AddToggleOption("Escalate to Sex After Win", Main.bCreatureSceneAllowed)
         _llmGateOID           = AddToggleOption("LLM Decides Escalations",   Main.bLLMGateEscalation)
         _notifyOID            = AddToggleOption("Show Corner Notifications", Main.bShowNotifications)
-        _debugLogOID          = AddToggleOption("Enable Debug Logging",      Main.bDebugLog)
+        ; REV-109: "Enable Debug Logging" moved to the Settings page (framework-level).
         _creatureVictimSexOID = AddMenuOption("Victim Sex Allowed",  _victimSexName(Main.iCreatureVictimSex))
         _creatureBackendOID   = AddMenuOption("Creature Framework",  _backendName(Main.iCreatureBackend))
         _creatureSuccessOID   = AddSliderOption("NPC Success Chance", Main.iCreatureSuccessPct as Float, "{0}%")
@@ -276,54 +628,78 @@ Event OnPageReset(String page)
         AddHeaderOption("Humanoids (mid-combat)")
         _humanOnHitOID       = AddToggleOption("Escalate on Hit Mid-Combat (followers + player)", Main.bHumanEscalateOnHit)
         _humanHitChanceOID   = AddSliderOption("Chance to Struggle on Hit", Main.iHumanHitEngageChance as Float, "{0}%")
-    ElseIf page == "Plugins"
-        SetCursorFillMode(TOP_TO_BOTTOM)
-        ; Optional third-party mod integrations — each autodetected, greyed out when the mod is
-        ; absent (same presence-gated pattern as the SS++/FSM toggles on General).
+        ; ---- Lap Sitting (the former top-level page, folded in per the user's list) ----
+        AddHeaderOption("Lap Sitting")
+        AddEmptyOption()
         AddHeaderOption("Immersive Lap Sitting")
         If Main.IsLapSitInstalled()
             _lapSitOID = AddToggleOption("Enable Lap Sitting Actions", Main.bLapSitEnabled)
         Else
-            _lapSitOID = AddToggleOption("Enable Lap Sitting Actions (mod not installed)", False, OPTION_FLAG_DISABLED)
+            _lapSitOID = AddToggleOption("Lap Sitting Actions (not installed)", False, OPTION_FLAG_DISABLED)
         EndIf
-        ; REV-63 detection + inflation triggers -- same presence-gated pattern as Lap Sitting.
+    ElseIf page == "Cum Effects" && Main
+        ; REV-80: promoted from the dissolved Plugins page (one integration,
+        ; one page). REV-63 detection toggles, presence-gated as before.
+        ; REV-134c: More Cum (register 24) finally built HERE (the live MCM)
+        ; instead of the retired v7 script (§148 wrong-script root cause);
+        ; default OFF (user ruling). Also REV-134c: every option gains a
+        ; plain-language description (user ruling: the names were too vague).
+        ; SkyUI has no tooltips, so each description is a disabled
+        ; AddTextOption static row directly under its toggle.
+        SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("Cum Detection (OCum / SexLab)")
         If Main._OCumInstalled()
             _cumDetectOID = AddToggleOption("Cum Cues (OCum + SexLab climax proxy)", Main.bCumDetectionEnabled)
+            AddTextOption("Detects cum events from OCum (and SexLab orgasms, if", "", OPTION_FLAG_DISABLED)
+            AddTextOption("proxy share is on) and reports them to SkyrimNet, so", "", OPTION_FLAG_DISABLED)
+            AddTextOption("the player and NPCs can see and react to them. This is", "", OPTION_FLAG_DISABLED)
+            AddTextOption("the master switch for the whole page.", "", OPTION_FLAG_DISABLED)
             If Main.bCumDetectionEnabled
                 _slProxyOID = AddToggleOption("SexLab Climax Proxy Share", Main.bSLProxyEnabled)
             Else
                 _slProxyOID = AddToggleOption("SexLab Climax Proxy Share", Main.bSLProxyEnabled, OPTION_FLAG_DISABLED)
             EndIf
-            ; REV-133c Task 2.2 (register 24, ruled): the user's label; the
-            ; description rides the register text. Gate follows the cum-cue master.
+            AddTextOption("For scenes OCum does not track by itself: listens for the", "", OPTION_FLAG_DISABLED)
+            AddTextOption("SexLab orgasm moment and asks OCum to apply its decals", "", OPTION_FLAG_DISABLED)
+            AddTextOption("anyway, so those scenes still leave their mark.", "", OPTION_FLAG_DISABLED)
             If Main.bCumDetectionEnabled
                 _moreCumOID = AddToggleOption("More Cum", Main.bMoreCumEnabled)
             Else
                 _moreCumOID = AddToggleOption("More Cum", Main.bMoreCumEnabled, OPTION_FLAG_DISABLED)
             EndIf
+            AddTextOption("Applies EXTRA cum decals on additional body areas on top", "", OPTION_FLAG_DISABLED)
+            AddTextOption("of the usual placement: face and chest after oral finishes,", "", OPTION_FLAG_DISABLED)
+            AddTextOption("thighs after vaginal or anal finishes. Off by default.", "", OPTION_FLAG_DISABLED)
         Else
             _cumDetectOID = AddToggleOption("Cum Cues (OCum not installed)", False, OPTION_FLAG_DISABLED)
             _slProxyOID   = -1
             _moreCumOID   = -1
         EndIf
+    ElseIf page == "Fill Her Up" && Main
+        ; REV-80: promoted from the dissolved Plugins page (one integration,
+        ; one page). Presence-greyed at page level when the mod is absent.
+        ; REV-134c: description row added (user ruling: vague names).
+        SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("FHU Inflation Awareness")
         If Main._FHUInstalled()
             _fhuAwareOID = AddToggleOption("Inflation Level Cues (Fill Her Up)", Main.bFHUInflationEnabled)
+            AddTextOption("Watches the Fill Her Up inflation level after creampies", "", OPTION_FLAG_DISABLED)
+            AddTextOption("and reports it to SkyrimNet, so the player and NPCs can", "", OPTION_FLAG_DISABLED)
+            AddTextOption("notice and react to how full someone is.", "", OPTION_FLAG_DISABLED)
         Else
-            _fhuAwareOID = AddToggleOption("Inflation Level Cues (mod not installed)", False, OPTION_FLAG_DISABLED)
+            _fhuAwareOID = AddToggleOption("Inflation Level Cues (not installed)", False, OPTION_FLAG_DISABLED)
         EndIf
-        ; REV-68: consolidated bridge settings — same SNAcheron.* keys/defaults the bridge MCM
-        ; wrote (player-keyed StorageUtil; the bridge quest re-reads them every tick). Presence-
-        ; gated on the bridge esp exactly like the other plugin sections; the bridge's own MCM
-        ; quest still exists in its esp but this page is now the primary surface (Option-B ruling).
-        AddEmptyOption()
+    ElseIf page == "Acheron"
+        ; REV-79 restructure: the Downed State bridge promoted from a Plugins section to
+        ; its own page (one integration, one page). Absent state is page-level: every
+        ; option greyed + the header names the missing mod (per-section gate, extended).
+        SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("Downed State (Acheron Bridge)")
-        Actor _achP = Main.PlayerRef
+        Actor _achP = Game.GetPlayer()
         If !_achP
             _achP = Game.GetPlayer()
         EndIf
-        If Main.IsAcheronBridgeInstalled()
+        If Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp") != None   ; REV-106 S4a: de-Mained — same probe the motherboard module-arm uses (SkyrimNet_BakaIntegration L586); the Acheron page no longer consults the motherboard
             _achEnabledOID  = AddToggleOption("Bridge Enabled",            StorageUtil.GetIntValue(_achP,   "SNAcheron.Enabled",           1) == 1)
             _achCueOID      = AddSliderOption("Reminder Cue Interval",     StorageUtil.GetFloatValue(_achP, "SNAcheron.CueInterval",       30.0),  "{0} s")
             _achProxOID     = AddSliderOption("Creature Check Interval",   StorageUtil.GetFloatValue(_achP, "SNAcheron.ProxInterval",      10.0),  "{0} s")
@@ -333,7 +709,7 @@ Event OnPageReset(String page)
             _achEngageOID   = AddSliderOption("Creature Engagement Chance", StorageUtil.GetFloatValue(_achP, "SNAcheron.CreatureEngageChance", 50.0), "{0}%")
             _achDebugOID    = AddToggleOption("Enable Debug Logging",      StorageUtil.GetIntValue(_achP,   "SNAcheron.DebugLog",          1) == 1)
         Else
-            _achEnabledOID  = AddToggleOption("Bridge Enabled (Acheron bridge not installed)", False, OPTION_FLAG_DISABLED)
+            _achEnabledOID  = AddToggleOption("Bridge Enabled (not installed)", False, OPTION_FLAG_DISABLED)
             _achCueOID      = -1
             _achProxOID     = -1
             _achConfirmOID  = -1
@@ -342,32 +718,41 @@ Event OnPageReset(String page)
             _achEngageOID   = -1
             _achDebugOID    = -1
         EndIf
-        ; REV-72 SlaveTats degradation sets — same presence-gated pattern as the sections
-        ; above. Set section/name pairs are chosen in the PrismaUI SlaveTats menu; here we
-        ; expose the master/event toggles, a pack-list Refresh (rebuilds the SlaveTats cache
-        ; after enabling a pack in MO2 — see SNBaka_SlaveTatsModule.RefreshPacks), and a
-        ; status line summarizing discovery + the chosen sets.
-        AddEmptyOption()
+    ElseIf page == "SlaveTats"
+        ; REV-79 restructure: the SlaveTats degradation-set section promoted from the
+        ; Plugins page to its own page (one integration, one page — the page the picker
+        ; walkthrough is re-baselined against). Absent state page-level like Acheron's.
+        ; REV-80 §7 copy fix: the set-assignment block is titled WHAT IT IS — "Auto-Apply
+        ; Sets" configures which set each EVENT fires automatically (spank / defeat /
+        ; escalation); the actual set choice happens in the in-game Tattoo Menu picker,
+        ; which always offers the full range regardless of what is configured here.
+        ; Presence-greyed at page level when SlaveTats is absent.
+        SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("SlaveTats Degradation Sets")
-        Actor _stP = Main.PlayerRef
+        Actor _stP = Game.GetPlayer()
         If !_stP
             _stP = Game.GetPlayer()
         EndIf
         If SNBaka_SlaveTatsModule.Installed()
             _stEnabledOID = AddToggleOption("Module Enabled",               StorageUtil.GetIntValue(_stP,  "SNBaka.ST.Enabled",           1) == 1)
+            AddEmptyOption()
+            AddHeaderOption("Auto-Apply Sets")
+            _stIntroOID = AddTextOption("Sets are picked in the Tattoo Menu.", "", OPTION_FLAG_DISABLED)
             _stSpankOID   = AddToggleOption("Apply Set On Spank",           StorageUtil.GetIntValue(_stP,  "SNBaka.ST.ApplyOnSpank",      1) == 1)
             _stDefeatOID  = AddToggleOption("Apply Set On Defeat",          StorageUtil.GetIntValue(_stP,  "SNBaka.ST.ApplyOnDefeat",     1) == 1)
             _stEscalOID   = AddToggleOption("Apply Set On Escalation",      StorageUtil.GetIntValue(_stP,  "SNBaka.ST.ApplyOnEscalation", 0) == 1)
+            AddEmptyOption()
+            AddHeaderOption("Packs & Marks")
             _stRefreshOID = AddTextOption("Refresh Pack List",             "Refresh")
-            _stStatusOID  = AddTextOption("Discovered Sections",           StorageUtil.GetIntValue(_stP, "SNBaka.ST.SectionCount", 0) + " (sets: choose in SlaveTats menu)")
-            _stPickOID    = AddTextOption("Choose Sets (SlaveTats Menu)",  "Open")
+            _stStatusOID  = AddTextOption("Sections Available",             StorageUtil.GetIntValue(_stP, "SNBaka.ST.SectionCount", 0) + " sections")
+            _stPickOID    = AddTextOption("Open Set Picker (In-Game)",     "Open")
             ; REV-74 Task 4: module-wide default color (picker per-set colors override),
             ; removal-on-release, and the ambient observation pass toggle.
             _stDefaultColorOID   = AddTextOption("Default Mark Color",     _ST_ColorLabel(StorageUtil.GetIntValue(_stP, "SNBaka.ST.DefaultColor", 0)))
             _stRemoveOnReleaseOID = AddToggleOption("Remove Marks On Release", StorageUtil.GetIntValue(_stP, "SNBaka.ST.RemoveOnRelease", 1) == 1)
             _stObserveOID         = AddToggleOption("Ambient Observation Cues", StorageUtil.GetIntValue(_stP, "SNBaka.ST.Observe", 1) == 1)
         Else
-            _stEnabledOID = AddToggleOption("Module Enabled (SlaveTats not installed)", False, OPTION_FLAG_DISABLED)
+            _stEnabledOID = AddToggleOption("Module Enabled (not installed)", False, OPTION_FLAG_DISABLED)
             _stSpankOID   = -1
             _stDefeatOID  = -1
             _stEscalOID   = -1
@@ -378,6 +763,15 @@ Event OnPageReset(String page)
             _stRemoveOnReleaseOID = -1
             _stObserveOID         = -1
         EndIf
+    ElseIf page == "GS Poses"
+        ; REV-85 Phase B: the gender policy home (posing-gender.md §2b). One menu
+        ; option, three modes; the GS script reads the key on every gate (no nudge
+        ; needed — every check is a fresh StorageUtil read). Mode names mirror the
+        ; policy vocabulary of record.
+        SetCursorFillMode(TOP_TO_BOTTOM)
+        AddHeaderOption("GSPoses - Pose Gender Policy")
+        _gsIntroOID = AddTextOption("Who may be posed, by body:", "", OPTION_FLAG_DISABLED)
+        _gsGenderPolicyOID = AddMenuOption("Pose Gender Policy", _gsGenderPolicyName(StorageUtil.GetIntValue(None, "GSAnim.GenderPolicy", 0)))
     EndIf
 EndEvent
 
@@ -412,11 +806,14 @@ Event OnOptionSelect(Int option)
         Main.bSLProxyEnabled = !Main.bSLProxyEnabled
         SetToggleOptionValue(_slProxyOID, Main.bSLProxyEnabled)
     ElseIf option == _moreCumOID
-        ; REV-133c Task 2.2 (register 24, ruled)
+        ; REV-134c (register 24, ruled at REV-133c; built into the live MCM here
+        ; -- the §148 wrong-script fix). Default is OFF (motherboard property
+        ; flipped with this rev); the extras router (SNBaka_CumDetectionModule
+        ; L302) reads the property live, no re-arm needed.
         Main.bMoreCumEnabled = !Main.bMoreCumEnabled
         SetToggleOptionValue(_moreCumOID, Main.bMoreCumEnabled)
         If Main.bMoreCumEnabled
-            Debug.Notification("More Cum enabled: scenes will apply decals on additional body parts.")
+            Debug.Notification("More Cum enabled: finishes will apply extra decals on additional body parts.")
         Else
             Debug.Notification("More Cum disabled.")
         EndIf
@@ -429,16 +826,21 @@ Event OnOptionSelect(Int option)
         ; bridge quest re-reads it on its next tick. Nudges the motherboard lifecycle surface
         ; (per the §68 ruling: toggles nudge Main._ArmModules()) so the bridge picks the change
         ; up immediately instead of on its own self-heal cadence.
-        Actor achP1 = Main.PlayerRef
+        Actor achP1 = Game.GetPlayer()
         If !achP1
             achP1 = Game.GetPlayer()
         EndIf
         Int vAch = 1 - StorageUtil.GetIntValue(achP1, "SNAcheron.Enabled", 1)
         StorageUtil.SetIntValue(achP1, "SNAcheron.Enabled", vAch)
         SetToggleOptionValue(_achEnabledOID, vAch == 1)
-        Main._ArmModules()
+        ; REV-106 S4a: the lifecycle nudge is motherboard-dependent — guard it so
+        ; this Acheron-page toggle works with the motherboard absent too (the bridge
+        ; re-reads the key on its own self-heal cadence either way, per §68).
+        If Main
+            Main._ArmModules()
+        EndIf
     ElseIf option == _achHandoffOID
-        Actor achP2 = Main.PlayerRef
+        Actor achP2 = Game.GetPlayer()
         If !achP2
             achP2 = Game.GetPlayer()
         EndIf
@@ -446,7 +848,7 @@ Event OnOptionSelect(Int option)
         StorageUtil.SetIntValue(achP2, "SNAcheron.CreatureHandoff", vHand)
         SetToggleOptionValue(_achHandoffOID, vHand == 1)
     ElseIf option == _achDebugOID
-        Actor achP3 = Main.PlayerRef
+        Actor achP3 = Game.GetPlayer()
         If !achP3
             achP3 = Game.GetPlayer()
         EndIf
@@ -463,11 +865,11 @@ Event OnOptionSelect(Int option)
         _ST_Toggle("SNBaka.ST.ApplyOnEscalation", _stEscalOID, 0)
     ElseIf option == _stRefreshOID
         SNBaka_SlaveTatsModule.RefreshPacks()
-        Actor stP1 = Main.PlayerRef
+        Actor stP1 = Game.GetPlayer()
         If !stP1
             stP1 = Game.GetPlayer()
         EndIf
-        SetTextOptionValue(_stStatusOID, StorageUtil.GetIntValue(stP1, "SNBaka.ST.SectionCount", 0) + " (sets: choose in SlaveTats menu)")
+        SetTextOptionValue(_stStatusOID, StorageUtil.GetIntValue(stP1, "SNBaka.ST.SectionCount", 0) + " sections")
         Debug.Notification("SlaveTats: pack list refreshed - " + StorageUtil.GetIntValue(stP1, "SNBaka.ST.SectionCount", 0) + " sections visible.")
     ElseIf option == _stPickOID
         ; REV-72 dogfood fix: the set picker had no in-game entry point (OpenSetMenu was
@@ -477,7 +879,7 @@ Event OnOptionSelect(Int option)
         ; REV-74: cycle Default -> Black -> Red -> Crimson -> Dark Red -> Blue -> Green
         ; -> Purple -> Pink -> Default. Stored as the 0xRRGGBB int the module reads
         ; (SNBaka.ST.DefaultColor; 0 = pack default / no recolor).
-        Actor stP2 = Main.PlayerRef
+        Actor stP2 = Game.GetPlayer()
         If !stP2
             stP2 = Game.GetPlayer()
         EndIf
@@ -569,6 +971,9 @@ Event OnOptionSelect(Int option)
         Main.bHumanEscalateOnHit = !Main.bHumanEscalateOnHit
         SetToggleOptionValue(_humanOnHitOID, Main.bHumanEscalateOnHit)
     EndIf
+    ; REV-109c: the REV-109b section-navigation handler chain is REMOVED with
+    ; the navigation model (supersession banner at the file header). The
+    ; stacked body has no nav OIDs; the handlers above are the full set.
 EndEvent
 
 ; REV-68 — get-up key rebinding for the consolidated bridge section. Writes the same
@@ -576,7 +981,7 @@ EndEvent
 ; the bridge quest reads it every tick, so no nudge is needed for a keybind).
 Event OnOptionKeyMapChange(Int option, Int keyCode, String conflictControl, String conflictName)
     If option == _achGetUpKeyOID
-        Actor achPk = Main.PlayerRef
+        Actor achPk = Game.GetPlayer()
         If !achPk
             achPk = Game.GetPlayer()
         EndIf
@@ -602,6 +1007,10 @@ Event OnOptionMenuOpen(Int option)
         SetMenuDialogOptions(_targetSexNames())
         SetMenuDialogStartIndex(Main.iTargetSex)
         SetMenuDialogDefaultIndex(0)
+    ElseIf option == _gsGenderPolicyOID
+        SetMenuDialogOptions(_gsGenderPolicyNames())
+        SetMenuDialogStartIndex(StorageUtil.GetIntValue(None, "GSAnim.GenderPolicy", 0))
+        SetMenuDialogDefaultIndex(0)
     ElseIf option == _execGateOID
         SetMenuDialogOptions(_execGateNames())
         SetMenuDialogStartIndex(_ExecGateLevel())
@@ -622,16 +1031,27 @@ Event OnOptionMenuAccept(Int option, Int index)
     ElseIf option == _femaleOnlyOID
         Main.iTargetSex = index
         SetMenuOptionValue(_femaleOnlyOID, _targetSexName(index))
+    ElseIf option == _gsGenderPolicyOID
+        ; REV-85 Phase B: write GSAnim.GenderPolicy (StorageUtil int on None, the
+        ; GS script's own key style; save-persisted, no migration — 0 is shipped
+        ; default). The GS gates read it fresh on every check, so this is live.
+        If index < 0 || index > 2
+            index = 0
+        EndIf
+        StorageUtil.SetIntValue(None, "GSAnim.GenderPolicy", index)
+        SetMenuOptionValue(_gsGenderPolicyOID, _gsGenderPolicyName(index))
+        Debug.Notification("GS Poses: pose gender policy set - " + _gsGenderPolicyName(index))
     ElseIf option == _execGateOID
-        ; REV-92 Task 2.1 — player-keyed StorageUtil write (same pattern as the SNAcheron.*
-        ; options; no CK property link). Execute_Execute re-reads it on every fire.
+        ; REV-93 Task 1 (port): player-keyed StorageUtil write (same pattern as the
+        ; SNAcheron.* options; no CK property link). Execute_Execute re-reads it on
+        ; every fire.
         _SetExecGateLevel(index)
         SetMenuOptionValue(_execGateOID, _execGateName(index))
     EndIf
 EndEvent
 
-; REV-92 Task 2.1 — Execute-gate level names (user-ruled 2026-10-10; ASCII-only per the
-; runtime-string ASCII rider).
+; REV-93 Task 1 (port of the REV-92 block) - Execute-gate level names (user-ruled
+; 2026-10-10; ASCII-only per the runtime-string ASCII rider).
 String[] Function _execGateNames()
     String[] a = new String[3]
     a[0] = "Unlimited"
@@ -650,7 +1070,7 @@ String Function _execGateName(Int i)
 EndFunction
 
 Int Function _ExecGateLevel()
-    Actor p = Main.PlayerRef
+    Actor p = Game.GetPlayer()
     If !p
         p = Game.GetPlayer()
     EndIf
@@ -658,13 +1078,12 @@ Int Function _ExecGateLevel()
 EndFunction
 
 Function _SetExecGateLevel(Int i)
-    Actor p = Main.PlayerRef
+    Actor p = Game.GetPlayer()
     If !p
         p = Game.GetPlayer()
     EndIf
     StorageUtil.SetIntValue(p, "SNBaka.ExecuteGateLevel", i)
 EndFunction
-
 
 String[] Function _targetSexNames()
     String[] a = new String[3]
@@ -700,6 +1119,25 @@ String[] Function _backendNames()
     a[1] = "SexLab"
     a[2] = "OStim"
     Return a
+EndFunction
+
+; REV-85 Phase B — GS Poses page: gender policy mode names (GSAnim.GenderPolicy).
+; The default index is 0 everywhere (female-only = shipped default, no migration).
+String[] Function _gsGenderPolicyNames()
+    String[] a = new String[3]
+    a[0] = "Female only"
+    a[1] = "Curated (men: neutral set)"
+    a[2] = "All poses"
+    Return a
+EndFunction
+
+String Function _gsGenderPolicyName(Int i)
+    If i == 1
+        Return "Curated (men: neutral set)"
+    ElseIf i == 2
+        Return "All poses"
+    EndIf
+    Return "Female only"
 EndFunction
 
 String Function _backendName(Int i)
@@ -828,22 +1266,22 @@ Event OnOptionSliderOpen(Int option)
         SetSliderDialogRange(0.0, 100.0)
         SetSliderDialogInterval(5.0)
     ElseIf option == _achCueOID
-        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Main.PlayerRef, "SNAcheron.CueInterval", 30.0))
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Game.GetPlayer(), "SNAcheron.CueInterval", 30.0))
         SetSliderDialogDefaultValue(30.0)
         SetSliderDialogRange(10.0, 120.0)
         SetSliderDialogInterval(5.0)
     ElseIf option == _achProxOID
-        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Main.PlayerRef, "SNAcheron.ProxInterval", 10.0))
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Game.GetPlayer(), "SNAcheron.ProxInterval", 10.0))
         SetSliderDialogDefaultValue(10.0)
         SetSliderDialogRange(5.0, 60.0)
         SetSliderDialogInterval(5.0)
     ElseIf option == _achConfirmOID
-        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Main.PlayerRef, "SNAcheron.AutoGetUpSeconds", 600.0))
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Game.GetPlayer(), "SNAcheron.AutoGetUpSeconds", 600.0))
         SetSliderDialogDefaultValue(600.0)
         SetSliderDialogRange(60.0, 3600.0)
         SetSliderDialogInterval(30.0)
     ElseIf option == _achEngageOID
-        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Main.PlayerRef, "SNAcheron.CreatureEngageChance", 50.0))
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Game.GetPlayer(), "SNAcheron.CreatureEngageChance", 50.0))
         SetSliderDialogDefaultValue(50.0)
         SetSliderDialogRange(0.0, 100.0)
         SetSliderDialogInterval(5.0)
@@ -925,16 +1363,16 @@ Event OnOptionSliderAccept(Int option, Float value)
         Main.iCreatureGroupMaxSize = value as Int
         SetSliderOptionValue(_creatureGroupSizeOID, value, "{0}")
     ElseIf option == _achCueOID
-        StorageUtil.SetFloatValue(Main.PlayerRef, "SNAcheron.CueInterval", value)
+        StorageUtil.SetFloatValue(Game.GetPlayer(), "SNAcheron.CueInterval", value)
         SetSliderOptionValue(_achCueOID, value, "{0} s")
     ElseIf option == _achProxOID
-        StorageUtil.SetFloatValue(Main.PlayerRef, "SNAcheron.ProxInterval", value)
+        StorageUtil.SetFloatValue(Game.GetPlayer(), "SNAcheron.ProxInterval", value)
         SetSliderOptionValue(_achProxOID, value, "{0} s")
     ElseIf option == _achConfirmOID
-        StorageUtil.SetFloatValue(Main.PlayerRef, "SNAcheron.AutoGetUpSeconds", value)
+        StorageUtil.SetFloatValue(Game.GetPlayer(), "SNAcheron.AutoGetUpSeconds", value)
         SetSliderOptionValue(_achConfirmOID, value, "{0} s")
     ElseIf option == _achEngageOID
-        StorageUtil.SetFloatValue(Main.PlayerRef, "SNAcheron.CreatureEngageChance", value)
+        StorageUtil.SetFloatValue(Game.GetPlayer(), "SNAcheron.CreatureEngageChance", value)
         SetSliderOptionValue(_achEngageOID, value, "{0}%")
     EndIf
 EndEvent
@@ -950,6 +1388,8 @@ Event OnOptionHighlight(Int option)
         SetInfoText("Which target sex ALL actions allow: Both, Female only, or Male only. Note: breast/intimate actions always require female targets regardless.")
     ElseIf option == _cooldownOID
         SetInfoText("Minimum real-time seconds between NPC-initiated actions. Default 30s.")
+    ElseIf option == _execGateOID
+        SetInfoText("REV-93: how the Execute action may be used. Unlimited = no gate. Companions ask / Always ask = the confirm dialog appears (companion-initiated only, or every time). Player hotkey Execute bypasses this gate.")
     ElseIf option == _hugDurOID
         SetInfoText("How long BackHug and FrontHug loop phases last.")
     ElseIf option == _molestDurOID
@@ -1068,8 +1508,18 @@ Event OnOptionHighlight(Int option)
         SetInfoText("Strip the module's degradation marks when a captive is genuinely released (the Release action). Only marks THIS module applied - Baka's own spank heat marks are untouched. Default ON.")
     ElseIf option == _stObserveOID
         SetInfoText("Periodic ambient cue (~every 4 game hours) that a marked actor still wears their degradation marks, so nearby personas can notice and react without polling. Only fires when module-applied marks exist. Default ON.")
-    ElseIf option == _execGateOID
-        SetInfoText("How much the player is asked before an NPC executes a downed victim. Unlimited: never asked (default). Companions ask: your companions ask first - everyone else acts freely. Always ask: every execution asks first. Your own downed-menu Execute button is never gated.")
+    ElseIf option == _qteKeysOID
+        ; REV-109 length audit (class (b) split): the WASD / d-pad detail moved
+        ; here from the (over-length) value string.
+        SetInfoText("Struggle QTE keys: WASD / d-pad. Not configured here - set them in the 'Flash Games' mod's Struggling QTE section.")
+    ElseIf option == _stIntroOID
+        ; REV-109 length audit (class (b) split): the full sentence moved here
+        ; from the (over-length) label.
+        SetInfoText("Sets are chosen in the in-game Tattoo Menu; this section only decides WHICH events fire them automatically.")
+    ElseIf option == _gsIntroOID
+        ; REV-109 length audit (class (b) split): the full explanation moved
+        ; here from the (over-length) label.
+        SetInfoText("Who may be posed, by body: female-only keeps the shipped behavior; curated admits men to the neutral set; all-poses opens the whole library.")
     EndIf
 EndEvent
 
@@ -1113,7 +1563,7 @@ EndFunction
 
 ; REV-72 SlaveTats toggle helper — flips a player-keyed SNBaka.ST.* int between 1 and 0.
 Function _ST_Toggle(String asKey, Int aiOID, Int aiDefault)
-    Actor p = Main.PlayerRef
+    Actor p = Game.GetPlayer()
     If !p
         p = Game.GetPlayer()
     EndIf

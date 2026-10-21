@@ -230,7 +230,7 @@ Bool  Property bSLProxyEnabled      = True Auto  ; SexLab orgasm-hook proxy shar
 ; generate cum decals on additional body parts." Throat finishes also apply
 ; face+chest; vaginal/anal finishes also apply thighs. Driven in
 ; SNBaka_CumDetectionModule._WriteCumState (per-scene-source appliance).
-Bool  Property bMoreCumEnabled     = True Auto  ; More Cum: additional cum decals on additional body parts
+Bool  Property bMoreCumEnabled     = False Auto  ; More Cum: additional cum decals on additional body parts (REV-134c: default flipped to OFF by user ruling; was True at REV-133c)
 Bool  Property bFHUInflationEnabled = True Auto  ; FHU inflation level awareness (sdb_fhu_inflate/deflate)
 ; Per-source vs unified cum-cue shaping (amendment 2b): 0 = unified (framework-neutral,
 ; default -- the proposal awaiting §7 ruling), 1 = per-source wording.
