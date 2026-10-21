@@ -234,6 +234,11 @@ Int _fhuAwareOID = -1
 ; script. Default OFF (user ruling, REV-134c; motherboard property bMoreCumEnabled
 ; flipped to False in the same rev).
 Int _moreCumOID = -1
+; REV-134f: Follow-up Prompt (user-ruled dogfood 2026-10-21, name + tooltip
+; verbatim) -- the MCM gate for the optional ambient-cue direct narration
+; (motherboard property bCumFollowUpNarration, default OFF; the gated
+; sdb_cum_ambient_narr event type + its yaml carry the register entry-22 text).
+Int _cumFollowUpOID = -1
 ; REV-68 "Downed State (Acheron Bridge)" settings (own "Acheron" page since REV-79) — consolidated from the
 ; bridge's own MCM. Settings stay in StorageUtil (player-keyed, same SNAcheron.* keys and
 ; defaults as the bridge MCM — no CK property link, no data migration; the bridge quest
@@ -682,13 +687,19 @@ Event OnPageReset(String page)
             EndIf
             If Main.bCumDetectionEnabled
                 _moreCumOID = AddToggleOption("More Cum", Main.bMoreCumEnabled)
+                ; REV-134f: Follow-up Prompt -- same gating posture as More Cum
+                ; (user-ruled name verbatim; tooltip text is the user's verbatim
+                ; ruling, delivered as SetInfoText on highlight per REV-134d R2).
+                _cumFollowUpOID = AddToggleOption("Follow-up Prompt", Main.bCumFollowUpNarration)
             Else
                 _moreCumOID = AddToggleOption("More Cum", Main.bMoreCumEnabled, OPTION_FLAG_DISABLED)
+                _cumFollowUpOID = AddToggleOption("Follow-up Prompt", Main.bCumFollowUpNarration, OPTION_FLAG_DISABLED)
             EndIf
         Else
             _cumDetectOID = AddToggleOption("Cum Cues (OCum not installed)", False, OPTION_FLAG_DISABLED)
             _decalOID     = -1
             _moreCumOID   = -1
+            _cumFollowUpOID = -1
         EndIf
     ElseIf page == "Fill Her Up" && Main
         ; REV-80: promoted from the dissolved Plugins page (one integration,
@@ -811,6 +822,7 @@ Event OnOptionSelect(Int option)
         SetToggleOptionValue(_cumDetectOID, Main.bCumDetectionEnabled)
         SetOptionFlags(_decalOID, OPTION_FLAG_DISABLED * ((!Main.bCumDetectionEnabled) as Int))
         SetOptionFlags(_moreCumOID, OPTION_FLAG_DISABLED * ((!Main.bCumDetectionEnabled) as Int))
+        SetOptionFlags(_cumFollowUpOID, OPTION_FLAG_DISABLED * ((!Main.bCumDetectionEnabled) as Int))
         If Main.bCumDetectionEnabled
             Main.Setup()
             Debug.Notification("Cum cues enabled.")
@@ -828,6 +840,18 @@ Event OnOptionSelect(Int option)
             Debug.Notification("More Cum enabled: finishes will apply extra decals on additional body parts.")
         Else
             Debug.Notification("More Cum disabled.")
+        EndIf
+    ElseIf option == _cumFollowUpOID
+        ; REV-134f (user-ruled 2026-10-21): optional direct narration for the
+        ; ambient cum cue. Read live at every ambient tick -- no re-arm needed;
+        ; OFF removes the narration line entirely (cue stays, per the REV-134d
+        ; cue-only anatomy verdict which is this property's default).
+        Main.bCumFollowUpNarration = !Main.bCumFollowUpNarration
+        SetToggleOptionValue(_cumFollowUpOID, Main.bCumFollowUpNarration)
+        If Main.bCumFollowUpNarration
+            Debug.Notification("Follow-up Prompt enabled: ambient cum cues also produce a direct narration line.")
+        Else
+            Debug.Notification("Follow-up Prompt disabled.")
         EndIf
     ElseIf option == _fhuAwareOID
         Main.bFHUInflationEnabled = !Main.bFHUInflationEnabled
@@ -1581,6 +1605,9 @@ Event OnOptionHighlight(Int option)
         SetInfoText("Pick the cum decal source for this module to apply and track.")
     ElseIf option == _moreCumOID
         SetInfoText("Adds additional location friendly cum decals on orgasm events.")
+    ElseIf option == _cumFollowUpOID
+        ; REV-134f: the user's tooltip text, verbatim.
+        SetInfoText("Additional direct narration for cum application events")
     ElseIf option == _enabledOID
         SetInfoText("Master switch for all Baka motion interactions.")
     ElseIf option == _animatedTearsOID

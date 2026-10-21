@@ -231,6 +231,14 @@ Bool  Property bSLProxyEnabled      = True Auto  ; SexLab orgasm-hook proxy shar
 ; face+chest; vaginal/anal finishes also apply thighs. Driven in
 ; SNBaka_CumDetectionModule._WriteCumState (per-scene-source appliance).
 Bool  Property bMoreCumEnabled     = False Auto  ; More Cum: additional cum decals on additional body parts (REV-134c: default flipped to OFF by user ruling; was True at REV-133c)
+; REV-134f (user-ruled dogfood 2026-10-21): Follow-up Prompt -- the OPTIONAL
+; direct narration for the ambient cum cue. OFF by default (the REV-134d
+; cue-only anatomy verdict stays the default); ON restores the register
+; entry-22 narration as a gated second surface via the sdb_cum_ambient_narr
+; event type (SNBaka_CumDetectionModule.HandleCumAmbientDue emits it only
+; when this is ON; the yaml sdb_cum_ambient_narr.yaml matches that event type
+; ONLY, so cue and narration are fully separable surfaces).
+Bool  Property bCumFollowUpNarration = False Auto
 ; REV-134d (R2, user-ruled 2026-10-21): Decal Source Selection -- which cum decal
 ; source this module applies and tracks. 0=OCum (default, user-ruled), 1=SexLab,
 ; 2=P+, 3=SLACS-2+SCO. Retires the bSLProxyEnabled MCM toggle (that property stays,

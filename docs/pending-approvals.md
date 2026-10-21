@@ -852,3 +852,26 @@ fire time. DRAFT description:
 
 *REV-134e register state: open entries 15, 16, 26, 27, 28. Fork copy lockstep (this
 refresh). Receipts: PROJECT_STATE §152 + the four feature-doc scout sections.*
+
+---
+
+---
+
+## Entry 29 — REV-134f (2026-10-21): the FOLLOW-UP PROMPT narration gate — CLOSED (user-ruled + BUILT)
+
+The ambient cum cue's direct narration ("People feel the need to express their reaction
+to the cum covered person, and begin to make comments.") is now a SEPARATE, MCM-gated
+surface per the user's dogfood ruling (2026-10-21, name + tooltip verbatim): the cue
+(`sdb_cum_ambient` RegisterEvent) stays MANDATORY when the module is active; the
+narration rides the gated event type `sdb_cum_ambient_narr` (yaml
+`regalrascal.baka-gs-integration/triggers/sdb_cum_ambient_narr.yaml`, entry-22 text
+VERBATIM) and fires ONLY when the new Cum Effects MCM toggle **"Follow-up Prompt"**
+(motherboard property `bCumFollowUpNarration`, DEFAULT OFF; tooltip "Additional direct
+narration for cum application events") is ON. The stale overwrite-overlay
+`sdb_cum_ambient.yaml` (the live leg that kept narrating un-gated after REV-134d's
+cue-only deletion) is deleted from the modlist this rev. Text of record = entry 22
+(reused, not re-drafted); MCM label/tooltip = the user's verbatim ruling.
+
+**Status: CLOSED-SHIPPED (REV-134f).** Register after this rev: open entries 15, 16,
+26, 27, 28. Fork copy lockstep. Receipts: PROJECT_STATE §153 + cum-effects.md REV-134f.
+

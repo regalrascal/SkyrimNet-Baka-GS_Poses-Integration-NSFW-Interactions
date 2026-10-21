@@ -1102,6 +1102,20 @@ Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, F
     String desc = _AmbientDesc(wearer)
     akHost._Log("[SNBaka] sdb_cum_ambient_due: ambient cue fired (sender=" + akSender + "; maintenance pass done, src=" + src + "; emission restored REV-134a)")
     SkyrimNetApi.RegisterEvent("sdb_cum_ambient", desc, narrTarget, None)
+    ; REV-134f (user-ruled dogfood 2026-10-21): Follow-up Prompt -- the direct
+    ; narration is now a SEPARATE, MCM-gated surface. The narration yaml
+    ; (sdb_cum_ambient_narr.yaml, register entry-22 ruled text verbatim) matches
+    ; the sdb_cum_ambient_narr event type ONLY, so the cue (mandatory, above)
+    ; and the narration (optional, Cum Effects MCM "Follow-up Prompt") are
+    ; fully separable. Default OFF = cue-only, per the REV-134d anatomy
+    ; verdict; the stale overwrite-overlay sdb_cum_ambient.yaml that kept
+    ; narrating un-gated after that verdict was the live leg of this fix
+    ; (deleted from the modlist overlay this rev). The follow-up event's own
+    ; desc is a plain marker (the rendered text lives in the yaml).
+    If akHost.bCumFollowUpNarration
+        akHost._Log("[SNBaka] sdb_cum_ambient_due: follow-up prompt ON -- narration event fired (REV-134f)")
+        SkyrimNetApi.RegisterEvent("sdb_cum_ambient_narr", "[sdb_cum_ambient_narr] Follow-up narration moment for the ambient cum cue.", narrTarget, None)
+    EndIf
 EndFunction
 
 ; ---- REV-133: THE PRE-SHAPED AMBIENT (Task 3.1; entry-26 phrase batch) ----
