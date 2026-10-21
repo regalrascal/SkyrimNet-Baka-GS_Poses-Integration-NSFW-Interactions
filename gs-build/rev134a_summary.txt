@@ -1,0 +1,8 @@
+REV-134a receipts (2026-10-20 evening)
+RESTORE: tick RegisterEvent(sdb_cum_ambient, _AmbientDesc, narrTarget, None) restored verbatim (git-recovered); ONLY emission; P2 trigger-bus class; no DirectNarration in the ambient chain.
+SWEEP: module RegisterEvent = sdb_cum_applied x2 + sdb_cum_ambient x1; zero sdb_cum_aftermath; zero DirectNarration code.
+COMPILE: 3/3 0/0 (run_compile_rev134a.bat; module pex 26,501 B). Receipt: rev134a_compile.txt
+MCM DIAGNOSIS: (1) v8 marker in deployed [REV-133c] MCM pex: PASS (SNBaka.MCMv8 / More Cum / Cum Detection byte-present). (2) v8 canary trace: EXPECTED-ABSENT (OnVersionUpdate lazy; fresh mod name -> OnConfigInit; OnGameReload canary fired 08:22:18 PM). (3) Toggle OID home: PASS (Cum Detection section, AddToggleOption L301/303). Nothing failed; nothing fixed.
+DOGFOOD LOG EVIDENCE (Papyrus.0.log 10/20): retired sentinel every 60s 08:23-08:31 PM with no emission (the regression); More Cum router witnessed (mouth -> face+chest via sexlab_pplus AND sexlab_vanilla appliances); failsafe expiry clean.
+DIST: [REV-134a] ambient-emission-restore full tree, 276 files, exactly 3 changed vs [REV-133c] (the recompiled pex). Zip 7,637,126 B, SHA256 10F01AF49F63E8DD79B70CFB117FD955D7F8139C7298CB0E773BD2FC72366AE8, 276 entries.
+MODLIST ASSERTION: session-start baseline STALE (the user's [REV-133c] deployment post-dates the 133c baseline file) -> refreshed to true session-start state; then CLEAN at compile leg + end-of-session: NO CHANGE. Modlist writes this session: NONE.

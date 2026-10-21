@@ -992,29 +992,40 @@ Function HandleCumAmbientDue(SkyrimNet_BakaIntegration akHost, Float afNumArg, F
         EndIf
         StorageUtil.SetIntValue(wearer, "DeD_Cum_PromptShow", 0)
     EndIf
-    ; REV-133c Task 1.1 (ruled 2026-10-20, rider 2.5a CONSERVATIVE): the separate
-    ; DirectNarration event call is RETIRED. The ambient yaml
-    ; (sdb_cum_ambient.yaml) remains the consumer-of-record for the
-    ; sdb_cum_ambient event type, its response.content carrying ONLY the
-    ; approved cue-guidance text (relocated from the applied cue's approved
-    ; guidance wording; byte-verified: no DirectNarration machinery, no
-    ; template syntax).
-    ; ORPHAN SEMANTICS, as far as evidence allows (trigger-engine source
-    ; LOCATED: D:\Modlists\LoreRim\mods\skyrimnet-beta28-rc2\Source\Scripts\
-    ; SkyrimNetApi.psc -- RegisterEvent(eventType, content, originatorActor,
-    ; targetActor) is the NATIVE trigger-bus entry; the C++ matching internals
-    ; are not present in the installed trees): with the PSC emitter deleted,
-    ; no sdb_cum_ambient event is registered, so the yaml has no fire source
-    ; on current evidence. The ambient MOMENT still stands at +60s via the
-    ; staged prompt fragments (0175_ded_cum / 0520_ded_cum_disposition, the
-    ; bio lane) + the get_ded_cum decorator. Whether an emitter-less yaml has
-    ; any residual lane is the DEMOTED orphan question (records/curiosity;
-    ; rides the SN-team follow-up via the entry-25 note).
-    ; _AmbientDesc + _LocationNoun are RETAINED DORMANT: the pre-shaped
-    ; phrase pieces are the reopening asset for the delayed-ambient design
-    ; conversation (the room-too-quiet findings -> cum-effects.md reopening
-    ; notes).
-    akHost._Log("[SNBaka] sdb_cum_ambient_due: maintenance tick done (src=" + src + "; ambient DirectNarration retired REV-133c)")
+    ; REV-134a THE RESTORE (2026-10-20, the regression's fix): the ambient
+    ; RegisterEvent call is RESTORED as the ONLY emission. The REV-133c
+    ; conservative ruling's dependency read was INVERTED -- the
+    ; misdiagnosis, on record, caught by the user's dogfood: the
+    ; RegisterEvent call IS load-bearing (the trigger-engine's native bus
+    ; entry, SkyrimNetApi.psc -- RegisterEvent(eventType, content,
+    ; originatorActor, targetActor)), and the emitter-less yaml does NOT
+    ; fire (REV-133b's own evidence; the orphan question answered by
+    ; regression, not by SN-team follow-up). The restored shape is the
+    ; design of record: P2 class -- trigger-bus semantics (waits its turn,
+    ; merges, budget-counted; the Conversation_System doc's emission-class
+    ; table) -- with NO DirectNarration machinery anywhere in the ambient
+    ; chain (stays dead). The yaml (sdb_cum_ambient.yaml) is inert by this
+    ; same evidence -- RETAINED verbatim as inert documentation (its
+    ; response.content = the approved cue-guidance text; non-role recorded
+    ; in cum-effects.md REV-134a + PROJECT_STATE §148).
+    ; Ambient cue (unchanged REV-117 behavior): sender=None -> subjectless;
+    ; the narrator applies it to whoever the moment fits.
+    Actor narrTarget = akSender as Actor
+    ; REV-133 (Task 3.1, cum-prompt-spec.md s9): the ambient cue is
+    ; PRE-SHAPED per-fire in Papyrus from the phrase pieces -- wearer-naming,
+    ; freshness-banded (<600 fresh / <3600 dried / else faded -- the 0175 band
+    ; matrix of record), location-aware (the accumulated set, plain-English
+    ; join) -- ALL PLAIN TEXT, zero template syntax, so it cannot inherit the
+    ; beta-28 response-content render failure class (the .cpp:372 receipts).
+    ; Wording posture: the "Nearby characters notice that ..." prefix is
+    ; register entry 19's ruled wording of record (kept verbatim); the
+    ; name/freshness/location insertions are STRATEGIST DRAFT and ride the
+    ; entry-26 batch (the user rules the phrase family once). The subjectless
+    ; base (entry 19 verbatim, "someone is covered in cum ...") remains the
+    ; no-wearer / no-pieces fallback -- the ruled text is always reachable.
+    String desc = _AmbientDesc(wearer)
+    akHost._Log("[SNBaka] sdb_cum_ambient_due: ambient cue fired (sender=" + akSender + "; maintenance pass done, src=" + src + "; emission restored REV-134a)")
+    SkyrimNetApi.RegisterEvent("sdb_cum_ambient", desc, narrTarget, None)
 EndFunction
 
 ; ---- REV-133: THE PRE-SHAPED AMBIENT (Task 3.1; entry-26 phrase batch) ----
@@ -1111,10 +1122,13 @@ EndFunction
 ; templates. Wearer-keyed: resolves the wearer regardless of the passed
 ; actor (the state layer carries a singular wearer), with "self" carrying
 ; the direction bit. Unmarked or expired world: {"present": false}.
-; Consumers of record: sdb_cum_ambient.yaml (REV-133c: consumer-of-record,
-; emitter retired; see the orphan-semantics note in HandleCumAmbientDue) and
-; the staged prompt fragments (0175/0520)
+; Consumers of record: the tick's RegisterEvent("sdb_cum_ambient") emission
+; (RESTORED REV-134a -- the only fire source; P2 trigger-bus class) and the
+; staged prompt fragments (0175/0520)
 ; (wearer-naming + freshness class; the documented originator_uuid arg).
+; sdb_cum_ambient.yaml: INERT by the REV-134a regression evidence (an
+; emitter-less yaml does not fire) -- retained verbatim as inert
+; documentation only.
 String Function GetDedCum(Actor akActor) Global
     Actor wearer = StorageUtil.GetFormValue(None, "SNBaka.CumWearer", None) as Actor
     If !wearer

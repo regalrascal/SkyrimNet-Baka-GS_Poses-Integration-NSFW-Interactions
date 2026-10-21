@@ -1,0 +1,33 @@
+Delectatio-et-Dominium-rev103-pack-split_backup|2026-10-12 21:19:33|265
+Delectatio-et-Dominium-rev133-cum-null-hardening|2026-10-19 22:48:16|276
+Starting 1 compile threads for 1 files...
+Compiling "SNBaka_CumDetectionModule"...
+Starting assembly of SNBaka_CumDetectionModule
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+Starting 1 compile threads for 1 files...
+Compiling "SkyrimNet_BakaIntegration"...
+Starting assembly of SkyrimNet_BakaIntegration
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+Starting 1 compile threads for 1 files...
+Compiling "SkyrimNet_BakaIntegration_MCM"...
+Starting assembly of SkyrimNet_BakaIntegration_MCM
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+Delectatio-et-Dominium-rev103-pack-split_backup|2026-10-12 21:19:33|265
+Delectatio-et-Dominium-rev133-cum-null-hardening|2026-10-19 22:48:16|276
+MODLIST ASSERTION CLEAN (compile leg).
+COMPILE 0/0 (module + motherboard + MCM).
