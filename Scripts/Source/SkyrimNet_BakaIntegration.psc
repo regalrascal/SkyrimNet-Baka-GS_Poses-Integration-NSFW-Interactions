@@ -231,6 +231,13 @@ Bool  Property bSLProxyEnabled      = True Auto  ; SexLab orgasm-hook proxy shar
 ; face+chest; vaginal/anal finishes also apply thighs. Driven in
 ; SNBaka_CumDetectionModule._WriteCumState (per-scene-source appliance).
 Bool  Property bMoreCumEnabled     = False Auto  ; More Cum: additional cum decals on additional body parts (REV-134c: default flipped to OFF by user ruling; was True at REV-133c)
+; REV-134d (R2, user-ruled 2026-10-21): Decal Source Selection -- which cum decal
+; source this module applies and tracks. 0=OCum (default, user-ruled), 1=SexLab,
+; 2=P+, 3=SLACS-2+SCO. Retires the bSLProxyEnabled MCM toggle (that property stays,
+; dormant, for save compatibility -- its detection gate keeps its last value; the
+; UI surface is gone). KEY MIGRATION (flagged, default-fresh): a fresh selection
+; starts at 0/OCum on every save; the old toggle's state is NOT migrated.
+Int   Property iDecalSource        = 0    Auto
 Bool  Property bFHUInflationEnabled = True Auto  ; FHU inflation level awareness (sdb_fhu_inflate/deflate)
 ; Per-source vs unified cum-cue shaping (amendment 2b): 0 = unified (framework-neutral,
 ; default -- the proposal awaiting §7 ruling), 1 = per-source wording.

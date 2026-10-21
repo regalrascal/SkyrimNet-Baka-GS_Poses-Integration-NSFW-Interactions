@@ -227,7 +227,7 @@ Int _slaveryDistOID = -1
 Int _tiedHoursOID = -1
 ; REV-63 detection + inflation triggers (own pages since REV-80: Cum Effects / Fill Her Up)
 Int _cumDetectOID = -1
-Int _slProxyOID = -1
+Int _decalOID = -1     ; REV-134d: Decal Source Selection dropdown (retires the _slProxyOID toggle)
 Int _fhuAwareOID = -1
 ; REV-134c: More Cum (register 24, ruled at REV-133c but mis-built into the RETIRED
 ; v7 script -- the §148 wrong-script root cause) is finally built HERE, in the live
@@ -359,7 +359,17 @@ Int Function GetVersion()
     ; page + visible body change: every existing save crosses this bump
     ; once and rebuilds. No data migration (motherboard property only,
     ; default flipped to OFF by user ruling).
-    Return 11
+    ; REV-134d: ELEVENTH canonical bump (v11 -> v12) - THE MCM REDESIGN
+    ; (user-ruled R2): "Cum Cues" renamed to "Cum Cues Module Toggle"; the
+    ; "SexLab Climax Proxy Share" toggle RETIRED (replaced by the
+    ; "Decal Source Selection" cycling menu option, presence-gated); the
+    ; REV-134c static subtext rows REMOVED in favor of info-text tooltips.
+    ; Visible body change on an existing page: every existing save crosses
+    ; this bump once and rebuilds (the four-saga rule; v2 lesson standing).
+    ; KEY MIGRATION (flagged, default-fresh per the user's OCum-default
+    ; ruling): bSLProxyEnabled is NOT migrated to iDecalSource -- the
+    ; dropdown starts at 0/OCum on every save.
+    Return 12
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -405,8 +415,11 @@ Event OnVersionUpdate(Int aVersion)
     ; retired v7 script's SNBaka.MCMv8 marker (REV-133c) is NOT re-run here:
     ; that marker belonged to the wrong-lineage receipt (§148) and is history.
     StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v11", 1)
+    ; REV-134d v12 (the MCM redesign): canary marker - pages rebuilt FIRST
+    ; (the v2 lesson, standing). Marker SNBaka.MCMDeD.v12.
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v12", 1)
     _BuildPages()
-    Debug.Trace("[SNBaka] MCM canary: v11 OnVersionUpdate (REV-134c: More Cum toggle on the live Cum Effects page + option descriptions, presence-gated pages: " + Pages.Length + ", Main=" + Main + ")")
+    Debug.Trace("[SNBaka] MCM canary: v12 OnVersionUpdate (REV-134d: Cum Cues Module Toggle renamed; Decal Source Selection dropdown replaces the Proxy Share toggle; subtext rows retired for info-text tooltips, presence-gated pages: " + Pages.Length + ", Main=" + Main + ")")
 EndEvent
 
 ; ============================================================================
@@ -649,30 +662,32 @@ Event OnPageReset(String page)
         SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("Cum Detection (OCum / SexLab)")
         If Main._OCumInstalled()
-            _cumDetectOID = AddToggleOption("Cum Cues (OCum + SexLab climax proxy)", Main.bCumDetectionEnabled)
-            AddTextOption("Detects cum events from OCum (and SexLab orgasms, if", "", OPTION_FLAG_DISABLED)
-            AddTextOption("proxy share is on) and reports them to SkyrimNet, so", "", OPTION_FLAG_DISABLED)
-            AddTextOption("the player and NPCs can see and react to them. This is", "", OPTION_FLAG_DISABLED)
-            AddTextOption("the master switch for the whole page.", "", OPTION_FLAG_DISABLED)
+            ; REV-134d (R2, user-ruled 2026-10-21, names verbatim): the Cum-page
+            ; redesign -- "Cum Cues Module Toggle" (renamed from "Cum Cues (OCum +
+            ; SexLab climax proxy)"); the "SexLab Climax Proxy Share" toggle is
+            ; RETIRED and replaced by the "Decal Source Selection" dropdown (a
+            ; cycling menu option over the supported decal sources,
+            ; presence-gated: absent sources are not offered); "More Cum" keeps
+            ; its name. Descriptions are TOOLTIPS (SetInfoText on highlight, the
+            ; REV-134c "SkyUI has no tooltips" finding superseded -- the info-text
+            ; surface the script already uses everywhere else), NOT subtext rows:
+            ; the REV-134c static AddTextOption description rows are REMOVED per
+            ; the user's ruling ("remove subtext description once tooltip
+            ; replacement is made").
+            _cumDetectOID = AddToggleOption("Cum Cues Module Toggle", Main.bCumDetectionEnabled)
             If Main.bCumDetectionEnabled
-                _slProxyOID = AddToggleOption("SexLab Climax Proxy Share", Main.bSLProxyEnabled)
+                _decalOID = AddMenuOption("Decal Source Selection", _decalSourceLabel())
             Else
-                _slProxyOID = AddToggleOption("SexLab Climax Proxy Share", Main.bSLProxyEnabled, OPTION_FLAG_DISABLED)
+                _decalOID = AddMenuOption("Decal Source Selection", _decalSourceLabel(), OPTION_FLAG_DISABLED)
             EndIf
-            AddTextOption("For scenes OCum does not track by itself: listens for the", "", OPTION_FLAG_DISABLED)
-            AddTextOption("SexLab orgasm moment and asks OCum to apply its decals", "", OPTION_FLAG_DISABLED)
-            AddTextOption("anyway, so those scenes still leave their mark.", "", OPTION_FLAG_DISABLED)
             If Main.bCumDetectionEnabled
                 _moreCumOID = AddToggleOption("More Cum", Main.bMoreCumEnabled)
             Else
                 _moreCumOID = AddToggleOption("More Cum", Main.bMoreCumEnabled, OPTION_FLAG_DISABLED)
             EndIf
-            AddTextOption("Applies EXTRA cum decals on additional body areas on top", "", OPTION_FLAG_DISABLED)
-            AddTextOption("of the usual placement: face and chest after oral finishes,", "", OPTION_FLAG_DISABLED)
-            AddTextOption("thighs after vaginal or anal finishes. Off by default.", "", OPTION_FLAG_DISABLED)
         Else
             _cumDetectOID = AddToggleOption("Cum Cues (OCum not installed)", False, OPTION_FLAG_DISABLED)
-            _slProxyOID   = -1
+            _decalOID     = -1
             _moreCumOID   = -1
         EndIf
     ElseIf page == "Fill Her Up" && Main
@@ -794,7 +809,7 @@ Event OnOptionSelect(Int option)
     ElseIf option == _cumDetectOID
         Main.bCumDetectionEnabled = !Main.bCumDetectionEnabled
         SetToggleOptionValue(_cumDetectOID, Main.bCumDetectionEnabled)
-        SetOptionFlags(_slProxyOID, OPTION_FLAG_DISABLED * ((!Main.bCumDetectionEnabled) as Int))
+        SetOptionFlags(_decalOID, OPTION_FLAG_DISABLED * ((!Main.bCumDetectionEnabled) as Int))
         SetOptionFlags(_moreCumOID, OPTION_FLAG_DISABLED * ((!Main.bCumDetectionEnabled) as Int))
         If Main.bCumDetectionEnabled
             Main.Setup()
@@ -802,9 +817,6 @@ Event OnOptionSelect(Int option)
         Else
             Debug.Notification("Cum cues disabled.")
         EndIf
-    ElseIf option == _slProxyOID
-        Main.bSLProxyEnabled = !Main.bSLProxyEnabled
-        SetToggleOptionValue(_slProxyOID, Main.bSLProxyEnabled)
     ElseIf option == _moreCumOID
         ; REV-134c (register 24, ruled at REV-133c; built into the live MCM here
         ; -- the §148 wrong-script fix). Default is OFF (motherboard property
@@ -990,8 +1002,178 @@ Event OnOptionKeyMapChange(Int option, Int keyCode, String conflictControl, Stri
     EndIf
 EndEvent
 
+; ============================================================================
+; REV-134d (R2, user-ruled 2026-10-21): THE DECAL SOURCE DROPDOWN.
+; The "SexLab Climax Proxy Share" boolean toggle is RETIRED; this cycling menu
+; option lists the supported cum decal sources, PRESENCE-GATED (absent sources
+; are not offered): 0=OCum (default, user-ruled), 1=SexLab, 2=P+, 3=SLACS 2 + SCO.
+; The user's label texts verbatim. The module's routing maps to the selection
+; (SNBaka_CumDetectionModule._SelectedDecalLane -- the boolean's "ask OCum to
+; decal SL scenes" logic is selection 0's behavior, remapped; the old toggle's
+; DETECTION gate bSLProxyEnabled stays dormant on the motherboard, save-persisted).
+; ============================================================================
+Bool Function _decalSourceAvailable(Int i)
+    If i == 0
+        Return Main && Main._OCumInstalled()
+    ElseIf i == 1
+        Return SkyrimNet_BakaSL.Installed()
+    ElseIf i == 2
+        Return SkyrimNet_BakaSL._PplusDetected() == 1
+    ElseIf i == 3
+        Return Game.IsPluginInstalled("SLACS_2_Plus_SCO.esp")
+    EndIf
+    Return False
+EndFunction
+
+String Function _decalSourceName(Int i)
+    If i == 1
+        Return "SexLab"
+    ElseIf i == 2
+        Return "P+"
+    ElseIf i == 3
+        Return "SLACS 2 + SCO"
+    EndIf
+    Return "OCum"
+EndFunction
+
+; The available list (presence-gated): parallel value/name arrays; the
+; ACCEPTED menu index maps back through the value array.
+String[] Function _decalSourceNames()
+    String[] a = new String[4]
+    Int n = 0
+    Int i = 0
+    While i < 4
+        If _decalSourceAvailable(i)
+            a[n] = _decalSourceName(i)
+            n += 1
+        EndIf
+        i += 1
+    EndWhile
+    ; REV-134d: Papyrus array sizes must be compile-time constants (no
+    ; runtime-resize helper on the import path) -- the trim uses
+    ; constant-size branches.
+    Return _TrimDecalNames(a, n)
+EndFunction
+
+String[] Function _TrimDecalNames(String[] a, Int n)
+    If n <= 0
+        String[] z = new String[1]
+        z[0] = ""
+        Return z
+    ElseIf n == 1
+        String[] o1 = new String[1]
+        o1[0] = a[0]
+        Return o1
+    ElseIf n == 2
+        String[] o2 = new String[2]
+        o2[0] = a[0]
+        o2[1] = a[1]
+        Return o2
+    ElseIf n == 3
+        String[] o3 = new String[3]
+        o3[0] = a[0]
+        o3[1] = a[1]
+        o3[2] = a[2]
+        Return o3
+    EndIf
+    String[] o4 = new String[4]
+    o4[0] = a[0]
+    o4[1] = a[1]
+    o4[2] = a[2]
+    o4[3] = a[3]
+    Return o4
+EndFunction
+
+Int[] Function _decalSourceValues()
+    Int[] a = new Int[4]
+    Int n = 0
+    Int i = 0
+    While i < 4
+        If _decalSourceAvailable(i)
+            a[n] = i
+            n += 1
+        EndIf
+        i += 1
+    EndWhile
+    ; REV-134d: same constant-size rule -- branch trim (the caller guards
+    ; on vals.Length).
+    Return _TrimDecalValues(a, n)
+EndFunction
+
+Int[] Function _TrimDecalValues(Int[] a, Int n)
+    If n <= 0
+        Int[] z = new Int[1]
+        z[0] = 0
+        Return z
+    ElseIf n == 1
+        Int[] o1 = new Int[1]
+        o1[0] = a[0]
+        Return o1
+    ElseIf n == 2
+        Int[] o2 = new Int[2]
+        o2[0] = a[0]
+        o2[1] = a[1]
+        Return o2
+    ElseIf n == 3
+        Int[] o3 = new Int[3]
+        o3[0] = a[0]
+        o3[1] = a[1]
+        o3[2] = a[2]
+        Return o3
+    EndIf
+    Int[] o4 = new Int[4]
+    o4[0] = a[0]
+    o4[1] = a[1]
+    o4[2] = a[2]
+    o4[3] = a[3]
+    Return o4
+EndFunction
+
+; The CURRENT value's display label: the selection verbatim when the source
+; is present; the FIRST AVAILABLE source otherwise (a stale/present-absent
+; selection degrades on display -- named, and the module's lane resolution
+; performs the same degradation at drive time).
+String Function _decalSourceLabel()
+    Int sel = 0
+    If Main
+        sel = Main.iDecalSource
+    EndIf
+    If _decalSourceAvailable(sel)
+        Return _decalSourceName(sel)
+    EndIf
+    Int[] vals = _decalSourceValues()
+    If vals.Length > 0
+        Return _decalSourceName(vals[0])
+    EndIf
+    Return _decalSourceName(sel)
+EndFunction
+
+Int Function _decalSourceMenuIndex(Int source)
+    Int[] vals = _decalSourceValues()
+    Int i = 0
+    While i < vals.Length
+        If vals[i] == source
+            Return i
+        EndIf
+        i += 1
+    EndWhile
+    Return 0
+EndFunction
+
 Event OnOptionMenuOpen(Int option)
-    If option == _sexBackendOID
+    If option == _decalOID
+        ; REV-134d: the Decal Source Selection dropdown -- available sources
+        ; only (presence-gated); start at the current selection's position;
+        ; default = the first available source (0/OCum when present,
+        ; user-ruled).
+        SetMenuDialogOptions(_decalSourceNames())
+        Int sel = 0
+        If Main
+            sel = Main.iDecalSource
+        EndIf
+        SetMenuDialogStartIndex(_decalSourceMenuIndex(sel))
+        SetMenuDialogDefaultIndex(0)
+    ElseIf option == _sexBackendOID
         SetMenuDialogOptions(_backendNames())
         SetMenuDialogStartIndex(Main.iSexBackend)
         SetMenuDialogDefaultIndex(0)
@@ -1019,7 +1201,19 @@ Event OnOptionMenuOpen(Int option)
 EndEvent
 
 Event OnOptionMenuAccept(Int option, Int index)
-    If option == _sexBackendOID
+    If option == _decalOID
+        ; REV-134d: map the accepted menu index back through the available-
+        ; values array (absent sources were never offered, so the index is
+        ; always in range); write the motherboard property (save-persisted,
+        ; default-fresh -- no old-toggle migration); the module's routing
+        ; reads it live (no re-arm needed).
+        Int[] vals = _decalSourceValues()
+        If index >= 0 && index < vals.Length
+            Main.iDecalSource = vals[index]
+            SetMenuOptionValue(_decalOID, _decalSourceName(Main.iDecalSource))
+            Debug.Notification("Decal source set - " + _decalSourceName(Main.iDecalSource))
+        EndIf
+    ElseIf option == _sexBackendOID
         Main.iSexBackend = index
         SetMenuOptionValue(_sexBackendOID, _backendName(index))
     ElseIf option == _creatureBackendOID
@@ -1378,7 +1572,16 @@ Event OnOptionSliderAccept(Int option, Float value)
 EndEvent
 
 Event OnOptionHighlight(Int option)
-    If option == _enabledOID
+    ; REV-134d (R2, user-ruled 2026-10-21, texts VERBATIM): the Cum-page
+    ; descriptions are now TOOLTIPS (SetInfoText, shown on highlight), not
+    ; subtext rows (the REV-134c static rows are removed per the ruling).
+    If option == _cumDetectOID
+        SetInfoText("Enable/disable the SkyrimNet cum detection cues created by this module.")
+    ElseIf option == _decalOID
+        SetInfoText("Pick the cum decal source for this module to apply and track.")
+    ElseIf option == _moreCumOID
+        SetInfoText("Adds additional location friendly cum decals on orgasm events.")
+    ElseIf option == _enabledOID
         SetInfoText("Master switch for all Baka motion interactions.")
     ElseIf option == _animatedTearsOID
         SetInfoText("Apply animated 3D tears to female victims during aggressive scenes. Requires Emotional Tears Effect SE (EmoTears4NPCs.esp). Has no effect if that mod is not installed.")

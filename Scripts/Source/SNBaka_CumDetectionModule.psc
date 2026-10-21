@@ -239,6 +239,58 @@ EndFunction
 ; re-stack their overlays). The ocum_applied_cum re-entry from our own drive
 ; call re-lands here with source "ocum" -- that rewrite is the correct
 ; maintenance tier, and the shared 15s cue window eats the cue double-fire.
+; REV-134d (R2, user-ruled): resolve the appliance lane from the SELECTED decal
+; source (motherboard iDecalSource: 0=OCum default, 1=SexLab, 2=P+, 3=SLACS-2+SCO).
+; "ocum" -> the OCum drive; anything else -> the SLACS lane. Degradation is honest:
+; a selected-but-absent source falls back to the other lane when present, else the
+; caller's scene-source tiering (state-only if that fails too). P+ note: AddCum IS
+; P+'s native CumFX surface (the sexlab 0050/0550 appliance family), so selections
+; 1/2/3 all drive the same SLACS-family lane -- the distinction is the source the
+; user declares to apply and track (SLACS-2+SCO renders its replacer textures over
+; the same spells when installed).
+String Function _SelectedDecalLane(SkyrimNet_BakaIntegration akHost, String asSceneSource) Global
+    Int sel = 0
+    If akHost
+        sel = akHost.iDecalSource
+    EndIf
+    Bool ocumOK = Installed()
+    Bool slOK = SkyrimNet_BakaSL.Installed()
+    If sel == 0
+        If ocumOK
+            Return "ocum"
+        ElseIf slOK
+            Return "slacs"
+        EndIf
+    Else
+        If slOK
+            Return "slacs"
+        ElseIf ocumOK
+            Return "ocum"
+        EndIf
+    EndIf
+    Return asSceneSource
+EndFunction
+
+; REV-134d (R3, user-ruled 2026-10-21): the More Cum EXPANSION MAP, verbatim
+; intent. "back" in the ruling = OCum's "butt" area (user-confirmed same
+; session). Returns a comma-joined area list ("" = no extras for this
+; location). The old REV-133c map (throat/mouth -> face+chest; vaginal/anal
+; -> thighs) is SUPERSEDED.
+String Function _MoreCumExtras(String asLocation) Global
+    If asLocation == "rectum" || asLocation == "ass" || asLocation == "anal"
+        Return "butt,thighs"
+    ElseIf asLocation == "vagina" || asLocation == "pussy"
+        Return "belly,thighs"
+    ElseIf asLocation == "hands"
+        Return "chest"
+    ElseIf asLocation == "throat"
+        Return "face,mouth,chest"
+    ElseIf asLocation == "face"
+        Return "throat,mouth,chest"
+    EndIf
+    Return ""
+EndFunction
+
 Function _WriteCumState(SkyrimNet_BakaIntegration akHost, Actor akTarget, String asLocation, String asSource) Global
     If !akTarget || !DeD_ServicePresent()
         Return
@@ -281,41 +333,55 @@ Function _WriteCumState(SkyrimNet_BakaIntegration akHost, Actor akTarget, String
     ; REV-122: visual drive per tier matrix. "ocum" = their ApplyCum already
     ; applied the overlay (adopt); every other source drives/replaces.
     ; REV-133c: the drive is now SCENE-SOURCE-TIERED (see _ApplyCumVisual).
-    If asSource != "ocum"
-        _ApplyCumVisual(akTarget, asLocation, asSource)
+    ; REV-134d (R2): the drive lane is the SELECTED decal source (the dropdown),
+    ; resolved once here and shared by the primary drive + the More Cum extras.
+    ; Adopt rule: an OCum-scene organic application with OCum selected keeps the
+    ; adopt-no-drive behavior (OCum already drew its own overlay); any other
+    ; selection drives the chosen appliance (the SLACS lane's replace-not-stack
+    ; clears OCum textures first, per the REV-133c symmetric matrix).
+    String lane = _SelectedDecalLane(akHost, asSource)
+    If lane != "ocum" || asSource != "ocum"
+        _ApplyCumVisual(akTarget, asLocation, lane)
     EndIf
     ; REV-133c Task 2.2 (register 24, ruled): MORE CUM -- when enabled, sex
-    ; scenes generate cum decals on additional body parts. Throat finishes
-    ; (the oral lane's literals: "throat" on the OCum side, "mouth" on the
-    ; SL/P+ side) ALSO apply face+chest via the routed appliance; vaginal and
-    ; anal finishes ALSO apply thighs. Per-tier resolution follows the
-    ; appliance: the OCum appliance draws face/chest/thighs natively; the
-    ; SLACS combo-spell appliance has three flags only (the additional-decals
-    ; scope resolved by what the decals actually draw -- SLACS-lane extras
-    ; land as visual no-ops there). RE-ENTRY HONESTY (OCum lane): the extra
-    ; ApplyCum drives re-emit ocum_applied_cum, whose re-entry rewrites
-    ; last_location to the extra area and joins it to DeD_Cum_Locations (the
-    ; documented re-entry behavior, L239-241) -- the decal areas ARE
-    ; observable cum areas, so their presence in the ambient wording is
-    ; honest; the extras themselves never re-branch (face/chest/thighs are
-    ; not in the extras map). SLACS lane: no re-entry (no event emitted).
+    ; scenes generate cum decals on additional body parts. REV-134d (R3,
+    ; user-ruled 2026-10-21): the EXPANSION MAP, verbatim intent --
+    ;   anus    -> back + thighs   (OCum "back" == its "butt" area, user-confirmed)
+    ;   vaginal -> belly + thighs
+    ;   hands   -> chest
+    ;   throat  -> face + mouth + chest
+    ;   face    -> throat + mouth + chest
+    ; SOURCE-AGNOSTIC: extras route through the SELECTED decal source's appliance
+    ; (the lane above), regardless of scene source.
+    ; PER-SOURCE HONESTY (named, never silently dropped): the OCum appliance
+    ; draws every map area natively (OCumMaleScript.psc L323-343); the
+    ; SLACS/P+ combo-spell appliance has exactly three flags (vaginal/oral/
+    ; anal) -- extras outside those three are VISUAL NO-OPS on that lane
+    ; (the state's location set still records them, so the ambient wording
+    ; stays honest to what the OCum lane WOULD draw; on the SLACS lane the
+    ; extras' own-area words appear only when a combo flag matches).
+    ; RE-ENTRY HONESTY: the extra ApplyCum drives re-emit ocum_applied_cum,
+    ; whose re-entry rewrites last_location to the extra area and joins it to
+    ; DeD_Cum_Locations (decals ARE observable cum areas). No recursion: the
+    ; extras are applied via _ApplyCumVisual directly -- the extra drive path
+    ; never re-enters _WriteCumState's extras branch.
     If asLocation != "" && akHost && akHost.bMoreCumEnabled
-        String extraA = ""
-        String extraB = ""
-        If asLocation == "throat" || asLocation == "mouth"
-            extraA = "face"
-            extraB = "chest"
-        ElseIf asLocation == "vagina" || asLocation == "pussy" || asLocation == "rectum" || asLocation == "ass"
-            extraA = "thighs"
-        EndIf
-        If extraA != ""
-            String extraList = extraA
-            If extraB != ""
-                _ApplyCumVisual(akTarget, extraB, asSource)
-                extraList = extraA + "+" + extraB
-            EndIf
-            _ApplyCumVisual(akTarget, extraA, asSource)
-            akHost._Log("[SNBaka] More Cum: " + asLocation + " -> additional decals (" + extraList + ") via " + asSource + " appliance (REV-133c)")
+        String extras = _MoreCumExtras(asLocation)
+        If extras != ""
+            String extraList = ""
+            String[] areas = PapyrusUtil.StringSplit(extras, ",")
+            Int i = 0
+            While i < areas.Length
+                If areas[i] != ""
+                    _ApplyCumVisual(akTarget, areas[i], lane)
+                    If extraList != ""
+                        extraList = extraList + "+"
+                    EndIf
+                    extraList = extraList + areas[i]
+                EndIf
+                i += 1
+            EndWhile
+            akHost._Log("[SNBaka] More Cum: " + asLocation + " -> additional decals (" + extraList + ") via decal source " + akHost.iDecalSource + " (REV-134d)")
         EndIf
     EndIf
     ; REV-127: keep the ambient rule ALIVE across a mid-session failsafe disarm
@@ -797,21 +863,31 @@ Function _ApplyCumVisual(Actor akTarget, String asLocation, String asSource) Glo
     If SkyrimNet_BakaSL.Installed()
         SexLabFramework sl = SkyrimNet_BakaSL._SL()
         If sl && sl.ActorLib
-            ; Replace-not-stack (symmetric): if OCum textures are on the
-            ; wearer (stack case), drop them first -- SLACS becomes the sole
-            ; visual authority for SL scenes (REV-133c matrix).
-            If Installed()
-                OCumScript main = _OCumMain()
-                If main
-                    main.CleanCumTexturesFromActor(akTarget)
-                EndIf
-            EndIf
             ; sslActorLibrary PPLUS L805/L834: AddCum(Actor, Vaginal, Oral,
             ; Anal) -- bool flags per area, spells persist-until-dispelled.
             ; REV-133c: throat resolves to the ORAL decal (the SLACS
             ; inventory question -- resolved by what the decals actually
             ; draw: the combo spells have exactly three flags).
-            sl.ActorLib.AddCum(akTarget, asLocation == "vagina", asLocation == "mouth" || asLocation == "throat", asLocation == "rectum")
+            ; REV-134d GUARD: an area outside the three flags (face/belly/
+            ; butt/thighs/chest/hands...) is a VISUAL NO-OP here -- and must
+            ; ALSO skip the replace-not-stack clear below (a no-op that
+            ; strips the OCum visual without drawing anything is NOT an
+            ; honest drive). State-only, named, never silently dropped.
+            Bool flagVag = asLocation == "vagina"
+            Bool flagOral = asLocation == "mouth" || asLocation == "throat"
+            Bool flagAnal = asLocation == "rectum" || asLocation == "ass"
+            If flagVag || flagOral || flagAnal
+                ; Replace-not-stack (symmetric): if OCum textures are on the
+                ; wearer (stack case), drop them first -- SLACS becomes the sole
+                ; visual authority for SL scenes (REV-133c matrix).
+                If Installed()
+                    OCumScript main = _OCumMain()
+                    If main
+                        main.CleanCumTexturesFromActor(akTarget)
+                    EndIf
+                EndIf
+                sl.ActorLib.AddCum(akTarget, flagVag, flagOral, flagAnal)
+            EndIf
         EndIf
         ; SL present but ActorLib unresolvable: state-only degradation.
         Return
