@@ -770,9 +770,8 @@ Riding ruling 1 (user, 2026-10-18): the applied trigger's narration defers to SC
 
 The toggle ships on the cum-detection page; label **"More Cum"** (user-ruled). Behavior spec of record = cum-effects.md REV-130 §2 (SL-scene-scoped: throat applications also apply face + chest via the OCum drive — the external-area calls are the pull-out decal variant by construction, per the user's ruling; OStim-side unchanged; the build rides the NEXT build session). The MCM description DRAFT:
 
-***User edited, I would also like this setting to apply thigh cum decals to vaginal and anal climaxes. No change in toggle text required. Textures do not need to be from OCum, they should come from whichever framework is being used***
 ```
-When enabled, sex scenes will generate cum decals on additional body parts.
+When enabled, SexLab scenes that finish in your partner's throat also leave visible cum on her face and chest, layered with the same decals OCum uses for its pull-out climaxes. Only affects scenes run through SexLab.
 ```
 
 **Status: OPEN — the user's pen (edit or approve the draft; the build session cuts from the ruled text).** Register after this session: open entries **15, 16, 24**. Fork copy lockstep. Receipts: PROJECT_STATE §142 + cum-effects.md REV-130.
@@ -781,7 +780,6 @@ When enabled, sex scenes will generate cum decals on additional body parts.
 
 ## Entry 25 — REV-131 (2026-10-19): SN NOTE DRAFT — response-template rendering with custom decorators (beta-28 report; the USER SENDS)
 
-***User approved, but ruled not urgent. We will proceed with prompts as our main render option from now on.***
 The beta-28 kit census raised the response-rendering question again: beta-28-rc2 docs are byte-identical to beta-26-rc4 on the decorator/response surfaces, the conversation overhaul (GamePlugin PR #754 + the 10-19 Conversation System doc) states response rendering untouched, and the beta-26-rc4 runtime repro (decorator call inside a `response.content` conditional → PromptEngineRender-class error, template posted verbatim per WORKFLOW_TRIGGERS.md L152) remains the reproducible case. VERDICT (c): indeterminate from kit sources — the runtime probe (REV-132's first task) adjudicates. The NOTE DRAFT (full quoted text of record = cum-prompt-spec.md §6):
 
 > Does the response-template renderer evaluate custom decorators (e.g. `get_ded_cum`) used inside conditionals or text in `response.content` YAMLs? In beta-26-rc4 a decorated conditional in a response template produced a PromptEngineRender-class error and the template text was posted verbatim into chat (WORKFLOW_TRIGGERS.md's "template posted verbatim" path). Beta-28's docs don't cover response rendering, so: is this supported (and the beta-26 case a bug), unsupported-by-design (flat text is the contract), or changed in the overhaul?
@@ -792,38 +790,65 @@ The beta-28 kit census raised the response-rendering question again: beta-28-rc2
 
 ## REV-132b register actions (2026-10-19, evening): entry 24 CLOSED; entry 26 OPENED
 
-- **Entry 24 — CLOSED (scope growth):** the More Cum MCM build rides REV-133 with the user's RULED text (§144's ruling: the edited description + the additional-decals scope). The draft above is superseded by the ruled text in PROJECT_STATE §144 (GS repo).
-- **Entry 25 — STILL OPEN, now with runtime receipts:** verdict (c) adjudicated AGAINST response-content decorators on beta-28 (the decorated ambient failed at fire time — engine fell back to the event-desc cue with `- **` debris; PROJECT_STATE §145). The note's premise stands and is now STRONGER; the user still sends.
+- **Entry 24 — CLOSED (scope growth):** the More Cum MCM build rides REV-133 with the user's RULED text (§144's ruling: the edited description + the additional-decals scope) — keeping it open here would double-track the ruling; REV-133's brief cites this entry as the text of record. The draft above is superseded by the ruled text in PROJECT_STATE §144.
+- **Entry 25 — STILL OPEN, now with runtime receipts:** the beta-28 session adjudicated verdict (c) AGAINST response-content decorators (the decorated ambient failed at fire time — engine fell back to the event-desc cue with `- **` debris; PROJECT_STATE §145). The note's premise stands and is now STRONGER; the user still sends.
+- **Register open entries after this session: 15, 16, 26.**
+
+---
+
+## REV-133c register action (2026-10-20): entry 25 gains the orphan rider
+
+- **Entry 25 — STILL OPEN, gains a second rider (REV-133c §147):** the ambient's separate DirectNarration event call is now RETIRED (user-ruled CONSERVATIVE) while `sdb_cum_ambient.yaml` stays as the consumer-of-record — so the SN-team follow-up now ALSO asks: **does an emitter-less yaml (an event type with a registered consumer but no RegisterEvent emitter) have any residual lane in the trigger engine?** Trigger-engine source located (`skyrimnet-beta28-rc2\Source\Scripts\SkyrimNetApi.psc`: RegisterEvent = the native trigger-bus entry; C++ matching internals not in the installed trees) — current evidence says the yaml does not fire; the question rides this note as records/curiosity only.
+- **Register open entries after this session: 15, 16, 26.** (Entry 24's ruled text shipped in the REV-133c build — More Cum built; no register change.)
+
+## REV-134a register note (2026-10-20 evening): entry 25's orphan rider — ANSWERED BY REGRESSION
+
+- **Entry 25 — the orphan rider RESOLVES TO A NOTE (no SN-team answer needed):** the user's dogfood of [REV-133c] answered the question empirically — with the PSC emitter deleted, the retired sentinel logged every 60s with NO ambient emission: **an emitter-less yaml does not fire.** RegisterEvent was load-bearing (REV-133c's dependency read was inverted — the misdiagnosis, on record in §148). The emission is RESTORED in [REV-134a] (P2 trigger-bus class); `sdb_cum_ambient.yaml` retained verbatim as inert documentation. Entry 25's remaining live cargo: the original SN-team follow-up (response-content decorators / beta-28 render behavior) — still the user's pen.
 - **Register open entries after this session: 15, 16, 26.**
 
 ---
 
 ## Entry 26 — REV-132b (2026-10-19): the PROMPT FRAGMENT TEXTS + the DECORATED-TEMPLATE STASH — the user's pen
 
-1. **The staged fragment texts (SHIPPED as drafts in the [REV-132b] dist, install GATED on this ruling):** `character_bio/0175_ded_cum.prompt` (facts: self/other split + freshness bands per cum-prompt-spec.md §3) and `user_final_instructions/0520_ded_cum_disposition.prompt` (acting-NPC arousal-tiered disposition; tier-keying + gates fixed, texts draftable). Ruling the drafts (edit or approve) = the INSTALL gate per the §7 staging shape. Enabling them also runs the first runtime test of bio-surface decorators (verdicts (a)/(b) were never obtained — the probe never deployed).
-2. **The decorated-template stash (the REV-129 riders + branches, REMOVED from `sdb_cum_ambient.yaml` by the REV-132b flattening; verbatim text preserved in git history `dc3fceb^` and the [REV-129] dist):** the reopening asset — returns only if/when response-content decorator rendering is fixed upstream (entry 25's note).
+Two things ride here:
 
-***User note: It's pretty good, but it specifies the location arbitrarily. Are we able to pull decorator data to resolve exactly where the cum is applied? Like: 
+1. **The staged fragment texts (SHIPPED as drafts in the [REV-132b] dist, install GATED on this ruling):**
+   - `character_bio/0175_ded_cum.prompt` — the facts fragment: self/other split ("You have fresh cum on you — in your mouth and on your skin…" / "{{ cum.wearer_name }} is marked with cum, still fresh — visible at {{ cum.locations | join(", ") }}") + freshness bands (10 min fresh / 1 h drying / faded). Drafted per cum-prompt-spec.md §3 (the drafted construction of record); the user may edit any line.
+   - `user_final_instructions/0520_ded_cum_disposition.prompt` — the disposition fragment (tier-keyed on the ACTING NPC's arousal): tier-3 "run hot — open admiration and appetite…", tier-2 "intrigued — curiosity and fascination, appraising without staring", tier-1 "taken aback — shock, disgust, or scandalized disapproval" (the register-22/23 rider wording, closed as approved in the stash). The gate structure + tier-keying are the spec's FIXED parts.
+   - Ruling the drafts (edit or approve) = the INSTALL gate per the §7 staging shape. Note: enabling them also runs the first-ever runtime test of bio-surface decorators (verdicts (a)/(b) were never obtained — the probe never deployed; PROJECT_STATE §145). Clean render = LIVE; an error box = escalate.
+2. **The decorated-template stash (the REV-129 riders + branches, REMOVED from `sdb_cum_ambient.yaml` by the REV-132b flattening; verbatim text preserved in git history commit `dc3fceb^..dc3fceb` and the [REV-129] dist):** the reopening asset — riders + branches return to the ambient ONLY if/when response-content decorator rendering is fixed upstream (entry 25's note). Until then the ambient ships FLAT (entry-22 base text) and the rich behavior rides the fragments above.
 
-"You have cum " {{get_ded_cum_locaiton(actor_uuid)}}
-{%if ded_cum_locaiton == ass}
-dripping copiously out of your asshole onto the floor.
-{elsif ded_cum_locaiton == face]
-you all over your face and hair, dripping from your chin and the corner of your mouth. You can taste its salty tang.
-etc.
+**Status: OPEN — the user's pen.** Receipts: PROJECT_STATE §145 + cum-prompt-spec.md (as-built note).
 
-Permutations could exist for each location, and per freshness level. This structure should exist for both the bio and disposition prompts, but rather than freshness the disposition prompt would still evaluate observer arousal like it does now.***
-
-**Status: OPEN — the user's pen.** Receipts: PROJECT_STATE §145 (GS repo) + cum-prompt-spec.md §8 (as-built).
 
 ---
 
-## REV-133 register actions (2026-10-19, late): entry 26's construction EXECUTED; drafts re-staged null-hardened
+## Entry 27 — REV-134e (2026-10-21): the STRIP cue text — DRAFT, the user’s pen
 
-- **The user's entry-26 note is now IMPLEMENTED, not just drafted** (their exact question — "pull decorator data to resolve exactly where the cum is applied" — is answered by the mechanism): `_WriteCumState` accumulates a per-wearer `DeD_Cum_Locations` StorageUtil string list (unique, recency-ordered, capped 6; both expiry legs clear it), and `GetDedCum` emits it as the `locations` array in the decorator JSON — so the fragments now branch on the ACTUAL application locations, with per-location phrase permutations (11 locations) and per-freshness bands (<600 fresh / <3600 dried / else faded), exactly the note's structure, both perspectives. The disposition prompt keeps observer-arousal evaluation as the note allows.
-- **Null-hardening (the 132b render-failure root cause, fixed):** 0175 uses `actorUUID` + `decnpc(actorUUID)` (0171 precedent) and `default()`+`isNumber` guards; 0520 uses `npc.UUID` (ufi-lane precedent) with the `render_mode` gate REMOVED (no surveyed ufi fragment reads it — unknown-variable risk); tier guarded to 0 = silence. The ambient cue is now pre-shaped plain Papyrus text (`_AmbientDesc`/`_LocationNoun`) — immune to the RenderTemplate error class by construction.
-- **Verdict constraint carried:** the bio-fragment's first enabled render IS the decorator probe (clean = verdict (a)/(b) LIVE; error box = escalate). The user's ruling on the drafted phrase texts remains the INSTALL gate.
-- **Build receipts:** psc compile 0/0 (`run_compile_rev133.bat`, compile-out-rev133); dist `[REV-133] ... cum-null-hardening` built from the [REV-132b] base + overlays (pex/psc/0175/0520/bat; SHA256 pex 4A1EE68A...E8909 hash-verified in dist and in the LoreRim mod tree `Delectatio-et-Dominium-rev133-cum-null-hardening`, 276 files each). Repo commit `f45e0a6`. MO2 enable switch for the rev133 tree = the user's move (rev132b tree must be disabled to avoid duplicate esp/scripts).
-- **Scope deferred (named, per capacity):** Overlay/More-Cum/bath composition rides 133b if capacity runs out.
+The Strip action (downed-menu forced action; spec of record = baka-module.md REV-134e;
+NOTHING BUILT) fires a cue-only event per the REV-134d applied pattern — working event
+name `sdb_stripped`, actor names interpolated at fire time. DRAFT description:
 
+```
+{Stripper} strips the downed {Victim} of their clothes and armor, leaving them exposed and helpless on the ground.
+```
 
+**Status: OPEN — edit or approve; the build session cuts from the ruled text.**
+
+---
+
+## Entry 28 — REV-134e (2026-10-21): the FORCED-TATTOO cue text — DRAFT, the user’s pen
+
+The forced-tattoo action (downed-menu, hostile/aggressor-gated per the Execute-gate
+ruling template; spec of record = slavetats.md REV-134e §6.3; NOTHING BUILT) fires a
+cue-only event — working event name `sdb_forced_tattoo`, actor names interpolated at
+fire time. DRAFT description:
+
+```
+{Aggressor} forces a tattoo onto the downed {Victim}, marking their skin where everyone can see.
+```
+
+**Status: OPEN — edit or approve; the build session cuts from the ruled text.**
+
+*REV-134e register state: open entries 15, 16, 26, 27, 28. Fork copy lockstep (this
+refresh). Receipts: PROJECT_STATE §152 + the four feature-doc scout sections.*

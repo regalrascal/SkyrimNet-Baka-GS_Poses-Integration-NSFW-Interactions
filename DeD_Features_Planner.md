@@ -38,6 +38,7 @@ Features that govern Delectatio et Dominium as a whole rather than any single mo
 
 
 
+- 2026-10-21 REV-134e: THE BAKA/GS POLISH SCOUT delivered (report + specs only; NOTHING BUILT; GS PROJECT_STATE §152): muse/overdrive design pass (baka-daemon.md REV-134e — this document`s Open-Ticket text cited verbatim as the design authority; rulings menu open at the user), the idle-interrupt system spec (gs-poses.md REV-134e — the system-level shared service per the 2026-10-20 rulings), the decision-model pose picker (pose-picker.md NEW, INDEX row 18), the strip feature spec (baka-module.md REV-134e), the FHU v2 + tattoo v2 scouts (fhu-inflation.md / slavetats.md REV-134e — the arousal-at-apply mechanic quantified from SLO Aroused NG source). Register: strip + forced-tattoo cue drafts = entries 27/28, the user`s pen. Modlist writes NONE. Status pointers only; user text untouched.
 
 # Baka Escalate Module (full)
 
