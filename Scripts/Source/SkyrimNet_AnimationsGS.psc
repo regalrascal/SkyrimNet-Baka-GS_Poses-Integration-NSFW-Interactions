@@ -627,6 +627,7 @@ Event OnPoseSelected(String asEventName, String asPose, Float afNum, Form akSend
         If StorageUtil.GetIntValue(None, "GSAnim.Overdrive", 0) == 1
             _OverdriveOff("Sheogorath Mode ended.")    ; 2nd press = OFF (full restore path)
         Else
+            Debug.Trace("[SNAnimGS] sheogorath mode toggle: ON requested (grid footer)")   ; REV-137d 3.2 receipt
             _OverdriveOn()
         EndIf
         Return
@@ -644,9 +645,11 @@ Event OnPoseSelected(String asEventName, String asPose, Float afNum, Form akSend
         _EnsurePools()   ; Phase 4d: stale-instance heal at the muse switch — the 4c arm transaction below is StorageUtil-only (member-safe, audited), but the _MuseTick chain behind the flag is not
         If StorageUtil.GetIntValue(None, "GSAnim.Muse", 0) == 1
             StorageUtil.SetIntValue(None, "GSAnim.Muse", 0)
+            Debug.Trace("[SNAnimGS] sanguine mode toggle: OFF (grid footer)")   ; REV-137d 3.2 receipt
             Debug.Notification("Sanguine Mode quieted.")
         Else
             StorageUtil.SetIntValue(None, "GSAnim.Muse", 1)
+            Debug.Trace("[SNAnimGS] sanguine mode toggle: ON (grid footer)")   ; REV-137d 3.2 receipt
             ; REV-24 Task 2: the session-scope reset now rides the ReferenceAlias load reset
             ; (SkyrimNet_AnimGS_LoadAlias / SNAnimGS_LoadAlias quest — rev-24 Option A ruling,
             ; the skynet_PlayerAlias production pattern). The rev-21 MuseSetAt stamp heuristic
@@ -949,6 +952,10 @@ Bool Function _PoseVibe(Actor ak, String vibe, String label)
     ; _VibeMaleOK, unknown sex stays blocked, never a silent change on an unread value;
     ; mode 1 is the same table as the crosshair admission; mode 2 drops the gate).
     If !_GenderAdmits(ak, vibe)
+        ; REV-137d 3.2 full-chain receipt: the gender-policy refusal is named (was a
+        ; silent False on the muse/T3 lanes; the crosshair path has its notification).
+        Debug.Trace("[SNAnimGS] pose fire refused: GENDER-POLICY (mode " + _GenderPolicy() \
+            + " does not admit " + ak.GetDisplayName() + " for vibe '" + vibe + "')")
         If StorageUtil.GetIntValue(ak, "GSAnim.IdleHold", 0) == 1
             _ReleaseIdleHold(ak)
         EndIf
@@ -959,6 +966,8 @@ Bool Function _PoseVibe(Actor ak, String vibe, String label)
     ; YAML eligibility gate is only a snapshot from when the LLM decided, and can't see the NPC
     ; becoming busy between that decision and this actually running.
     If _IsBusyElsewhere(ak)
+        ; REV-137d 3.2 full-chain receipt: the busy refusal is named (was silent).
+        Debug.Trace("[SNAnimGS] pose fire refused: BUSY (" + ak.GetDisplayName() + " busy at exec time)")
         If StorageUtil.GetIntValue(ak, "GSAnim.IdleHold", 0) == 1
             _ReleaseIdleHold(ak)
         EndIf
@@ -1003,6 +1012,16 @@ Bool Function _PoseVibe(Actor ak, String vibe, String label)
     StorageUtil.SetFloatValue(None, "GSAnim.LastPoseFire", Utility.GetCurrentRealTime())  ; Phase 4: T3 silence-floor clock
     SkyrimNetApi.RegisterEvent("gsanim_npc_pose", \
         ak.GetDisplayName() + " strikes " + label + ", holding it in place.", ak, None)
+    ; REV-137d 4.1 (user ruling 2026-10-22, USER-AUTHORED per this ruling -- 17b
+    ; precedent, register-cited in gs-poses.md REV-137d + posing-gender.md): every
+    ; genuine Sheogorath/T3 fire carries an on-screen receipt mirroring the Sanguine
+    ; notification format ("Sanguine Mode - <NPC> (<pose>)"). ASCII-only (4f rule).
+    ; Gated on the in-flight flag set by _OdAutoPose so crosshair/muse fires that
+    ; merely happen while overdrive runs never masquerade as T3 fires.
+    If _bT3InFlight && StorageUtil.GetIntValue(None, "GSAnim.Overdrive", 0) == 1
+        Debug.Trace("[SNAnimGS] sheogorath T3 FIRE receipt: " + ak.GetDisplayName() + " (" + vibe + ")")
+        Debug.Notification("Sheogorath - " + ak.GetDisplayName() + " (" + vibe + ")")
+    EndIf
     RegisterForSingleUpdate(3.0)
     Return True   ; REV-137a 2.3: outcome-true — the event WAS sent
 EndFunction
@@ -1194,6 +1213,11 @@ String[] _PoseActions
 ; own action selection — the thought is the nudge, cue-not-floor stands.
 ; The pending actor bridges the call to OnMuseConsideration (guards re-checked at seed time).
 Actor   _musePendingActor = None
+; REV-137d 4.1: in-flight flag for a T3 (Sheogorath) auto-pose dispatch -- set by _OdAutoPose
+; around ExecuteAction, read by _PoseVibe's success leg so the user-ruled on-screen
+; receipt ("Sheogorath - <NPC> (<pose>)", USER-AUTHORED per the 2026-10-22 ruling) fires
+; ONLY on genuine T3 fires (never on crosshair or muse fires that happen while overdrive runs).
+Bool    _bT3InFlight = False
 ; OStimExcitementFaction, resolved once via PO3 editor-ID lookup (arousal context for the
 ; nudge pack); None when OStim is absent — arousal then drops out of the pack gracefully.
 Faction _kMuseArousalFaction = None
@@ -1322,15 +1346,23 @@ EndFunction
 Actor[] _DaemonPool
 
 Int Function _DaemonScan(Bool bAllowMales = False)
-    ; REV-26 Task 1b: the muse walk passes bAllowMales=True (ruling: the muse alone gains
-    ; males); T3 keeps the default False — its candidate pool and behavior are unchanged.
+    ; REV-137d 3.1 GENDER-POLICY BLANKET (user ruling 2026-10-22, supersedes the REV-26
+    ; scope note): the GS pose gender-policy modes apply to ALL pose routes -- the Prisma
+    ; crosshair, Sanguine (muse) and Sheogorath (overdrive/T3) all adopt the SAME policy
+    ; the crosshair uses. The T3 female-only pool is RETIRED and the muse's mode-blind
+    ; male admission is RETIRED: pool admission is now purely policy-driven -- mode 0 =
+    ; female-only everywhere; mode 1 = males enter every pool (vibe curated at fire time
+    ; by the existing _GenderAdmits legs in _PoseVibe / the muse fire veto); mode 2 =
+    ; everyone. bAllowMales is kept for signature compatibility only (callers unchanged);
+    ; it no longer gates anything. Unknown sex: blocked in modes 0/1, admitted in mode 2
+    ; (never a silent behavior change on an unread value -- the 6a discipline).
     Int n = 0
     Actor[] akAll = PO3_SKSEFunctions.GetActorsByProcessingLevel(0)
     Int i = 0
     While i < akAll.Length && n < _DaemonPool.Length
         Actor ak = akAll[i]
         If ak && ak != PlayerRef && !ak.IsDead() \
-           && (_SexOf(ak) == 1 || _GenderPolicy() == 2 || (bAllowMales && _SexOf(ak) == 0)) \
+           && (_SexOf(ak) == 1 || _GenderPolicy() >= 1) \
            && ak.GetDistance(PlayerRef) <= fDaemonRadius \
            && StorageUtil.GetStringValue(ak, "GSAnim.Pose", "") == "" \
            && !ak.IsInCombat() \
@@ -1401,13 +1433,21 @@ Function _MuseTick()
             + " interval=" + fMuseNudgeIntervalSec)
     EndIf
     If fNow - fLastGlobal < fMuseNudgeIntervalSec
+        ; REV-137d 3.2 full-chain receipt (user ruling 2026-10-22): the tick-opportunity
+        ; sentinel is now UNCONDITIONAL, not bDebug-gated -- the cadence itself must be
+        ; readable from the log on every session.
+        Debug.Trace("[SNAnimGS] sanguine mode tick: no opportunity (interval clock " + (fNow - fLastGlobal) \
+            + "s < " + fMuseNudgeIntervalSec + "s)")
         If bDebug
             _MuseDebugHeartbeat(fNow, "interval clock")
         EndIf
         Return
     EndIf
-    Int n = _DaemonScan(True)   ; REV-26 Task 1b: the muse walk admits males per the approved split (guards unchanged below)
+    Int n = _DaemonScan(True)   ; REV-137d 3.1: policy-blanket scan; bAllowMales is vestigial (see _DaemonScan)
     If n == 0
+        ; REV-137d 3.2 full-chain receipt: the pool-empty refusal is named and unconditional.
+        Debug.Trace("[SNAnimGS] sanguine mode attempt REFUSED: candidate pool EMPTY (scan n=0; policy mode " \
+            + _GenderPolicy() + ")")
         If bDebug
             _MuseDebugHeartbeat(fNow, "scan empty")
         EndIf
@@ -1456,6 +1496,8 @@ Function _MuseTick()
                 ; tick at worst — the same discipline the old rc!=0 path had, now on the clock).
                 StorageUtil.SetFloatValue(None, "GSAnim.MuseGlobal", fNow)
                 If sent == 1
+                    Debug.Trace("[SNAnimGS] sanguine mode candidate selected: " + ak.GetDisplayName() \
+                        + " (first eligible in random walk, pool n=" + n + ", policy mode " + _GenderPolicy() + ")")
                     Debug.Trace("[SNAnimGS] sanguine mode nudge asked: " + ak.GetDisplayName())
                 Else
                     _musePendingActor = None
@@ -2085,6 +2127,14 @@ Function _OverdriveOn()
     StorageUtil.SetFloatValue(None, "GSAnim.OverdriveExpire", Utility.GetCurrentRealTime() + fOdExpireSeconds)
     StorageUtil.SetFloatValue(None, "GSAnim.LastPoseFire", Utility.GetCurrentRealTime())
     StorageUtil.SetFloatValue(None, "GSAnim.LastOdCue", 0.0)
+    ; REV-137d 3.2 full-chain receipt (user ruling 2026-10-22): the ON state, its armed
+    ; cadence parameters and the policy mode are now trace-receipted -- the [REV-139]
+    ; log could not show ON/OFF/expiry at all (notification-only), which made the
+    ; "silent minutes" indistinguishable from expiry-by-design. Census of the armed
+    ; machinery: poll 10s, T3 floor 40s measured against EVERY pose fire, expire 300s.
+    Debug.Trace("[SNAnimGS] sheogorath mode ON (REV-137d receipt): armed -- poll 10s, T3 silence floor " \
+        + fOdSilenceFloor + "s (reset by EVERY pose fire incl. crosshair/muse), expire " + fOdExpireSeconds \
+        + "s, T3 pool policy mode " + _GenderPolicy() + " (REV-137d 3.1 blanket)")
     Debug.Notification("Sheogorath Mode - the room is yours.")
     _OdCue()                 ; first ambience cue right away (sets GSAnim.LastOdCue)
     RegisterForSingleUpdate(10.0)
@@ -2114,6 +2164,7 @@ Function _OverdriveOff(String sNotify)
     StorageUtil.SetFloatValue(None, "GSAnim.OverdriveExpire", 0.0)
     StorageUtil.SetFloatValue(None, "GSAnim.LastOdCue", 0.0)
     StorageUtil.SetFloatValue(None, "GSAnim.CombatSuspendStart", 0.0)
+    Debug.Trace("[SNAnimGS] sheogorath mode OFF (REV-137d receipt): " + sNotify)   ; 3.2 receipt: 2nd-press and time-expiry both land here
     If sNotify != ""
         Debug.Notification(sNotify)
     EndIf
@@ -2143,25 +2194,48 @@ Function _OverdriveTick()
         Return
     EndIf
     _OdCue()
-    If fNow - StorageUtil.GetFloatValue(None, "GSAnim.LastPoseFire", 0.0) >= fOdSilenceFloor
+    ; REV-137d 3.2 full-chain receipt (user ruling 2026-10-22): every tick carries its
+    ; opportunity verdict with the actual compare values -- the cadence itself is the
+    ; observable (tick census 5.1: poll 10s, floor 40s vs LastPoseFire which EVERY
+    ; _PoseVibe fire stamps, so crosshair/muse fires reset the T3 clock too).
+    Float fSilence = fNow - StorageUtil.GetFloatValue(None, "GSAnim.LastPoseFire", 0.0)
+    If fSilence >= fOdSilenceFloor
+        Debug.Trace("[SNAnimGS] sheogorath mode tick: T3 OPPORTUNITY (silence " + fSilence \
+            + "s >= floor " + fOdSilenceFloor + "s; expire in " \
+            + (StorageUtil.GetFloatValue(None, "GSAnim.OverdriveExpire", 0.0) - fNow) + "s)")
         _OdAutoPose()
+    Else
+        Debug.Trace("[SNAnimGS] sheogorath mode tick: no T3 opportunity (silence " + fSilence \
+            + "s < floor " + fOdSilenceFloor + "s)")
     EndIf
 EndFunction
 
-; T3 silence floor: one random eligible female NPC strikes a weighted solo-safe GS vibe.
-; ExecuteAction bypasses eligibility AND cooldowns by design — our guard chain is the ONLY
-; protection, so it's strict: _DaemonCandidates (loaded/female/near/not-posing/not-combat)
-; + _IsBusyElsewhere backstop + not currently T3-posed. The Pose*_Execute wrappers re-run
-; their own female/busy guards at dispatch, defense in depth. GS VIBES ONLY — never Baka,
-; never two-actor, never targeted. After the fire, a justification thought seed lands (rc
-; checked, harmless if it fails) and the silence clock re-arms via _PoseVibe's stamp.
+; T3 silence floor: one random eligible NPC (policy-admitted, REV-137d 3.1 blanket)
+; strikes a weighted solo-safe GS vibe. ExecuteAction bypasses eligibility AND cooldowns
+; by design — our guard chain is the ONLY protection, so it's strict: _DaemonScan
+; (policy-admitted/loaded/near/not-posing/not-combat) + _IsBusyElsewhere backstop + not
+; currently T3-posed. The Pose*_Execute wrappers re-run their own gender/busy guards at
+; dispatch, defense in depth. GS VIBES ONLY — never Baka, never two-actor, never
+; targeted. After the fire, a justification thought seed lands (rc checked, harmless if
+; it fails) and the silence clock re-arms via _PoseVibe's stamp.
+; REV-137d 3.2: every attempt leg is receipted — pool-empty, candidate selection
+; (who + why), every refusal named, dispatch rc, and the fire receipt lands via
+; _PoseVibe's success leg (with the user-ruled on-screen Sheogorath notification, 4.1).
 Function _OdAutoPose()
     Int n = _DaemonScan()
     If n == 0
+        Debug.Trace("[SNAnimGS] sheogorath T3 attempt REFUSED: candidate pool EMPTY (scan n=0; filters: policy mode " \
+            + _GenderPolicy() + ", radius " + fDaemonRadius + ", posing, combat, sleep, swim/mount/sneak)")
         Return
     EndIf
     Actor ak = _DaemonPool[Utility.RandomInt(0, n - 1)]
-    If !ak || _IsBusyElsewhere(ak)
+    If !ak
+        Debug.Trace("[SNAnimGS] sheogorath T3 attempt REFUSED: random slot resolved None (pool n=" + n + ")")
+        Return
+    EndIf
+    If _IsBusyElsewhere(ak)
+        Debug.Trace("[SNAnimGS] sheogorath T3 attempt REFUSED: " + ak.GetDisplayName() \
+            + " busy at pick time (backstop; pool n=" + n + ")")
         Return
     EndIf
     ; Weighted pick from the named constant pool (Edit 2 block — retune _OdVibeWeights).
@@ -2177,15 +2251,24 @@ Function _OdAutoPose()
         EndIf
         i += 1
     EndWhile
+    Debug.Trace("[SNAnimGS] sheogorath T3 attempt: candidate " + ak.GetDisplayName() \
+        + " selected (random draw from policy-admitted pool n=" + n + ", policy mode " + _GenderPolicy() \
+        + ") -> vibe " + sAction + " (weighted pick)")
     ; REV-135 (idle-interrupt service, spec 1.4.4): T3 routes through the same
     ; primitive — interruptible idle classes exit->recheck (incl. the
     ; gender-policy admit, live) -> fire instead of being silently dropped.
     If !_IdleFirePath(ak, sAction)
-        Debug.Trace("[SNAnimGS] T3 silence-floor auto-pose: idle interrupt refused -- skip (" + ak.GetDisplayName() + ")")
+        Debug.Trace("[SNAnimGS] sheogorath T3 attempt REFUSED: idle interrupt (exit/recheck refused -- reason per the idle-svc sentinel above): " + ak.GetDisplayName())
         Return
     EndIf
     Debug.Trace("[SNAnimGS] T3 silence-floor auto-pose: " + ak.GetDisplayName() + " -> " + sAction)
-    SkyrimNetApi.ExecuteAction(sAction, ak, "{}")
+    ; REV-137d 4.1: the in-flight flag lets _PoseVibe's success leg fire the
+    ; user-ruled on-screen receipt ONLY on genuine T3 fires.
+    _bT3InFlight = True
+    Int rcOd = SkyrimNetApi.ExecuteAction(sAction, ak, "{}")
+    _bT3InFlight = False
+    Debug.Trace("[SNAnimGS] sheogorath T3 attempt dispatched (rc=" + rcOd + "): " + ak.GetDisplayName() \
+        + " -> " + sAction + "; accept/refuse receipt per the pose fire sentinels below")
     ; Justification seed: the same thought registers that drive muse, at performance pitch.
     SkyrimNetApi.GenerateNPCThought(ak, \
         "The music and the crowd's eyes have gotten to you — you feel like dancing for them.")

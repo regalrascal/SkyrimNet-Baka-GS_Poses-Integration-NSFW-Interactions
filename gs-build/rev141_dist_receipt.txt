@@ -1,0 +1,8 @@
+[REV-141] Delectatio-et-Dominium gender-blanket-and-receipts
+assembled: 2026-10-22 (REV-137d), dist_assemble.ps1 -CompileOut (Compile Archive\compile-out-rev137d), CarryFrom [REV-140]
+entries: 271 (entry-count assertion PASS 271==271)
+zip: 327 entries, 7,630,044 B (size-sanity PASS, 5..8 MB window)
+sha256: BBFE3E9EB16FA68372CC4001787F3D341D1FE23D5AF467C8B12AB0AE7FAE9F17 + .sha256 sidecar
+manifest: dist\manifests\manifest-rev141.txt
+archive rider: [REV-140] package-hold-port folder+zip+sidecar -> dist\archive\ (stamps never renamed)
+delta vs [REV-140]: Scripts/SkyrimNet_AnimationsGS.pex (REV-137d blanket + receipts + T3 notification; sha E1D706DDD69D76171827DB4F048909CC7150DCFD9D36DF51BD5BC6D791AAA74F) + the 11 fresh-compile island pex (known nondeterminism class) + manifest; NO esp/DLL/fomod bytes; wizard 10a NOT triggered

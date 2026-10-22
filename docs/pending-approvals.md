@@ -242,6 +242,8 @@ Reborn -> SL Aroused -> neutral) + the runtime chain itself. The line SHIPPED
 as a draft (README.md, after the SeverActions entry); wording ruling pending
 — user edits the draft.
 
+***User ruling: text is tentatively approved pending the next full release, when the readme will be fully checked and edited.***
+
 **REV-111 rider (2026-10-14):** the README arousal line now RIDES the
 public-staging README — the [REV-111] stake copied the shipped README as the
 public repo's README base and the draft line ships there in the Soft
@@ -325,6 +327,8 @@ homes are now the six STACKED sections of the ONE "Baka Interactions"
 page body (REV-109c, PROJECT_STATE §119; the 109b navigation rows are
 gone); the reworded strings ship on those stacked section surfaces
 as-is. The 16a-16d rulings remain pending.
+
+***User ruling: The restructured state of the MCM is user approved pending any further requests, which should be routed to new entries.***
 
 ---
 
@@ -820,6 +824,7 @@ Two things ride here:
 
 **Status: OPEN — the user's pen.** Receipts: PROJECT_STATE §145 + cum-prompt-spec.md (as-built note).
 
+***User note: Approved. Prompt fragment text for cum detection will receive an edit pass eventually, but they are working well for now.***
 
 ---
 
