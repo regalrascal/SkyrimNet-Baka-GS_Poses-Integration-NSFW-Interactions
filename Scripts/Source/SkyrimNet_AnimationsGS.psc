@@ -311,23 +311,45 @@ EndFunction
 ; IdleForceDefaultState (AcheronIntegration L211/L486/L529-531 precedent)
 ; breaks the furniture sit AND the marker hold; the actor stands where they
 ; are (pop-stand MVP — smooth-stand polish is OUT OF SCOPE this rev).
-; Returns True ONLY when CONFIRMED: both idle anchors cleared (SitState 0
-; AND no furniture/marker reference) within the ~2s REAL-clock poll window
-; (the L6998 real-clock lesson: never count naive ticks under VM load); a
-; failed/persistent anchor returns False and the caller skips.
+; Returns True ONLY when CONFIRMED: the actor is UP (SitState 0) within the
+; 4.0s REAL-clock poll window (REV-137a 2.1: was 2.0s; the L6998 real-clock
+; lesson — never count naive ticks under VM load). PASS signal = SitState 0
+; alone; the furniture/marker reference is demoted to the NAMED DISCRIMINATOR
+; in the pass/fail sentinels, so a residual failure self-diagnoses from the
+; next log. Hold timing: SetDontMove during the confirm window (blocks
+; package walk-away mid-stand without fighting the stand anim); on confirm
+; the caller swaps to the standard re-grab hold (SetRestrained,
+; GSAnim.IdleHold) through the pose; on fail _ReleaseIdleHold releases BOTH
+; cleanly (never strand).
 Bool Function _ExitIdle(Actor ak, Int iClass) Global
     If !ak || (iClass != 1 && iClass != 2)
         Return False
     EndIf
+    ak.SetDontMove(True)   ; REV-137a: stand-window hold -- blocks walk-away, not the stand
     Debug.SendAnimationEvent(ak, "IdleForceDefaultState")
     Float fStart = Utility.GetCurrentRealTime()
-    While (Utility.GetCurrentRealTime() - fStart) < 2.0
-        If ak.GetSitState() == 0 && !ak.GetFurnitureReference()
+    While (Utility.GetCurrentRealTime() - fStart) < 4.0
+        If ak.GetSitState() == 0
+            ak.SetDontMove(False)
+            If ak.GetFurnitureReference()
+                Debug.Trace("[SNAnimGS] idle-svc exit confirmed: SitState clear, furniture-ref PERSISTED (named discriminator): " + ak.GetDisplayName() + " class=" + iClass)
+            Else
+                Debug.Trace("[SNAnimGS] idle-svc exit confirmed: both anchors clear: " + ak.GetDisplayName() + " class=" + iClass)
+            EndIf
             Return True
         EndIf
         Utility.Wait(0.25)
     EndWhile
-    Return ak.GetSitState() == 0 && !ak.GetFurnitureReference()
+    ; FAIL at 4.0s -- NAME the persisted anchor (the REV-137a hypothesis-pair discriminator)
+    String sWhich = "sitstate"
+    If ak.GetSitState() == 0
+        sWhich = "furniture-ref (sitstate clear)"
+    ElseIf ak.GetFurnitureReference()
+        sWhich = "sitstate AND furniture-ref"
+    EndIf
+    ak.SetDontMove(False)
+    Debug.Trace("[SNAnimGS] idle-svc exit FAILED after 4.0s: " + ak.GetDisplayName() + " class=" + iClass + " -- persisted: " + sWhich)
+    Return False
 EndFunction
 
 ; The fire-time pipeline (1.4.3, REV-136 2.2): class detect -> AI HOLD ->
@@ -348,6 +370,17 @@ Bool Function _IdleFirePath(Actor ak, String sCat)
         Return False
     EndIf
     If iClass == 0
+        ; REV-137a 2.2 (finding 2.1, the wander-while-posing defect): the
+        ; class-0 leg acquires the re-grab hold AT FIRE — moving/standing
+        ; actors were previously NEVER held (early return, no restrain), so
+        ; their packages walked them through the pose. Released by the
+        ; existing pose-end machinery (_StopActorPose clears IdleHold and
+        ; both restraints — belt-and-suspenders) and by the flag-guarded
+        ; _ReleaseIdleHold calls on _PoseVibe's refusal legs; the fire paths
+        ; re-restrain anyway (_PoseVibe/_PoseDirect), so the swap is a no-op.
+        ak.SetRestrained(True)
+        StorageUtil.SetIntValue(ak, "GSAnim.IdleHold", 1)
+        Debug.Trace("[SNAnimGS] idle-svc AI hold acquired at fire (class 0): " + ak.GetDisplayName())
         Return True
     EndIf
     ; REV-136 2.2 (user ruling, SUPERSEDES tolerate-and-skip): the AI hold is
@@ -833,23 +866,36 @@ EndFunction
 ; (poses breaking sex scenes/downed poses/Baka struggles), which the eligibility-only snapshot
 ; can't catch. No hard SexLab/Baka/Acheron script dependency: factions are resolved by FormID and
 ; the rest are plain StorageUtil keys, so this still compiles and runs standalone.
-Function _PoseVibe(Actor ak, String vibe, String label)
+; REV-137a 2.3 (outcome-true sentinel, §157 finding 2.3): _PoseVibe now
+; RETURNS Bool — True only when a pose event was actually SENT. The old
+; caller-side fire sentinel printed after an internal refusal (gender/busy/
+; empty-pool early returns happen BEFORE SendAnimationEvent), misreporting
+; fires. Refusal legs release any live idle hold (flag-guarded — the T3
+; pre-fire path acquires the class-0 hold BEFORE this dispatch, so a
+; refusal here must never strand it).
+Bool Function _PoseVibe(Actor ak, String vibe, String label)
     If !ak || ak == PlayerRef
-        Return
+        Return False
     EndIf
     ; REV-85 Phase B: gender gate routes through _GenderAdmits (the rev-26 vibe-level
     ; split is now mode-aware: mode 0 keeps it exactly — females pass, males only via
     ; _VibeMaleOK, unknown sex stays blocked, never a silent change on an unread value;
     ; mode 1 is the same table as the crosshair admission; mode 2 drops the gate).
     If !_GenderAdmits(ak, vibe)
-        Return
+        If StorageUtil.GetIntValue(ak, "GSAnim.IdleHold", 0) == 1
+            _ReleaseIdleHold(ak)
+        EndIf
+        Return False
     EndIf
     ; Don't pose someone already busy elsewhere (Baka paired anim/struggle/downed, Acheron hold,
     ; bleedout, or any sex scene) -- see _IsBusyElsewhere. Re-checked live at exec time: the is_busy
     ; YAML eligibility gate is only a snapshot from when the LLM decided, and can't see the NPC
     ; becoming busy between that decision and this actually running.
     If _IsBusyElsewhere(ak)
-        Return
+        If StorageUtil.GetIntValue(ak, "GSAnim.IdleHold", 0) == 1
+            _ReleaseIdleHold(ak)
+        EndIf
+        Return False
     EndIf
     ; REV-135 (idle-interrupt service, spec 1.4.4): the exec-time leg routes
     ; through the service — with _IsBusyElsewhere class-aware, seated/marker
@@ -857,13 +903,19 @@ Function _PoseVibe(Actor ak, String vibe, String label)
     ; direct-fire call and the T3 wrapper dispatch, both of which land in
     ; _PoseVibe); every refusal skips with a §5 sentinel inside the service.
     If !_IdleFirePath(ak, vibe)
-        Return
+        Return False   ; the service already released the hold + sentinel'd every refusal
     EndIf
     ; REV-85c A.3: the draw routes through _VibeEventsFor (the A.3 sex-split for
     ; "aroused"; every other vibe unchanged from _VibeCSV).
     String csv = _VibeEventsFor(ak, vibe)
     If csv == ""
-        Return
+        ; REV-137a 2.2 belt-and-suspenders: no fire — never strand the hold
+        ; (the recheck PASS already handed restraint to this machinery).
+        ak.SetRestrained(False)
+        ak.SetDontMove(False)
+        StorageUtil.SetIntValue(ak, "GSAnim.IdleHold", 0)
+        Debug.Trace("[SNAnimGS] pose fire refused: empty vibe event pool ('" + vibe + "', " + ak.GetDisplayName() + ")")
+        Return False
     EndIf
     String[] list = StringUtil.Split(csv, ",")
     String ev = list[Utility.RandomInt(0, list.Length - 1)]
@@ -884,6 +936,7 @@ Function _PoseVibe(Actor ak, String vibe, String label)
     SkyrimNetApi.RegisterEvent("gsanim_npc_pose", \
         ak.GetDisplayName() + " strikes " + label + ", holding it in place.", ak, None)
     RegisterForSingleUpdate(3.0)
+    Return True   ; REV-137a 2.3: outcome-true — the event WAS sent
 EndFunction
 
 ; Phase 2: pose a specific NPC with a specific event — the player's explicit grid pick,
@@ -893,7 +946,14 @@ EndFunction
 ; the NPC via OnUpdate). Validation + refusal notifications already happened in
 ; OnPoseSelected; on refusal nothing was posed and nothing falls back to the player.
 Function _PoseDirect(Actor ak, String ev, String desc, String cat)
+    ; REV-137a 2.2: _PoseDirect acquires the re-grab hold AT FIRE (finding
+    ; 2.1 — the wander defect). The restrain call was already here; the
+    ; IdleHold flag + sentinel are new so _StopActorPose's belt-and-
+    ; suspenders clearing covers this path uniformly (the crosshair service
+    ; path sets the flag too — idempotent).
     ak.SetRestrained(True)
+    StorageUtil.SetIntValue(ak, "GSAnim.IdleHold", 1)
+    Debug.Trace("[SNAnimGS] pose hold acquired at direct fire: " + ak.GetDisplayName())
     _PacifyGS(ak, True)
     Debug.SendAnimationEvent(ak, ev)
     StorageUtil.SetStringValue(ak, "GSAnim.Pose",    ev)
@@ -1783,25 +1843,33 @@ Function OnMuseConsideration(String response, Int success)
         ElseIf _IsBusyElsewhere(ak)
             Debug.Trace("[SNAnimGS] sanguine mode direct fire skipped: busy at fire time — seed-only")
         Else
-            _PoseVibe(ak, sFireVibe, _MuseFireLabel(sPose))
-            ; REV-26 Task 1b: male fires carry an explicit [male vocab] tag — the split's
-            ; first live data must be identifiable in traces (1b sentinel requirement).
-            If _SexOf(ak) == 0
-                Debug.Trace("[SNAnimGS] sanguine mode direct fire: " + ak.GetDisplayName() + " (" + sPose + ") [male vocab]")
+            ; REV-137a 2.3 (outcome-true, §157 finding 2.3): the fire sentinel
+            ; fires ONLY on a True return from _PoseVibe (event actually sent);
+            ; the refusal variant carries the reason pointer. The old code
+            ; printed "direct fire" unconditionally after the call — while
+            ; _PoseVibe refused internally before SendAnimationEvent.
+            If _PoseVibe(ak, sFireVibe, _MuseFireLabel(sPose))
+                ; REV-26 Task 1b: male fires carry an explicit [male vocab] tag — the split's
+                ; first live data must be identifiable in traces (1b sentinel requirement).
+                If _SexOf(ak) == 0
+                    Debug.Trace("[SNAnimGS] sanguine mode direct fire: " + ak.GetDisplayName() + " (" + sPose + ") [male vocab]")
+                Else
+                    Debug.Trace("[SNAnimGS] sanguine mode direct fire: " + ak.GetDisplayName() + " (" + sPose + ")")
+                EndIf
+                ; REV-85 aroused-lean leg 3 (§2d): the [arousal lean] sentinel — extends the
+                ; [male vocab] tag pattern so the lean's live effect is measurable (§5): the
+                ; bland-picks rate (neutral-family fire share at high arousal) is the funnel
+                ; metric. High-tier = the REV-82 chain's >=75 leg (OStim rank is its own
+                ; signal; unknown arousal is NOT lean-flagged — silence about the unknown).
+                If StringUtil.Find(_sMuseArous, "high") != -1
+                    Debug.Trace("[SNAnimGS] sanguine mode direct fire: high-arousal seed — [arousal lean] applies")
+                EndIf
+                ; REV-25 Task 2e (user spec): on-screen notification ONLY on actual fires —
+                ; paired message+pose, always. ASCII-only (4f glyph rule).
+                Debug.Notification("Sanguine Mode - " + ak.GetDisplayName() + " (" + sPose + ")")
             Else
-                Debug.Trace("[SNAnimGS] sanguine mode direct fire: " + ak.GetDisplayName() + " (" + sPose + ")")
+                Debug.Trace("[SNAnimGS] sanguine mode direct fire REFUSED (no event sent): " + ak.GetDisplayName() + " (" + sPose + ") -- reason per the refusal sentinel above")
             EndIf
-            ; REV-85 aroused-lean leg 3 (§2d): the [arousal lean] sentinel — extends the
-            ; [male vocab] tag pattern so the lean's live effect is measurable (§5): the
-            ; bland-picks rate (neutral-family fire share at high arousal) is the funnel
-            ; metric. High-tier = the REV-82 chain's >=75 leg (OStim rank is its own
-            ; signal; unknown arousal is NOT lean-flagged — silence about the unknown).
-            If StringUtil.Find(_sMuseArous, "high") != -1
-                Debug.Trace("[SNAnimGS] sanguine mode direct fire: high-arousal seed — [arousal lean] applies")
-            EndIf
-            ; REV-25 Task 2e (user spec): on-screen notification ONLY on actual fires —
-            ; paired message+pose, always. ASCII-only (4f glyph rule).
-            Debug.Notification("Sanguine Mode - " + ak.GetDisplayName() + " (" + sPose + ")")
         EndIf
     Else
         Debug.Trace("[SNAnimGS] sanguine mode nudge seed skipped (rc=" + rc + "): " + ak.GetDisplayName())
