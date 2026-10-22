@@ -474,8 +474,10 @@ EndFunction
 ; package re-evaluation") holds: the ONE missing primitive is the
 ; condition-free DoNothing package override at priority 100 + EvaluatePackage.
 ; Ported WITHOUT a hard script dependency (the era doctrine: no hard
-; Baka dep): the Baka esp's own DoNothing package (PACK 0x1E6,
-; SkyrimNet_BakaIntegration.esp) is soft-read via GetFormFromFile, gated
+; Baka dep): the Baka esp's own DoNothing package (PACK local 0xD6A
+; (0x04000D6A), SkyrimNet_BakaIntegration.esp; REV-137e: the REV-137c
+; literal 0x1E6 was a header misparse - the PACK record's DATA-SIZE
+; field read as formID; corrected per the REV-137d-R rider hex receipt) is soft-read via GetFormFromFile, gated
 ; on the existing busy.baka-half service probe (REV-105 S2 class -- absent
 ; Baka = present behavior, DontMove/Sandbox hold only, miss sentinel once
 ; per load). Engaged with the AI hold at fire (class 0) and BEFORE the
@@ -490,13 +492,25 @@ Function _PkgHoldActorAI(Actor ak, Bool bHold)
     EndIf
     Package pkgDoNothing = None
     If _BakaBusyServicePresent()
-        pkgDoNothing = Game.GetFormFromFile(0x1E6, "SkyrimNet_BakaIntegration.esp") as Package
+        pkgDoNothing = Game.GetFormFromFile(0xD6A, "SkyrimNet_BakaIntegration.esp") as Package
     EndIf
     If bHold
         If !pkgDoNothing
-            If StorageUtil.GetIntValue(None, "GSAnim.PkgMiss", 0) == 0
-                StorageUtil.SetIntValue(None, "GSAnim.PkgMiss", 1)
-                Debug.Trace("[SNAnimGS] idle-svc package hold UNAVAILABLE (Baka half absent or DoNothing package unresolved) -- DontMove/Sandbox hold only (REV-137c 3.1)")
+            ; REV-137e: the UNAVAILABLE sentinel is SPLIT into two
+            ; independently-latched miss classes (once per load each) -
+            ; probe-miss (Baka module absent) vs form-miss (half present,
+            ; package form unresolved). The class must never be ambiguous
+            ; again (records-hygiene guard for the 137c misparse class).
+            Bool bHalfAbsent = !_BakaBusyServicePresent()
+            String sMissKey = "GSAnim.PkgFormMiss"
+            String sMissMsg = "idle-svc package hold FORM-MISS (Baka half present but DoNothing package unresolved -- check the formID literal) -- DontMove/Sandbox hold only (REV-137e)"
+            If bHalfAbsent
+                sMissKey = "GSAnim.PkgProbeMiss"
+                sMissMsg = "idle-svc package hold PROBE-MISS (busy.baka-half service absent = Baka module not present) -- DontMove/Sandbox hold only (REV-137e)"
+            EndIf
+            If StorageUtil.GetIntValue(None, sMissKey, 0) == 0
+                StorageUtil.SetIntValue(None, sMissKey, 1)
+                Debug.Trace("[SNAnimGS] " + sMissMsg)
             EndIf
             Return
         EndIf
