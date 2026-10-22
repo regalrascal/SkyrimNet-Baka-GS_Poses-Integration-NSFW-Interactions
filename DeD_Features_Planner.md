@@ -81,6 +81,7 @@ Integration, credited).
 - 2026-10-09 REV-97: rev96 dogfood "Execute regression" diagnosed NOT-A-REGRESSION — player-button chain alive through Actor.Kill; block = victim's base Essential/Protected immunity, kill-path code byte-identical rev94->rev96, install hashes verified 6/6 (PROJECT_STATE §103; INDEX row 14).
 - 2026-10-08 REV-88: "Execute action lane" — well-evidenced open ticket (INDEX row 14: author, not adopt; Acheron-free shape ruled); roadmap item 3.
 - 2026-10-08 REV-88: seated-candidate policy (exclude / candidacy-relax / interrupt-then-fire) is the daemon spec's open ruling request (baka-daemon.md REV-87/88 notes).
+- 2026-10-22 REV-136: STRIP rulings of record (user, this exchange; nothing built) — Disposition (i)(a) = gear to the victim's OWN inventory (tracked, recoverable); Restore (ii)(b) = gear STAYS OFF after strip + a NEW "All to dress" downed-menu tile (choice id 11) restoring tracked gear, with a MANDATORY v2-build pre-check (must not override/conflict with SeverActions' outfit system or SL/OStim player-initiated dress GUIs — restore only OUR tracked items; STOP if no clean shape); Undress (iii) = SexLab StripActor primary, vanilla presence-gated fallback. Register entry 27 CLOSED (approved; wording of record in baka-module.md). Full record: gs repo baka-module.md REV-136 rulings-applied section + INDEX row 3.
 
 # Gunslicer Poses Module (full)
 
@@ -111,6 +112,9 @@ display, and ambient life.
 * Aroused-lean tuning: further reduce bland picks at high arousal.
 
 — Project working notes —
+- 2026-10-22 REV-137: DOGFOOD DIAGNOSIS of the REV-136 service (report-only; log = the user's post-deploy Papyrus.0.log 10-22 15:39) — 11/12 seated fires die at the _ExitIdle confirm-poll expiry (the stand-then-refuse root cause; Sheogorath's T3 auto-poses and Sanguine's direct fires share it — Sheogorath was firing, every fire refused); class-0 (moving) actors acquire no hold (wander-while-posing confirmed — hold at every pose fire is the fix-pass shape); the Sanguine direct-fire sentinel MISREPORTS refused fires (printed by the caller after _PoseVibe's early return). BUILT (the one user-ruled build): DIALOGUE-GUARD REMOVAL — UI.IsMenuOpen Dialogue Menu discriminator out of _IdleClass, -6 class retired, dialogue no longer ESSENTIAL (unguarded testing). Compile 12/12 0/0, compile-out-rev137, NO DIST (rides the fix pass). Full verdicts + site table: gs repo PROJECT_STATE §157 + gs-poses.md REV-138.
+
+- 2026-10-22 REV-136: SERVICE FIXES + GS MODE RENAMES BUILT (gs repo gs-poses.md REV-136 as-built) — the idle-interrupt service per the user's three edge rulings: (2.1) STAND-IN-PLACE exit (the PathToReference stand shape RETIRED — no pathing, no translation toward ANY reference, no teleports; one IdleForceDefaultState technique for both furniture and marker classes, ~2s real-clock dual-anchor confirm; pop-stand MVP); (2.2) AI re-grab PREVENTED (SetRestrained hold acquired at exit-issue BEFORE the stand break, persists through the pose, releases at every pose-end exit via _StopActorPose — also covers the NPCs-wandering-mid-pose defect; the one-re-exit stays only as an unreachable backstop sentinel); (2.3) mid-dialogue NARROWED to the vanilla Dialogue Menu (UI.IsMenuOpen; SkyrimNet LLM conversation stays interruptible; honest limit: Papyrus cannot distinguish quest-driven from ambient vanilla dialogue — every vanilla dialogue window excluded). Mode renames shipped the same rev: "Muse" -> "Sanguine Mode", "Overdrive" -> "Sheogorath Mode" — USER-FACING strings only (labels/notifications/sentinels); all technical ids/keys/event names unchanged. Compile 12/12 0/0; dist [REV-136] idle-service-fixes-mode-renames; USER DEPLOYS.
 
 - 2026-10-08 REV-88: full-section checklist mapping lives in gs-poses.md + posing-gender.md + INDEX rows 2/13.
 - 2026-10-08 REV-88: RULING OF RECORD (2026-10-07 approval block): Baka<->GS de-tangle lands LAST in the de-tangle sequence; the shared pose category mechanism is the ruled seed (unification-era.md roadmap item 5 + boundary inventory).
@@ -118,6 +122,7 @@ display, and ambient life.
 - 2026-10-08 REV-88: "Notification muting" (pose messages toggle) — ruled 2026-10-08; roadmap item 4 cluster. "MCM tempo controls" — after the idle fix (the section's own sequencing note; roadmap item 4).
 - 2026-10-08 REV-88: muse cadence — live values confirmed 30s interval / 60s per-NPC floor; the user's supply-theory (idle-excluded pool + per-NPC cooldown) is the working hypothesis of record (unification-era.md §Muse interval read; §92 1.3).
 
+- 2026-10-22 REV-136: POSE-PICKER rulings landed (user, this exchange) — the Prisma drilldown stays PLAYER-ONLY (the decision model NEVER appears in the crosshair/grid UI); the picker's consumers = the AUTONOMOUS lanes only (emergent/ambient NPC pose selection + Sanguine Mode action selection; Sheogorath Mode stays RANDOM); dialogue-commanded poses stay in SkyrimNet's native action-selection lane (deferred watch item, revisit only if base-mod selection evolves); (a)/(b)/(c) carried re-aimed at the ambient consumer. Design note: decision templates return an action PICK — under Sanguine Mode the thought-seed is a separate GenerateNPCThought call after the pick (resolve at the daemon build). Full record: gs repo pose-picker.md REV-136 section + INDEX row 18.
 # Cum Effects
 
 ## Description
@@ -210,6 +215,9 @@ Introduce NPC and player reactions to inflation events and mechanics introduced 
       * Vaginally \- They are suddenly hit by an undeniable need to evacuate, and with legs squeezed together they feel push, and the cum pours out of their sex  
   * There is additional functionality for actors being plugged with devious devices. If the area they are inflated in is plugged then they will be unable to deflate. This should be investigated and triggers should be added to cover these situations  
   * The goal is both sexlab and ostim versions of FHU would be supported for this feature. Together, if possible, but with an MCM choice/toggle option if not.
+— Project working notes —
+
+- 2026-10-22 REV-136: RULINGS OF RECORD (user, this exchange; nothing built) — (a) instant-inflate arousal = CAPTURED-AT-SCENE-ENTRY (per-actor stash at scene start); (b) CONSENT-CONTEXT is the primary frame (arousal secondary); (c) deflate/ambient keep the current post-collapse "sated" read; (d) NEW creature-cum ambient cue lane — user template quoted verbatim in-doc, FHU per-race cum-effect FormLists discovery pre-check deferred to the v2 build, canned descriptions are section-7 (register at build); (e) NEW per-orifice deflation as DISTINCT ambient trigger types — discriminator = which sr.inflater.cum.* float dropped, design home = this section's expel-triggers bullets. Full record: gs repo fhu-inflation.md REV-136 section + INDEX row 6.
 
 # Tattoo Application
 

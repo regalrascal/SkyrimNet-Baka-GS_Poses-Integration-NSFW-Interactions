@@ -224,8 +224,9 @@ Bool Function _IsBusyElsewhere(Actor ak)
     ; actors through _IdleFirePath (detect -> exit -> fire-time recheck -> fire)
     ; instead of silently dropping them. This is the REV-87 seated-exclusion
     ; strangling fix: the seated tavern population is REACHABLE now. Essential
-    ; idle classes (sleep/downed/mounted/swimming/sneaking/mid-dialogue) stay
-    ; hard-excluded via the callers' own state guards + _IdleClass in the service.
+    ; idle classes (sleep/downed/mounted/swimming/sneaking) stay
+    ; hard-excluded via the callers' own state guards + _IdleClass in the service
+    ; (REV-137: dialogue dropped from this list — no longer an ESSENTIAL class).
     If _IdleClass(ak) > 0
         Return False
     EndIf
@@ -241,21 +242,24 @@ EndFunction
 ; Idle classes (the taxonomy, 1.4.1):
 ;    0 = not idle-anchored;  1 = furniture sit (INTERRUPTIBLE);  2 = IdleMarker
 ;    hold (INTERRUPTIBLE);  -1 sleep, -2 bleedout/downed, -3 mounted, -4
-;    swimming, -5 sneaking, -6 mid-dialogue (all ESSENTIAL, never interrupted).
+;    swimming, -5 sneaking (all ESSENTIAL, never interrupted). REV-137: the
+;    -6 mid-dialogue class is RETIRED (user ruling — dialogue guards removed).
 ; Carried rulings REV-136 (2026-10-22): sneaking ESSENTIAL (edge ruled);
-; mid-dialogue NARROWED — vanilla Dialogue Menu open = ESSENTIAL, SkyrimNet
-; conversation = interruptible (ruling supersedes the REV-135 blanket
-; exclude); the REV-135 PathToReference stand shape RETIRED — stand-in-place
-; only (no pathing, no translation toward ANY reference, no teleports); AI
-; re-grab PREVENTED (hold at exit-issue, supersedes tolerate-and-skip).
-; Scripted/quest idles remain ESSENTIAL by definition with NO direct
-; Papyrus native — approximated by the mid-dialogue leg plus the fire-time
-; scene/combat guard in _IdleFirePath (surfaced in the REV-135 gate report).
+;    REV-137 (2026-10-22) SUPERSEDES the REV-136 mid-dialogue narrowing —
+;    dialogue is NO LONGER an ESSENTIAL class (guards removed; the
+;    vanilla-Dialogue-Menu discriminator UI.IsMenuOpen is gone with it); the
+;    REV-135 PathToReference stand shape RETIRED — stand-in-place
+;    only (no pathing, no translation toward ANY reference, no teleports); AI
+;    re-grab PREVENTED (hold at exit-issue, supersedes tolerate-and-skip).
+; Scripted/quest idles have NO direct Papyrus native — covered ONLY by the
+;    fire-time scene/combat guard in _IdleFirePath (surfaced in the REV-135
+;    gate report); the REV-136 mid-dialogue approximation is retired with the
+;    class (REV-137 user ruling — unguarded testing).
 ; Natives verified against installed source (REV-25 3b discipline):
 ; GetSleepState/GetSitState/IsBleedingOut/IsOnMount/IsSneaking (vanilla
 ; Actor.psc, Data\Source\Scripts), IsSwimming/GetFurnitureReference (SKSE64
-; Actor.psc, installed mods tree), UI.IsMenuOpen (SKSE64 UI.psc L47,
-; installed mods tree), Debug.SendAnimationEvent (vanilla Debug.psc).
+; Actor.psc, installed mods tree), Debug.SendAnimationEvent (vanilla Debug.psc).
+; (REV-137: UI.IsMenuOpen dropped from this list — no longer called.)
 
 Int Function _IdleClass(Actor ak) Global
     If !ak
@@ -282,16 +286,15 @@ Int Function _IdleClass(Actor ak) Global
     If ak.IsSneaking()
         Return -5
     EndIf
-    ; REV-136 2.3 (user ruling): mid-dialogue NARROWED — exclude ONLY vanilla
-    ; dialogue (the vanilla Dialogue Menu open); a SkyrimNet LLM conversation
-    ; rides no vanilla menu and stays interruptible. HONEST LIMIT: Papyrus
-    ; cannot distinguish quest-driven from ambient vanilla dialogue — the
-    ; menu check excludes every vanilla dialogue window (ambient greetings
-    ; are brief); this is the closest engine-true approximation of the ruling.
-    ; UI.IsMenuOpen(string) verified vs installed SKSE source (UI.psc L47).
-    If UI.IsMenuOpen("Dialogue Menu")
-        Return -6
-    EndIf
+    ; REV-137 (user ruling, 2026-10-22 session): the dialogue guard is REMOVED
+    ; — no dialogue class in the taxonomy at all. HONEST LIMIT, updated to
+    ; record the ruling: the REV-136 vanilla-Dialogue-Menu discriminator
+    ; (UI.IsMenuOpen) was ruled out by the user — poses are to be tested
+    ; UNGUARDED against dialogue; guards removed pending live testing. The
+    ; old -6 mid-dialogue class is retired; scripted/quest idles have no
+    ; direct Papyrus native and are covered only by the fire-time
+    ; scene/combat guard in _IdleFirePath (surfaced in the REV-135 gate
+    ; report; unchanged by this removal).
     If ak.GetSitState() != 0
         Return 1
     EndIf
