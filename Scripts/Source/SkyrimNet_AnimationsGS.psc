@@ -218,10 +218,172 @@ Bool Function _IsBusyElsewhere(Actor ak)
     If ak.IsInCombat()
         Return True
     EndIf
-    If ak.GetSitState() != 0
-        Return True
+    ; REV-135 (idle-interrupt service, spec gs-poses.md REV-134e 1.4.3): the
+    ; GetSitState leg is now CLASS-AWARE — interruptible idle classes (furniture
+    ; sits + IdleMarker holds) no longer hard-exclude here; callers route those
+    ; actors through _IdleFirePath (detect -> exit -> fire-time recheck -> fire)
+    ; instead of silently dropping them. This is the REV-87 seated-exclusion
+    ; strangling fix: the seated tavern population is REACHABLE now. Essential
+    ; idle classes (sleep/downed/mounted/swimming/sneaking/mid-dialogue) stay
+    ; hard-excluded via the callers' own state guards + _IdleClass in the service.
+    If _IdleClass(ak) > 0
+        Return False
     EndIf
     Return False
+EndFunction
+
+; ===================== REV-135: THE IDLE-INTERRUPT SERVICE =====================
+; Spec of record: gs-poses.md REV-134e 1.4.1-1.4.3. Pure Papyrus, no DLL, no
+; esp; no LLM strings anywhere in the service. The Baka motherboard inherits
+; this at the daemon build by calling the two GLOBAL functions cross-script:
+;   SkyrimNet_AnimationsGS._IdleClass(ak)
+;   SkyrimNet_AnimationsGS._ExitIdle(ak, iClass)
+; Idle classes (the taxonomy, 1.4.1):
+;    0 = not idle-anchored;  1 = furniture sit (INTERRUPTIBLE);  2 = IdleMarker
+;    hold (INTERRUPTIBLE);  -1 sleep, -2 bleedout/downed, -3 mounted, -4
+;    swimming, -5 sneaking, -6 mid-dialogue (all ESSENTIAL, never interrupted).
+; Carried rulings built-to (2026-10-20/21): sneaking ESSENTIAL (edge ruled);
+; mid-dialogue ESSENTIAL (recommendation adopted); AI-package furniture
+; re-grab TOLERATED. Scripted/quest idles are ESSENTIAL by definition but
+; have NO direct Papyrus native — approximated by the mid-dialogue leg plus
+; the fire-time scene/combat guard in _IdleFirePath (surfaced in the REV-135
+; gate report). Natives verified against installed source (REV-25 3b
+; discipline): GetSleepState/GetSitState/IsBleedingOut/IsOnMount/IsSneaking/
+; GetDialogueTarget/PathToReference (vanilla Actor.psc, Data\Source\Scripts),
+; IsSwimming/GetFurnitureReference (SKSE64 Actor.psc, installed mods tree).
+
+Int Function _IdleClass(Actor ak) Global
+    If !ak
+        Return 0
+    EndIf
+    If ak.GetSleepState() != 0
+        Return -1
+    EndIf
+    If ak.IsBleedingOut()
+        Return -2
+    EndIf
+    If StorageUtil.GetIntValue(ak, "SNBaka.OnGround", 0) == 1
+        Return -2
+    EndIf
+    If StorageUtil.GetIntValue(ak, "SNAcheron.Held", 0) == 1
+        Return -2
+    EndIf
+    If ak.IsOnMount()
+        Return -3
+    EndIf
+    If ak.IsSwimming()
+        Return -4
+    EndIf
+    If ak.IsSneaking()
+        Return -5
+    EndIf
+    If ak.GetDialogueTarget()
+        Return -6
+    EndIf
+    If ak.GetSitState() != 0
+        Return 1
+    EndIf
+    If ak.GetFurnitureReference()
+        Return 2
+    EndIf
+    Return 0
+EndFunction
+
+; The exit primitive (1.4.2). Furniture = the stand-up pathing per the
+; SitOnLap reverse-path precedent (motherboard L6814+: path-based furniture
+; engage, GetSitState polled through the transition) — plain stand, NO
+; shove-off flourish this rev (polish tier). IdleMarker = the Acheron-pair
+; marker-hold break (IdleForceDefaultState, AcheronIntegration
+; L211/L486/L529-531 precedent). Returns True ONLY when the exit is
+; CONFIRMED (idle state cleared within the real-time poll window — the
+; L6998 real-clock lesson: never count naive ticks under VM load).
+; NOTE (surfaced judgment): vanilla PathToReference is the BLOCKING pathing
+; native (walk-run percent signature, verified); the actor paths to the
+; player, which stands them out of furniture — blocking risk bounded by the
+; near target and the 4s confirm poll; a failed/persistent sit returns False
+; and the caller skips (failure path ruled).
+Bool Function _ExitIdle(Actor ak, Int iClass) Global
+    If !ak
+        Return False
+    EndIf
+    If iClass == 1
+        Actor kPlayer = Game.GetPlayer()
+        Bool bPathed = ak.PathToReference(kPlayer, 1.0)
+        Float fStart = Utility.GetCurrentRealTime()
+        While ak.GetSitState() != 0 && (Utility.GetCurrentRealTime() - fStart) < 4.0
+            Utility.Wait(0.5)
+        EndWhile
+        Return bPathed && ak.GetSitState() == 0
+    ElseIf iClass == 2
+        Debug.SendAnimationEvent(ak, "IdleForceDefaultState")
+        Float fStart = Utility.GetCurrentRealTime()
+        While ak.GetFurnitureReference() && (Utility.GetCurrentRealTime() - fStart) < 1.5
+            Utility.Wait(0.5)
+        EndWhile
+        Return !ak.GetFurnitureReference()
+    EndIf
+    Return False
+EndFunction
+
+; The fire-time pipeline (1.4.3): class detect -> exit -> RECHECK -> caller
+; fires. The RECHECK is the rev-20 revalidation precedent, as-built at the
+; Execute kill-time recheck (motherboard L7467-7500): re-essential states,
+; RE-ANCHOR (re-grabbed furniture/marker between exit and fire — tolerated,
+; one re-exit), candidate validity (gender-policy admit live, no scene/
+; combat/pose-active). §5 sentinels on EVERY leg, unconditional, ASCII.
+; Returns True = safe to fire NOW. Member function (reaches member guards
+; _IsInSexScene/_GenderAdmits/_GenderPolicy); the GLOBAL primitive pair above
+; is the module-neutral cross-script surface the Baka motherboard inherits.
+Bool Function _IdleFirePath(Actor ak, String sCat)
+    Int iClass = _IdleClass(ak)
+    Debug.Trace("[SNAnimGS] idle-svc class detect: " + ak.GetDisplayName() + " class=" + iClass)
+    If iClass < 0
+        Debug.Trace("[SNAnimGS] idle-svc refuse: essential idle class " + iClass + " (" + ak.GetDisplayName() + ") -- never interruptible, skip")
+        Return False
+    EndIf
+    If iClass == 0
+        Return True
+    EndIf
+    Debug.Trace("[SNAnimGS] idle-svc exit issued: " + ak.GetDisplayName() + " class=" + iClass)
+    If !_ExitIdle(ak, iClass)
+        Debug.Trace("[SNAnimGS] idle-svc exit FAILED: " + ak.GetDisplayName() + " class=" + iClass + " -- skip with reason (idle state did not clear)")
+        Return False
+    EndIf
+    Debug.Trace("[SNAnimGS] idle-svc exit confirmed: " + ak.GetDisplayName() + " class=" + iClass)
+    Int iRe = _IdleClass(ak)
+    If iRe < 0
+        Debug.Trace("[SNAnimGS] idle-svc recheck FAIL: essential state entered after exit (class " + iRe + ", " + ak.GetDisplayName() + ") -- skip")
+        Return False
+    EndIf
+    If iRe > 0
+        Debug.Trace("[SNAnimGS] idle-svc recheck: re-anchored (class " + iRe + ", " + ak.GetDisplayName() + ") -- re-grab tolerated, re-exit")
+        If !_ExitIdle(ak, iRe)
+            Debug.Trace("[SNAnimGS] idle-svc recheck FAIL: re-exit did not clear (" + ak.GetDisplayName() + ") -- skip")
+            Return False
+        EndIf
+    EndIf
+    If ak.IsInCombat()
+        Debug.Trace("[SNAnimGS] idle-svc recheck FAIL: combat at fire time (" + ak.GetDisplayName() + ") -- skip")
+        Return False
+    EndIf
+    If _IsInSexScene(ak)
+        Debug.Trace("[SNAnimGS] idle-svc recheck FAIL: sex scene at fire time (" + ak.GetDisplayName() + ") -- skip")
+        Return False
+    EndIf
+    If ak.IsBleedingOut()
+        Debug.Trace("[SNAnimGS] idle-svc recheck FAIL: bleedout at fire time (" + ak.GetDisplayName() + ") -- skip")
+        Return False
+    EndIf
+    If StorageUtil.GetStringValue(ak, "GSAnim.Pose", "") != ""
+        Debug.Trace("[SNAnimGS] idle-svc recheck FAIL: pose already active (" + ak.GetDisplayName() + ") -- skip")
+        Return False
+    EndIf
+    If !_GenderAdmits(ak, sCat)
+        Debug.Trace("[SNAnimGS] idle-svc recheck FAIL: gender policy veto (cat '" + sCat + "', mode " + _GenderPolicy() + ", " + ak.GetDisplayName() + ") -- skip")
+        Return False
+    EndIf
+    Debug.Trace("[SNAnimGS] idle-svc recheck PASS: safe to fire (" + ak.GetDisplayName() + ", cat '" + sCat + "')")
+    Return True
 EndFunction
 
 Event OnInit()
@@ -423,10 +585,20 @@ Event OnPoseSelected(String asEventName, String asPose, Float afNum, Form akSend
                 + " gender policy veto (cat '" + sCat + "', mode " + _GenderPolicy() + ")")
             Return
         EndIf
-        If _IsBusyElsewhere(akTarget)   ; mid-scene/combat/seated -- reason stays vague on purpose
+        If _IsBusyElsewhere(akTarget)   ; mid-scene/combat -- reason stays vague on purpose
             Debug.Notification(akTarget.GetDisplayName() + " can't pose right now.")
             ; REV-90 rider sentinel (REV-89 registration, §94 3.1; unconditional per §5).
             Debug.Trace("[SNAnimGS] crosshair refuse: " + akTarget.GetDisplayName() + " busy at pick time")
+            Return
+        EndIf
+        ; REV-135 (idle-interrupt service, spec 1.4.4): the crosshair pick path
+        ; routes through the service — interruptible idle classes (seated/
+        ; marker-held) now EXIT -> RECHECK (incl. the gender-policy admit,
+        ; re-checked live here per the fire-time contract) -> fire, instead of
+        ; being hard-refused by the formerly class-blind sit leg.
+        If !_IdleFirePath(akTarget, sCat)
+            Debug.Notification(akTarget.GetDisplayName() + " can't pose right now.")
+            Debug.Trace("[SNAnimGS] crosshair refuse: idle interrupt refused at pick time (" + akTarget.GetDisplayName() + ", class-aware)")
             Return
         EndIf
         ; REV-90 rider sentinel (REV-89 registration, §94 3.1; unconditional per §5): the
@@ -440,7 +612,7 @@ Event OnPoseSelected(String asEventName, String asPose, Float afNum, Form akSend
     ; ── Player path (unchanged behavior) ──
     ; Don't pose the player mid-scene elsewhere (Baka paired anim/struggle/downed, Acheron hold,
     ; bleedout, or any sex scene) -- see _IsBusyElsewhere.
-    If _IsBusyElsewhere(PlayerRef)
+    If _IsBusyElsewhere(PlayerRef) || PlayerRef.GetSitState() != 0
         Return
     EndIf
     _sCurrentPose     = sEv
@@ -628,6 +800,14 @@ Function _PoseVibe(Actor ak, String vibe, String label)
     ; YAML eligibility gate is only a snapshot from when the LLM decided, and can't see the NPC
     ; becoming busy between that decision and this actually running.
     If _IsBusyElsewhere(ak)
+        Return
+    EndIf
+    ; REV-135 (idle-interrupt service, spec 1.4.4): the exec-time leg routes
+    ; through the service — with _IsBusyElsewhere class-aware, seated/marker
+    ; candidates reach here and must EXIT -> RECHECK -> fire (covers the muse
+    ; direct-fire call and the T3 wrapper dispatch, both of which land in
+    ; _PoseVibe); every refusal skips with a §5 sentinel inside the service.
+    If !_IdleFirePath(ak, vibe)
         Return
     EndIf
     ; REV-85c A.3: the draw routes through _VibeEventsFor (the A.3 sex-split for
@@ -1122,7 +1302,10 @@ Function _MuseTick()
             If ak.IsInCombat()
                 Debug.Trace("[SNAnimGS] muse walk skip: " + ak.GetDisplayName() + " in combat at walk time — excluded")
             Else
-                Debug.Trace("[SNAnimGS] muse walk skip: " + ak.GetDisplayName() + " busy at walk time — excluded (formerly SILENT skip)")
+                ; REV-135: sentinel class-tagged — with _IsBusyElsewhere class-aware,
+                ; only non-interruptible busy legs reach this branch (interruptible
+                ; idle classes are admitted as candidates and routed at fire time).
+                Debug.Trace("[SNAnimGS] muse walk skip: " + ak.GetDisplayName() + " busy at walk time — excluded (formerly SILENT skip; REV-135 class-aware, idleclass=" + _IdleClass(ak) + ")")
             EndIf
         EndIf   ; REV-90 busy/combat walk-guard Else
         i = (i + 1) % n
@@ -1807,6 +1990,13 @@ Function _OdAutoPose()
         EndIf
         i += 1
     EndWhile
+    ; REV-135 (idle-interrupt service, spec 1.4.4): T3 routes through the same
+    ; primitive — interruptible idle classes exit->recheck (incl. the
+    ; gender-policy admit, live) -> fire instead of being silently dropped.
+    If !_IdleFirePath(ak, sAction)
+        Debug.Trace("[SNAnimGS] T3 silence-floor auto-pose: idle interrupt refused -- skip (" + ak.GetDisplayName() + ")")
+        Return
+    EndIf
     Debug.Trace("[SNAnimGS] T3 silence-floor auto-pose: " + ak.GetDisplayName() + " -> " + sAction)
     SkyrimNetApi.ExecuteAction(sAction, ak, "{}")
     ; Justification seed: the same thought registers that drive muse, at performance pitch.
