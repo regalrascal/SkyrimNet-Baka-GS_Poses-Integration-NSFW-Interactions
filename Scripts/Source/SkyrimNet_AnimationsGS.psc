@@ -389,6 +389,7 @@ Bool Function _IdleFirePath(Actor ak, String sCat)
         ak.SetRestrained(True)
         StorageUtil.SetIntValue(ak, "GSAnim.IdleHold", 1)
         Debug.Trace("[SNAnimGS] idle-svc AI hold acquired at fire (class 0): " + ak.GetDisplayName())
+        _PkgHoldActorAI(ak, True)   ; REV-137c 3.1: in-flight pathing stop -- DontMove does not stop a travel procedure
         Return True
     EndIf
     ; REV-136 2.2 (user ruling, SUPERSEDES tolerate-and-skip): the AI hold is
@@ -404,6 +405,12 @@ Bool Function _IdleFirePath(Actor ak, String sCat)
     ak.SetRestrained(True)
     StorageUtil.SetIntValue(ak, "GSAnim.IdleHold", 1)
     Debug.Trace("[SNAnimGS] idle-svc AI hold acquired at exit-issue: " + ak.GetDisplayName() + " class=" + iClass)
+    ; REV-137c 3.1: engage the DoNothing override BEFORE the stand event --
+    ; the [REV-139] dogfood sitState-persistence refusals (Kleppr/Cosnach)
+    ; were the sandbox package re-sitting the freshly-standed actor inside
+    ; the confirm poll; with the package pinned, SitState clears clean and
+    ; the fire path proceeds. DontMove alone provably did not stop it.
+    _PkgHoldActorAI(ak, True)
     Debug.Trace("[SNAnimGS] idle-svc exit issued (stand-in-place): " + ak.GetDisplayName() + " class=" + iClass)
     If !_ExitIdle(ak, iClass)
         _ReleaseIdleHold(ak)
@@ -459,6 +466,57 @@ Bool Function _IdleFirePath(Actor ak, String sCat)
     Return True
 EndFunction
 
+; REV-137c 3.1 (verdict 2.1c): the Baka-grade package hold. The [REV-139]
+; dogfood proved SetDontMove does NOT stop in-flight package pathing (5
+; recheck BACKSTOPs + class-0 glides with the hold live throughout), and
+; the in-repo proven comparison (BakaIntegration _HoldActorAI L1775-1799
+; + its shipped comment: "SetRestrained/SetDontMove stop walking but NOT
+; package re-evaluation") holds: the ONE missing primitive is the
+; condition-free DoNothing package override at priority 100 + EvaluatePackage.
+; Ported WITHOUT a hard script dependency (the era doctrine: no hard
+; Baka dep): the Baka esp's own DoNothing package (PACK 0x1E6,
+; SkyrimNet_BakaIntegration.esp) is soft-read via GetFormFromFile, gated
+; on the existing busy.baka-half service probe (REV-105 S2 class -- absent
+; Baka = present behavior, DontMove/Sandbox hold only, miss sentinel once
+; per load). Engaged with the AI hold at fire (class 0) and BEFORE the
+; stand (class 1/2 exit-issue -- so the package cannot re-sit mid-stand:
+; the [REV-139] sitState-persistence refusals class); released at every
+; _ReleaseIdleHold no-fire leg, _StopActorPose (pose end), and the
+; _PoseVibe empty-pool belt-and-suspenders leg (the flag guards against
+; double-add; RemovePackageOverride is safe/idempotent).
+Function _PkgHoldActorAI(Actor ak, Bool bHold)
+    If !ak
+        Return
+    EndIf
+    Package pkgDoNothing = None
+    If _BakaBusyServicePresent()
+        pkgDoNothing = Game.GetFormFromFile(0x1E6, "SkyrimNet_BakaIntegration.esp") as Package
+    EndIf
+    If bHold
+        If !pkgDoNothing
+            If StorageUtil.GetIntValue(None, "GSAnim.PkgMiss", 0) == 0
+                StorageUtil.SetIntValue(None, "GSAnim.PkgMiss", 1)
+                Debug.Trace("[SNAnimGS] idle-svc package hold UNAVAILABLE (Baka half absent or DoNothing package unresolved) -- DontMove/Sandbox hold only (REV-137c 3.1)")
+            EndIf
+            Return
+        EndIf
+        ActorUtil.AddPackageOverride(ak, pkgDoNothing, 100, 1)
+        ak.EvaluatePackage()
+        StorageUtil.SetIntValue(ak, "GSAnim.PkgHold", 1)
+        Debug.Trace("[SNAnimGS] idle-svc package hold ENGAGED (DoNothing override): " + ak.GetDisplayName() + " (REV-137c 3.1)")
+    Else
+        If StorageUtil.GetIntValue(ak, "GSAnim.PkgHold", 0) != 1
+            Return
+        EndIf
+        If pkgDoNothing
+            ActorUtil.RemovePackageOverride(ak, pkgDoNothing)
+            ak.EvaluatePackage()
+        EndIf
+        StorageUtil.SetIntValue(ak, "GSAnim.PkgHold", 0)
+        Debug.Trace("[SNAnimGS] idle-svc package hold RELEASED (DoNothing override): " + ak.GetDisplayName() + " (REV-137c 3.1)")
+    EndIf
+EndFunction
+
 ; REV-136 2.2: the service AI-hold release — called ONLY on the no-fire paths
 ; (exit/recheck refusal: the caller skips, the actor must return to their
 ; package immediately). The FIRE path never releases here — the pose
@@ -473,6 +531,7 @@ Function _ReleaseIdleHold(Actor ak)
     StorageUtil.SetIntValue(ak, "GSAnim.IdleHold", 0)
     ak.SetRestrained(False)
     ak.SetDontMove(False)
+    _PkgHoldActorAI(ak, False)   ; REV-137c 3.1: package pin rides the no-fire legs too (never strand)
     Debug.Trace("[SNAnimGS] idle-svc AI hold released (no fire): " + ak.GetDisplayName())
 EndFunction
 
@@ -921,6 +980,7 @@ Bool Function _PoseVibe(Actor ak, String vibe, String label)
         ; (the recheck PASS already handed restraint to this machinery).
         ak.SetRestrained(False)
         ak.SetDontMove(False)
+        _PkgHoldActorAI(ak, False)   ; REV-137c 3.1: same belt-and-suspenders for the package pin
         StorageUtil.SetIntValue(ak, "GSAnim.IdleHold", 0)
         Debug.Trace("[SNAnimGS] pose fire refused: empty vibe event pool ('" + vibe + "', " + ak.GetDisplayName() + ")")
         Return False
@@ -989,6 +1049,7 @@ Function _StopActorPose(Actor ak)
     ak.SetRestrained(False)
     ak.SetDontMove(False)
     StorageUtil.SetIntValue(ak, "GSAnim.IdleHold", 0)   ; REV-136 2.2 belt-and-suspenders: never strand the idle hold
+    _PkgHoldActorAI(ak, False)   ; REV-137c 3.1: pose end -- return the actor to their package naturally
     _PacifyGS(ak, False)
     StorageUtil.SetStringValue(ak, "GSAnim.Pose", "")
     StorageUtil.SetStringValue(ak, "GSAnim.Vibe", "")   ; Phase 4 rider: consumed by whichever stop path ran
