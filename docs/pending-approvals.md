@@ -875,3 +875,28 @@ cue-only deletion) is deleted from the modlist this rev. Text of record = entry 
 **Status: CLOSED-SHIPPED (REV-134f).** Register after this rev: open entries 15, 16,
 26, 27, 28. Fork copy lockstep. Receipts: PROJECT_STATE §153 + cum-effects.md REV-134f.
 
+
+---
+
+## REV-136 closures (2026-10-22): entries 27 + 28 APPROVED (user ruling, this exchange); 15/16/26 stay OPEN
+
+- **Entry 27 (the STRIP cue) — CLOSED.** Wording of record (unchanged from
+  the registered draft): "{Stripper} strips the downed {Victim} of their
+  clothes and armor, leaving them exposed and helpless on the ground."
+  Provenance: drafted REV-134e (baka-module.md REV-134e section 3.1),
+  approved by the user 2026-10-22 (REV-136 instruction set 4.4). Wording
+  of record now lives in baka-module.md (REV-136 rulings-applied
+  subsection); the Strip rulings set (own-inventory / stays-off +
+  "All to dress" tile id 11 + SexLab-primary undress) is recorded there
+  the same rev.
+- **Entry 28 (the FORCED-TATTOO cue) — CLOSED.** Wording of record
+  (unchanged from the registered draft): "{Aggressor} forces a tattoo onto
+  the downed {Victim}, marking their skin where everyone can see."
+  Provenance: drafted REV-134e (slavetats.md REV-134e section 6.3),
+  approved by the user 2026-10-22 (same ruling). Wording of record now
+  lives in slavetats.md (REV-136 subsection).
+- **Entries 15, 16, 26 remain OPEN (user ruling: polish anchors) —
+  deliberately untouched this rev.** Register after REV-136: open entries
+  **15, 16, 26**. Fork copy lockstep (hashes reported in PROJECT_STATE
+  §155). Receipts: PROJECT_STATE §155 + baka-module.md / slavetats.md
+  REV-136 sections + INDEX rows 3/6/18 notes.

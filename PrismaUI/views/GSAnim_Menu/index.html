@@ -122,8 +122,8 @@
       <span class="footer-count" id="count"></span>
       <span style="display:inline-flex;gap:8px">
         <button class="btn btn-stop" onclick="stopPose()" title="End the targeted NPC's pose">Stop Pose</button>
-        <button class="btn btn-stop" id="btn-overdrive" onclick="toggleOverdrive()" title="Overdrive Mode: ambience cues + auto-pose floor, ~5 min, combat-pausable — press again to end">Overdrive Mode</button>
-        <button class="btn btn-stop" id="btn-muse" onclick="toggleMuse()" title="Muse: direct-fire pose daemon — every ~30s considers one nearby NPC, picks a pose from the 19-pose vocabulary via LLM, fires it directly; press again to quiet">Muse</button>
+        <button class="btn btn-stop" id="btn-overdrive" onclick="toggleOverdrive()" title="Sheogorath Mode: ambience cues + auto-pose floor, ~5 min, combat-pausable — press again to end">Sheogorath Mode</button>
+        <button class="btn btn-stop" id="btn-muse" onclick="toggleMuse()" title="Sanguine Mode: direct-fire pose daemon — every ~30s considers one nearby NPC, picks a pose from the 19-pose vocabulary via LLM, fires it directly; press again to quiet">Sanguine Mode</button>
         <button class="btn btn-cancel" onclick="cancel()">Cancel</button>
       </span>
     </div>
@@ -228,7 +228,7 @@ function stopPose()  { _close(); _send('STOP_POSE'); }
 let g_odOn = false;
 function odApply() {
   const b = document.getElementById('btn-overdrive');
-  if (b) b.textContent = g_odOn ? 'Overdrive Mode: ON' : 'Overdrive Mode';
+  if (b) b.textContent = g_odOn ? 'Sheogorath Mode: ON' : 'Sheogorath Mode';
 }
 function toggleOverdrive() {
   g_odOn = !g_odOn;
@@ -247,7 +247,7 @@ function toggleOverdrive() {
 let g_museOn = false;
 function museApply() {
   const b = document.getElementById('btn-muse');
-  if (b) b.textContent = g_museOn ? 'Muse: ON' : 'Muse';
+  if (b) b.textContent = g_museOn ? 'Sanguine Mode: ON' : 'Sanguine Mode';
 }
 function toggleMuse() {
   g_museOn = !g_museOn;
