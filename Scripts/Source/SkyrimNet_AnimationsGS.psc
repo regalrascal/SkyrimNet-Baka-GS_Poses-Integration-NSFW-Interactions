@@ -326,19 +326,27 @@ Bool Function _ExitIdle(Actor ak, Int iClass) Global
         Return False
     EndIf
     ak.SetDontMove(True)   ; REV-137a: stand-window hold -- blocks walk-away, not the stand
+    ; REV-137b: the DontMove span WIDENED -- held through CONFIRM and the fire handoff
+    ; (the [REV-138] dogfood evidence: 8/8 BACKSTOP re-anchors were class 2 -- the
+    ; sandbox package walked freshly-standed actors to a nearby idle marker inside
+    ; the confirm->recheck->fire window the moment DontMove cleared; sub-poll re-sits
+    ; produced the exit-FAILED refusals). Released ONLY by the no-fire legs
+    ; (_ReleaseIdleHold) and the pose-end machinery (_StopActorPose clears both
+    ; restraints) -- a fired pose never strands the hold.
     Debug.SendAnimationEvent(ak, "IdleForceDefaultState")
     Float fStart = Utility.GetCurrentRealTime()
     While (Utility.GetCurrentRealTime() - fStart) < 4.0
         If ak.GetSitState() == 0
-            ak.SetDontMove(False)
+            ; REV-137b: NO SetDontMove(False) here -- the hold persists through fire
             If ak.GetFurnitureReference()
                 Debug.Trace("[SNAnimGS] idle-svc exit confirmed: SitState clear, furniture-ref PERSISTED (named discriminator): " + ak.GetDisplayName() + " class=" + iClass)
             Else
                 Debug.Trace("[SNAnimGS] idle-svc exit confirmed: both anchors clear: " + ak.GetDisplayName() + " class=" + iClass)
             EndIf
+            Debug.Trace("[SNAnimGS] idle-svc exit confirmed: hold spans through fire handoff (REV-137b): " + ak.GetDisplayName() + " class=" + iClass)
             Return True
         EndIf
-        Utility.Wait(0.25)
+        Utility.Wait(0.1)   ; REV-137b: 0.25 -> 0.1 poll (sub-0.25s stand/resit races defeated the [REV-138] poll)
     EndWhile
     ; FAIL at 4.0s -- NAME the persisted anchor (the REV-137a hypothesis-pair discriminator)
     String sWhich = "sitstate"
