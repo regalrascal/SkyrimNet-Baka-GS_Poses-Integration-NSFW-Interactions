@@ -834,7 +834,7 @@ name `sdb_stripped`, actor names interpolated at fire time. DRAFT description:
 ```
 
 **Status: OPEN — edit or approve; the build session cuts from the ruled text.**
-***User: text approved***
+
 ---
 
 ## Entry 28 — REV-134e (2026-10-21): the FORCED-TATTOO cue text — DRAFT, the user’s pen
@@ -849,7 +849,6 @@ fire time. DRAFT description:
 ```
 
 **Status: OPEN — edit or approve; the build session cuts from the ruled text.**
-***User: text approved.***
 
 *REV-134e register state: open entries 15, 16, 26, 27, 28. Fork copy lockstep (this
 refresh). Receipts: PROJECT_STATE §152 + the four feature-doc scout sections.*
@@ -934,4 +933,51 @@ ships while the entry is open.
     **"narration cue"** — no new trigger YAMLs, no prompt-template surface, unless
     the user rules otherwise.
   - NO build rode the rider; the build rides this wording ruling.
-***User: approved text and cue source ruling.***
+
+## REV-144: NEW OPEN ENTRY 30 (2026-10-22) — player-target policy MCM label + the baka consideration prompt
+
+Register after this entry: open entries **15, 16, 26, 29, 30**. USER'S PEN; nothing
+ships while the entries are open.
+
+- **Entry 30a (the SNBaka.PlayerTargetPolicy MCM control wording).** The REV-144
+  player-target policy is BUILT and live (StorageUtil class SNBaka.PlayerTargetPolicy,
+  player-keyed, default OFF, existing saves seeded from the retired
+  bPlayerCanBeSpanked). It has NO MCM surface yet — the toggle builds with the
+  baka-daemon MCM session. Surface-of-record ruling (Task 2): the MODE controls'
+  surface is the PRISMA GRID (minor power), never the MCM; this POLICY control is a
+  candidate for the same Prisma-grid surface — any MCM-label idea is a NEW user
+  ruling. Draft title: **"NPCs May Target You"** — draft tooltip: "When on, NPCs and
+  creatures may choose you as the target of their autonomous actions (the Baka
+  module's single central gate; your own initiations are never blocked). When off,
+  nothing targets you unless you start it. Existing saves started with their old
+  spank-target setting."
+- **Entry 30b (the baka consideration prompt — the daemon's selection call).**
+  Selection = consideration pattern (one call, pick + thought-seed; the
+  gsanim_muse_consideration precedent). The NEW prompt file for the baka daemon's
+  candidate-selection LLM call needs authoring at the daemon build: draft register
+  text — the prompt receives the candidate pool (names, sexes, arousal, situation),
+  the current mode (Mephala/Molag-Bal), the target-sex dropdown level, and the
+  player-target policy state; it returns ONE pick or a refuse+reason. Full spec in
+  baka-daemon.md REV-144 §B(d)/§C. USER'S PEN for the prompt's voice.
+
+  **REV-145 staged-draft status (2026-10-23, both entries remain OPEN at the user's
+  pen):** the daemon build STAGED both drafts —
+  - **30a:** the policy control is BUILT as "NPCs May Target You" on the DeD_MCM
+    Baka Interactions page (v13) using the entry's draft label + draft tooltip
+    verbatim; install/wording ruling still the user's.
+  - **30b:** the draft prompt file is STAGED IN-TREE at
+    `external/regalrascal.baka-gs-integration/prompts/snbaka_muse_consideration.prompt`
+    (DRAFT-flagged header, this register cited). The Mephala selection lane REQUIRES
+    it (absent = the attempt refuses NAMED, prompt-absent); the user's install ruling
+    = their 30b voice/wording ruling. Molag-Bal needs no prompt (random, no LLM).
+    Full as-built: baka-daemon.md REV-145 + PROJECT_STATE §165.
+
+  **REV-146 ship status (2026-10-23):** the batch dist cut [REV-146]
+  Delectatio-et-Dominium mephala-molagbal-daemon SHIPPED BOTH staged drafts
+  DRAFT-FLAGGED as built - 30a: the policy control label/tooltip ship verbatim
+  on the live MCM v13 "NPCs May Target You"; 30b: the draft prompt file ships
+  draft-header-intact in the shipped external layer - per the install-time-ruling
+  path (the user''s working style). **BOTH ENTRIES REMAIN OPEN at the user''s pen**
+  (wording/install rulings outstanding; no closure registered). Entry 26:
+  nothing riding it shipped in this dist; remains OPEN. Full ship receipts:
+  PROJECT_STATE 166.
