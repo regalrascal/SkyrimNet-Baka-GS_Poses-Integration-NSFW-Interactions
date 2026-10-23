@@ -7493,6 +7493,79 @@ Function RemoveTattoos_Execute(Actor akInitiator, Actor akTarget)
 EndFunction
 
 ; --- Downed-victim menu dispatch ---
+; [REV-144 Strip] ============================================================
+; The Strip action (baka-module.md REV-134e spec; rulings (i)(a) own-inventory,
+; (ii)(b) stays-off + "All to Dress" restore tile, (iii) SexLab-primary undress,
+; all ruled REV-136). Gear is NEVER removed from the actor: SexLab StripActor
+; keeps it in the victim's own inventory (tracked re-equip context); the vanilla
+; fallback unequips per worn slot (inventory stays theirs either way). OUR OWN
+; queue (StorageUtil FormList "SNBaka.StripQueue" keyed on the victim) is the
+; ONLY thing the restore tile touches -- it never equips anything we did not
+; take off ourselves, so SeverActions' outfit lock / re-dress can't be fought:
+; when SeverActions holds a lock on the victim (SeverOutfit_LockActive) our
+; restore STAYS OUT entirely and says why (reason-coded). SeverActions itself
+; treats a full lock-strip as a bulk event and yields (SA SeverActions_Outfit.psc
+; L1462-1479 "Bulk strip detected... Yielding"), so the strip side coexists too.
+; Player-clicked, UNGATED (player-initiated, the Execute pattern); the downed
+; gate in _DispatchDownedAction is the only day-one gate.
+; ============================================================================
+
+Function _Strip_Execute(Actor akCaster, Actor akVictim)
+    _Log("[SNBaka] Strip: caster=" + akCaster + " victim=" + akVictim)
+    If !akCaster || !akVictim
+        _Log("[SNBaka] Strip REFUSE [null]: null actor leg")
+        Return
+    EndIf
+    If StorageUtil.FormListCount(akVictim, "SNBaka.StripQueue") > 0
+        _Log("[SNBaka] Strip REFUSE [already]: " + akVictim.GetDisplayName() + " already stripped by us - All to Dress first")
+        _Notify(akVictim.GetDisplayName() + " is already stripped - use All to Dress first.")
+        Return
+    EndIf
+    Int nTaken = 0
+    If SkyrimNet_BakaSL.Installed()
+        ; (iii) PRIMARY: SexLab StripActor -- tracked re-equip context, worn-slot
+        ; aware, animate. Gear lands in the victim's OWN inventory (ruling (i)(a)).
+        Form[] akStripped = SkyrimNet_BakaSL.StripActor(akVictim, True)
+        Int i = 0
+        While akStripped && i < akStripped.Length
+            If akStripped[i]
+                StorageUtil.FormListAdd(akVictim, "SNBaka.StripQueue", akStripped[i], False)
+                nTaken += 1
+            EndIf
+            i += 1
+        EndWhile
+        _Log("[SNBaka] Strip: SexLab StripActor took " + nTaken + " item(s)")
+    Else
+        ; (iii) FALLBACK (presence-gated, honest degradation): vanilla per-slot
+        ; unequip over the 32 armor slots (30-61). NO SexLab re-equip context --
+        ; restore is our own FormList queue only. Weapons untouched (no SexLab).
+        Int k = 0
+        While k < 32
+            Int iMask = Math.LeftShift(1, k)
+            Form akWorn = akVictim.GetWornForm(iMask)
+            If akWorn
+                StorageUtil.FormListAdd(akVictim, "SNBaka.StripQueue", akWorn, False)
+                akVictim.UnequipItem(akWorn)
+                nTaken += 1
+            EndIf
+            k += 1
+        EndWhile
+        _Log("[SNBaka] Strip: vanilla fallback unequip took " + nTaken + " item(s) (no SexLab restore context)")
+    EndIf
+    If nTaken == 0
+        _Log("[SNBaka] Strip REFUSE [bare]: " + akVictim.GetDisplayName() + " has nothing strippable")
+        _Notify(akVictim.GetDisplayName() + " has nothing left to strip.")
+        Return
+    EndIf
+    ; (ii)(b): restore stays OFF here -- nothing re-equips until the All to Dress
+    ; tile (id 11) is clicked. Cue-only event per the REV-134d applied pattern
+    ; (RegisterEvent desc only, NO response.content yaml); entry-27 wording of
+    ; record, actor names interpolated at fire time (D8/137 lesson).
+    String sDesc = akCaster.GetDisplayName() + " strips the downed " + akVictim.GetDisplayName() + " of their clothes and armor, leaving them exposed and helpless on the ground."
+    SkyrimNetApi.RegisterEvent("sdb_stripped", sDesc, akCaster, akVictim)
+    _Log("[SNBaka] Strip: APPLIED " + nTaken + " item(s) -> sdb_stripped cue fired")
+EndFunction
+
 ; Called by the DLL (SNBaka_MenuChoice "downed" mode) when the player picks an option from
 ; the menu shown by pressing the power on a downed victim. Runs on its own stack; the actual
 ; work for Investigate/Inspect/Stand Back is handed to the running _DefeatGroundWindow loop
@@ -7622,6 +7695,18 @@ Function _DispatchDownedAction(Int choice, Actor akCaster, Actor akVictim)
         ; REV-74 rider 1 — "Remove Tattoos" on the downed menu, same service-delegation contract.
         SNBaka_SlaveTatsModule.RemoveAllFromActor(akVictim, "downedmenu")
         Return
+    ElseIf choice == 10
+        ; [REV-144 Strip] Down-tab "Strip" tile (baka-module.md REV-134e + REV-136 rulings
+        ; (i)(a)/(ii)(b)/(iii)). Player-clicked, UNGATED (player-initiated, the Execute pattern):
+        ; the downed-gate above is the only day-one gate. Runs for BOTH ours/external lanes
+        ; (top-level Return, same shape as choices 6-9).
+        _Strip_Execute(akCaster, akVictim)
+        Return
+    ElseIf choice == 11
+        ; [REV-144 Strip] "All to Dress" restore tile (ruling (ii)(b): restore is OFF by default
+        ; after a strip; only this tile activates it; restores ONLY our tracked queue).
+        _StripRestore_Execute(akCaster, akVictim)
+        Return
     ElseIf choice == 3 && StorageUtil.GetIntValue(akVictim, "SNBaka.Tied", 0) == 1
         ; Stand Back must not quietly free a TIED prisoner — the bindings are the point.
         _Log("[SNBaka] _DispatchDownedAction: Stand Back refused — " + akVictim.GetDisplayName() + " is TIED (untie them first)")
@@ -7668,6 +7753,61 @@ Function _DispatchDownedAction(Int choice, Actor akCaster, Actor akVictim)
         EndIf
     EndIf
 EndFunction
+
+; [REV-144 Strip] "All to Dress" (id 11) -- the ONLY restore surface (ruling
+; (ii)(b): stays off after strip until this tile). Restores ONLY our tracked
+; queue; when SexLab is present its UnstripActor handles the re-equip (silently,
+; worn-slot aware); the vanilla fallback is a plain EquipItem loop. Never touches
+; SeverActions' locks or re-dress: presence-gated out (reason-coded) whenever
+; SeverOutfit_LockActive says the victim's outfit is under their lock system.
+
+Function _StripRestore_Execute(Actor akCaster, Actor akVictim)
+    _Log("[SNBaka] All to Dress: caster=" + akCaster + " victim=" + akVictim)
+    If !akCaster || !akVictim
+        _Log("[SNBaka] All to Dress REFUSE [null]: null actor leg")
+        Return
+    EndIf
+    Int nQueued = StorageUtil.FormListCount(akVictim, "SNBaka.StripQueue")
+    If nQueued == 0
+        _Log("[SNBaka] All to Dress REFUSE [bare]: no tracked strip queue on " + akVictim.GetDisplayName())
+        _Notify("No strip in progress on " + akVictim.GetDisplayName() + ".")
+        Return
+    EndIf
+    ; Presence-gate: their lock, their rules -- we never fight a SeverActions lock.
+    If StorageUtil.GetIntValue(akVictim, "SeverOutfit_LockActive", 0) == 1
+        _Log("[SNBaka] All to Dress REFUSE [severlock]: " + akVictim.GetDisplayName() + " is under a SeverActions outfit lock - their re-dress owns it")
+        _Notify(akVictim.GetDisplayName() + " is under a SeverActions outfit lock - their system owns re-dressing.")
+        Return
+    EndIf
+    Form[] akRestore = StorageUtil.FormListToArray(akVictim, "SNBaka.StripQueue")
+    Int i = 0
+    Int nRestored = 0
+    If SkyrimNet_BakaSL.Installed()
+        ; Primary: SexLab UnstripActor over our queue (signature-true to installed
+        ; P+ source L144); still only OUR tracked forms -- never a foreign set.
+        SkyrimNet_BakaSL.UnstripActor(akVictim, akRestore)
+        While akRestore && i < akRestore.Length
+            If akRestore[i] && akVictim.IsEquipped(akRestore[i])
+                nRestored += 1
+            EndIf
+            i += 1
+        EndWhile
+        _Log("[SNBaka] All to Dress: SexLab UnstripActor restored " + nRestored + "/" + akRestore.Length)
+    Else
+        ; Vanilla fallback: equip what we tracked, skip anything no longer present.
+        While akRestore && i < akRestore.Length
+            If akRestore[i] && akVictim.GetItemCount(akRestore[i]) > 0 && !akVictim.IsEquipped(akRestore[i])
+                akVictim.EquipItem(akRestore[i], True)
+                nRestored += 1
+            EndIf
+            i += 1
+        EndWhile
+        _Log("[SNBaka] All to Dress: vanilla re-equip restored " + nRestored + "/" + akRestore.Length)
+    EndIf
+    StorageUtil.FormListClear(akVictim, "SNBaka.StripQueue")
+    _Log("[SNBaka] All to Dress: APPLIED " + nRestored + "/" + akRestore.Length + " back on " + akVictim.GetDisplayName() + " (queue cleared)")
+EndFunction
+
 
 ; --- Downed replay (Investigate / Inspect on an already-downed victim) ---
 ; Plays the inspection sequence to completion with NO QTE, then drops the victim back to the
