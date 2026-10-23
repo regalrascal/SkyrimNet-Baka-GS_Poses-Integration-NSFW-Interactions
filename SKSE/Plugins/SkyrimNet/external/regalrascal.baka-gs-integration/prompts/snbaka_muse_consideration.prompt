@@ -48,6 +48,12 @@
     ## The pair
     Initiator: {{ initiatorName }}, a {{ initiatorSex }}, arousal band {{ arousalBand }} (1 mild, 2 warm, 3 burning).
     Target: {{ targetName }}, a {{ targetSex }}. Target impaired/drunk: {{ targetDrunk }}.
+    Target downed on the ground: {{ targetDowned }} (REV-146a: if yes, the
+    library lists the downed-family actions after the regular ones - a
+    downed target can only be acted ON, and only those downed-family actions
+    read true for someone helpless on the ground; picking a regular paired
+    action for a downed target is a REFUSE unless the moment clearly allows
+    standing them into it).
 
     ## The moment
     Place: {{ location }} (tavern: {{ tavern }}). Hour: {{ timeOfDay }}.

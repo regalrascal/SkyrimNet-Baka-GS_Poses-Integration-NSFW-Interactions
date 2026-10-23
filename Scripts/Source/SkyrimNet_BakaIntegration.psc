@@ -635,6 +635,32 @@ EndFunction
 ; ============================================================
 ; Guards
 ; ============================================================
+; ============================================================
+; REV-146a — THE CHILD BOUNDARY (user ruling, SAFETY PRIORITY)
+; ============================================================
+; No Baka-module action of ANY kind may touch an NPC the engine marks
+; as a child. Engine-true check of record: Actor.IsChild() — vanilla
+; Papyrus native ("Is this actor a child?", installed Actor.psc L355,
+; D:\Steam\...\Data\Source\Scripts\Actor.psc). NO heuristics: no name
+; lists, no height checks, no race-keyword guesses — the native flag
+; alone. Applied at every entry point: IsEligible (which re-gates the
+; daemon fire recheck and every paired executor), both daemon pools,
+; strip/restore, downed dispatch, spank/slap, escalation, and the
+; creature lanes. ASCII throughout.
+Bool Function _ChildBoundaryRefused(Actor akA1, Actor akA2, String asSite)
+    If (akA1 && akA1.IsChild()) || (akA2 && akA2.IsChild())
+        String sWho = "actor"
+        If akA1 && akA1.IsChild()
+            sWho = akA1.GetDisplayName()
+        ElseIf akA2
+            sWho = akA2.GetDisplayName()
+        EndIf
+        _Log("[SNBaka] child-boundary REFUSE [" + asSite + "]: " + sWho + " is engine-marked child - no module action (REV-146a)")
+        Return True
+    EndIf
+    Return False
+EndFunction
+
 ; abAllowMidCombat: relaxes ONLY the attacker-in-combat gate below -- used by the on-hit humanoid
 ; escalation path (see Struggle_Execute's abFromHit), where the attacker being in combat is the whole
 ; premise. Every other gate (enabled, dead, downed initiator, creatures, distance, player-target
@@ -646,6 +672,11 @@ Bool Function IsEligible(Actor akA1, Actor akA2, Bool abAllowMidCombat = False)
     EndIf
     If !akA1 || !akA2
         _Log("[SNBaka] IsEligible: blocked — null actor")
+        Return False
+    EndIf
+    ; REV-146a child boundary: FIRST substantive gate (safety priority) — no
+    ; module action of any kind on an engine-marked child, at any site.
+    If _ChildBoundaryRefused(akA1, akA2, "IsEligible")
         Return False
     EndIf
     If akA1.IsDead() || akA2.IsDead()
@@ -684,9 +715,15 @@ Bool Function IsEligible(Actor akA1, Actor akA2, Bool abAllowMidCombat = False)
         Return False
     EndIf
     ; Player-involved uses the crosshair-range gate; NPC-vs-NPC gets the larger reach.
+    ; REV-146a Task 7 (manual out-of-range pairs): a PLAYER-initiated pair may
+    ; now come from up to the walk ceiling (fApproachWalkCeiling) away -- the
+    ; approach window walks the NPC into snap range before setup, with the
+    ; teleport as the bounded fallback. NPC-vs-NPC reach is unchanged.
     Float maxDist = fMaxInteractionDistance
     If akA1 != PlayerRef && akA2 != PlayerRef
         maxDist = fNPCInteractionDistance
+    ElseIf akA1 == PlayerRef && fApproachWalkCeiling > maxDist
+        maxDist = fApproachWalkCeiling
     EndIf
     If maxDist > 0.0 && akA1.GetDistance(akA2) > maxDist
         _Log("[SNBaka] IsEligible: blocked — distance " + akA1.GetDistance(akA2) + " > " + maxDist)
@@ -949,7 +986,7 @@ EndFunction
 ; respected): Baka = SECOND CONSUMER of the GS service class -- the arbiter/
 ; scan/floor patterns are copied shape, never merged scripts.
 ;   StorageUtil class SNBaka (on None, save-persisted, the GSAnim.Muse pattern):
-;     SNBaka.MephalaMode   1 = ambient thought-seeding mode ON (30s tick, 60s per-actor)
+;     SNBaka.MephalaMode   1 = ambient thought-seeding mode ON (45s tick since REV-146a, 60s per-actor)
 ;     SNBaka.MolagBalMode  1 = ambient overdrive ON (15s tick, 30s per-actor, no LLM, no thoughts)
 ;   Mode names = USER-AUTHORED, register-cited (17b precedent; entry 30/REV-134e (e)).
 ; Session-scoped by StorageUtil save-persistence exactly like GSAnim.Muse (the
@@ -963,6 +1000,8 @@ EndFunction
 ; at a time.
 
 Actor[] _daemonPool
+Actor[] _daemonDownedPool           ; REV-146a Task 8: downed actors stay POOL-ELIGIBLE as targets
+Int _iDaemonDownedCount   = 0      ; REV-146a Task 8: valid entries in _daemonDownedPool
 Actor _akMephalaInitiator = None   ; pending consideration pair (ONE at a time)
 Actor _akMephalaTarget    = None
 Int _iMephalaBand         = 0      ; arousal band of the in-flight pick (1/2/3)
@@ -975,7 +1014,7 @@ Function _MephalaToggle()
     StorageUtil.SetIntValue(None, "SNBaka.MephalaMode", v)
     If v == 1
         Debug.Notification("Mephala Mode: on. The web of whispers stirs.")
-        _Log("[SNBaka] daemon mode ON: Mephala (30s/60s) -- REV-145")
+        _Log("[SNBaka] daemon mode ON: Mephala (45s/60s) -- REV-146a cadence")
     Else
         _bMephalaPending = False
         _akMephalaInitiator = None
@@ -1008,7 +1047,7 @@ Function _DaemonArm()
     If iMolag == 1
         _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 15.0
     ElseIf iMeph == 1
-        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 30.0
+        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 45.0
     Else
         _fBakaDaemonNextRT = 0.0
     EndIf
@@ -1041,10 +1080,12 @@ Function _DaemonTick()
         Return
     EndIf
     ; re-stamp the scan clock at tick time (the interval-clock pattern)
+    ; REV-146a Task 6 (user ruling 2026-10-23): Mephala cadence 30s -> 45s
+    ; (fired a bit too often in the [REV-146] dogfood); Molag Bal stays 15s.
     If iMode == 2
         _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 15.0
     Else
-        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 30.0
+        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 45.0
     EndIf
     If iMode == 1 && _bMephalaPending
         _Log("[SNBaka] daemon refuse: busy (Mephala pending) -- one pending action at a time -- REV-145")
@@ -1064,24 +1105,45 @@ EndFunction
 ; -5 sneaking) never enter. Without the GS esp there is no class read and no
 ; interrupt: seated candidates are refused reason-coded (the old exclusion, now
 ; named instead of silent -- the REV-90 rider class).
+; REV-146a Task 2: the child boundary gates the POOL itself (belt-and-braces
+; with IsEligible's own gate; the pool refuse is named).
+; REV-146a Task 8 (user ruling: downed follow-up "should happen sometimes"):
+; DOWNED actors are NO LONGER pool-refused — they enter the separate
+; _daemonDownedPool and stay eligible as TARGETS with a downed-family action
+; subset at fire time (_DaemonDownedAction below). Downed actors still never
+; INITIATE (IsEligible's downed-initiator gate). Children are refused at BOTH
+; pools (Task 2). Executor class per ruling: forced/intimate/strip/tattoo;
+; NEVER Execute; player-target policy + target-sex gates unchanged (they run
+; at target selection AND the fire-time IsEligible recheck).
 Int Function _DaemonScan()
     If !_daemonPool || _daemonPool.Length < 64
         _daemonPool = New Actor[64]
     EndIf
+    If !_daemonDownedPool || _daemonDownedPool.Length < 32
+        _daemonDownedPool = New Actor[32]
+    EndIf
     Int n = 0
+    Int nd = 0
     Bool bGSPresent = Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None
     Actor[] akAll = PO3_SKSEFunctions.GetActorsByProcessingLevel(0)
     Int i = 0
-    While i < akAll.Length && n < 64
+    While i < akAll.Length && (n < 64 || nd < 32)
         Actor ak = akAll[i]
         If !ak || ak == PlayerRef || ak.IsDead() || ak.IsInCombat() || ak.GetDistance(PlayerRef) > 2500.0
             ; walk-neutral: never-candidates, no sentinel (the pool census logs n)
+        ElseIf ak.IsChild()
+            ; REV-146a Task 2: the child boundary gates the pool itself.
+            _Log("[SNBaka] daemon pool refuse: child-boundary (" + ak.GetDisplayName() + ") -- REV-146a")
         ElseIf _IsCreatureActor(ak)
             _Log("[SNBaka] daemon pool refuse: creature-skeleton (" + ak.GetDisplayName() + ") -- REV-145")
         ElseIf IsInSexAnimation(ak) || StorageUtil.GetIntValue(ak, "SNBaka.Locked", 0) == 1
             _Log("[SNBaka] daemon pool refuse: busy (in-scene/locked) (" + ak.GetDisplayName() + ") -- REV-145")
         ElseIf _IsDownedAny(ak)
-            _Log("[SNBaka] daemon pool refuse: downed (" + ak.GetDisplayName() + ") -- REV-145")
+            ; REV-146a Task 8: downed actors are DOWNED-POOL candidates (targets
+            ; only; the downed-family subset draws at fire). Named admission.
+            _daemonDownedPool[nd] = ak
+            nd += 1
+            _Log("[SNBaka] daemon downed-pool admit: " + ak.GetDisplayName() + " (downed target candidate) -- REV-146a")
         ElseIf StorageUtil.GetStringValue(ak, "GSAnim.Pose", "") != ""
             _Log("[SNBaka] daemon pool refuse: busy (GS pose active) (" + ak.GetDisplayName() + ") -- REV-145")
         ElseIf !bGSPresent && ak.GetSitState() != 0
@@ -1094,7 +1156,29 @@ Int Function _DaemonScan()
         EndIf
         i += 1
     EndWhile
+    _iDaemonDownedCount = nd
+    _Log("[SNBaka] daemon pool census: standing=" + n + " downed=" + nd + " -- REV-146a")
     Return n
+EndFunction
+
+; REV-146a Task 8: the DOWNED-FAMILY ACTION SUBSET (user ruling: forced/
+; intimate/strip/tattoo executor class; NEVER Execute). Drawn only when the
+; selected target is downed. Player-target policy + target-sex gates run at
+; target selection and the fire-time IsEligible recheck (unchanged).
+;   ForcedKiss, BackHugMolest, TouchBreasts, SuckBreasts, FondlePussy,
+;   OralOnTarget, CapturedInspect, Strip, ApplyTattoo
+String[] Function _DaemonDownedActionPool()
+    String[] d = New String[9]
+    d[0] = "ForcedKiss"
+    d[1] = "BackHugMolest"
+    d[2] = "TouchBreasts"
+    d[3] = "SuckBreasts"
+    d[4] = "FondlePussy"
+    d[5] = "OralOnTarget"
+    d[6] = "CapturedInspect"
+    d[7] = "Strip"
+    d[8] = "ApplyTattoo"
+    Return d
 EndFunction
 
 ; REV-145 3.4: arousal band on the INITIATOR (the REV-82 tiering chain read:
@@ -1318,6 +1402,33 @@ Function _DaemonAttempt(Int aiMode)
             akTarget = PlayerRef
         EndIf
     EndIf
+    ; REV-146a Task 8: DOWNED-POOL targets — with no standing target in reach,
+    ; a standing initiator may act on a nearby DOWNED actor (downed-family
+    ; subset at fire). Every existing gate applies: target-sex level, central
+    ; player-target policy, reach, and the fire-time IsEligible recheck.
+    If !akTarget && _iDaemonDownedCount > 0
+        Int k = Utility.RandomInt(0, _iDaemonDownedCount - 1)
+        Int kSteps = 0
+        While kSteps < _iDaemonDownedCount && !akTarget
+            Actor akD = _daemonDownedPool[k]
+            If akD && akD != akInitiator && akInitiator.GetDistance(akD) <= fNPCInteractionDistance
+                If !_TargetSexAllowed(akD)
+                    _Log("[SNBaka] daemon refuse: target-sex-refused (downed " + akD.GetDisplayName() + ", level L" + _TargetSexLevel() + ", mode=" + sMode + ") -- REV-146a")
+                ElseIf !_PlayerTargetAdmitted(akInitiator, akD, sMode + ".downed")
+                    ; policy-refused (sentinel inside the central gate)
+                ElseIf _ChildBoundaryRefused(akInitiator, akD, sMode + ".downed")
+                    ; child-boundary (sentinel inside the helper)
+                Else
+                    akTarget = akD
+                    _Log("[SNBaka] daemon downed-target selected: " + akInitiator.GetDisplayName() + " -> " + akD.GetDisplayName() + " (mode=" + sMode + ", downed-family subset at fire) -- REV-146a")
+                EndIf
+            EndIf
+            If !akTarget
+                k = (k + 1) % _iDaemonDownedCount
+                kSteps += 1
+            EndIf
+        EndWhile
+    EndIf
     If !akTarget
         _Log("[SNBaka] daemon refuse: pool-empty (no target for " + akInitiator.GetDisplayName() + ", mode=" + sMode + ") -- REV-145")
         Return
@@ -1332,7 +1443,25 @@ EndFunction
 
 ; REV-145 3.5: MOLAG-BAL PICK -- random from the FULL pool (ruling (a): all
 ; actions, no arousal gating, no thoughts, no LLM call).
+; REV-146a Task 8 (user ruling: downed follow-up "should happen sometimes"):
+; when the selected target is DOWNED, the random draw admits the downed-family
+; subset at a SURFACED probability of 35% (the recommended 30-40% band's
+; midpoint; surfaced here + in the gate report + baka-daemon.md as-built).
+; The remaining 65% draws the normal full pool exactly as before. Receipt
+; sentinel carries the surfaced number on every downed-target draw.
+Float _fDaemonDownedPct = 0.35   ; REV-146a Task 8: surfaced Molag downed-draw probability
 Function _DaemonMolagPick(Actor akInitiator, Actor akTarget)
+    If _IsDownedAny(akTarget)
+        Bool bDownedDraw = (Utility.RandomInt(0, 99) as Float) < (_fDaemonDownedPct * 100.0)
+        _Log("[SNBaka] daemon MolagBal downed-target draw: " + akTarget.GetDisplayName() + " downed; downed-subset probability=" + (_fDaemonDownedPct * 100.0 as Int) + "% -- draw=" + (bDownedDraw as String) + " -- REV-146a")
+        If bDownedDraw
+            String[] dpool = _DaemonDownedActionPool()
+            String sAct = dpool[Utility.RandomInt(0, dpool.Length - 1)]
+            _Log("[SNBaka] daemon MolagBal pick: " + sAct + " (" + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + ", downed-subset draw, no LLM) -- REV-146a")
+            _DaemonDispatchAction(akInitiator, akTarget, sAct, "MolagBal")
+            Return
+        EndIf
+    EndIf
     String[] pool = _DaemonActionPool(3)
     String sAction = pool[Utility.RandomInt(0, pool.Length - 1)]
     _Log("[SNBaka] daemon MolagBal pick: " + sAction + " (" + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + ", random, no LLM) -- REV-145")
@@ -1408,7 +1537,9 @@ String Function _DaemonPackContext(Actor akInitiator, Actor akTarget, Int aiBand
     ElseIf iHour >= 17
         sTod = "evening"
     EndIf
-    ; the action library line (the band's pool, comma-joined)
+    ; the action library line (the band's pool, comma-joined); REV-146a Task 8:
+    ; a DOWNED target appends the downed-family subset (the consideration may
+    ; pick from it; player-target policy + target-sex gates unchanged).
     String sLib = ""
     String[] pool = _DaemonActionPool(aiBand)
     Int a = 0
@@ -1419,9 +1550,20 @@ String Function _DaemonPackContext(Actor akInitiator, Actor akTarget, Int aiBand
         sLib = sLib + pool[a]
         a += 1
     EndWhile
+    String sDowned = "no"
+    If _IsDownedAny(akTarget)
+        sDowned = "yes"
+        String[] dpool = _DaemonDownedActionPool()
+        Int d = 0
+        While d < dpool.Length
+            sLib = sLib + ", " + dpool[d]
+            d += 1
+        EndWhile
+    EndIf
     ; JSON with keys matching snbaka_muse_consideration.prompt placeholders
     ; (the SendCustomPromptToLLM context channel renders {{ key }} fields).
-    Return "{\"initiatorName\":\"" + akInitiator.GetDisplayName() + "\",\"initiatorSex\":\"" + sSexI + "\",\"arousalBand\":\"" + aiBand + "\",\"targetName\":\"" + akTarget.GetDisplayName() + "\",\"targetSex\":\"" + sSexT + "\",\"targetDrunk\":\"" + sDrunk + "\",\"location\":\"" + sLoc + "\",\"tavern\":\"" + sTavern + "\",\"timeOfDay\":\"" + sTod + "\",\"targetSexLevel\":\"" + _TargetSexLevel() + "\",\"playerTargetPolicy\":\"" + sPolicy + "\",\"actionLibrary\":\"" + sLib + "\"}"
+    ; REV-146a Task 8: targetDowned + downedActionLibrary fields added.
+    Return "{\"initiatorName\":\"" + akInitiator.GetDisplayName() + "\",\"initiatorSex\":\"" + sSexI + "\",\"arousalBand\":\"" + aiBand + "\",\"targetName\":\"" + akTarget.GetDisplayName() + "\",\"targetSex\":\"" + sSexT + "\",\"targetDrunk\":\"" + sDrunk + "\",\"targetDowned\":\"" + sDowned + "\",\"location\":\"" + sLoc + "\",\"tavern\":\"" + sTavern + "\",\"timeOfDay\":\"" + sTod + "\",\"targetSexLevel\":\"" + _TargetSexLevel() + "\",\"playerTargetPolicy\":\"" + sPolicy + "\",\"actionLibrary\":\"" + sLib + "\"}"
 EndFunction
 
 ; REV-145 3.5: the SendCustomPromptToLLM callback (the OnMuseConsideration
@@ -1475,7 +1617,9 @@ Function OnBakaMuseConsideration(String response, Int success)
     EndIf
     ; rev-22 direct-fire allowlist discipline: EXACT match against the band's
     ; pool only (an out-of-band or hallucinated action name is refused, never
-    ; degraded to a guess).
+    ; degraded to a guess). REV-146a Task 8: a DOWNED target ALSO admits the
+    ; downed-family subset (the library line offered it; the allowlist must
+    ; accept it or the consideration could never exercise the option).
     String[] pool = _DaemonActionPool(iBand)
     Bool bAllowed = False
     Int p = 0
@@ -1485,6 +1629,17 @@ Function OnBakaMuseConsideration(String response, Int success)
         EndIf
         p += 1
     EndWhile
+    If !bAllowed && _IsDownedAny(akTarget)
+        String[] dpool = _DaemonDownedActionPool()
+        Int q = 0
+        While q < dpool.Length && !bAllowed
+            If dpool[q] == sAction
+                bAllowed = True
+                _Log("[SNBaka] daemon Mephala downed-subset pick admitted: " + sAction + " (target downed) -- REV-146a")
+            EndIf
+            q += 1
+        EndWhile
+    EndIf
     If !bAllowed
         _Log("[SNBaka] daemon refuse: anim-reject (out-of-band pick '" + sAction + "', band " + iBand + ") -- REV-145")
         Return
@@ -1596,6 +1751,11 @@ Function _DaemonDispatchAction(Actor akInitiator, Actor akTarget, String sAction
         CapturedInspect_Execute(akInitiator, akTarget)
     ElseIf sAction == "Strip"
         _Strip_Execute(akInitiator, akTarget)
+    ElseIf sAction == "ApplyTattoo"
+        ; REV-146a Task 8: tattoo executor class joins the daemon dispatch
+        ; (downed-family subset; the executor is presence-gated on SlaveTats).
+        _Log("[SNBaka] daemon fire: ApplyTattoo (downed-family subset) -- " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + " -- REV-146a")
+        ApplyTattoo_Execute(akInitiator, akTarget)
     ElseIf sAction == "Struggle"
         If _DaemonIsTavernClass() || _DaemonIsDrunkTarget(akTarget)
             _Log("[SNBaka] daemon fire: Struggle -> drunk variant (DrunkExploit; tavern/drunk) -- " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + " -- REV-145")
@@ -1883,13 +2043,58 @@ Function _CueDecisionIfDowned(Actor akInitiator, Actor akVictim, Bool abResetWin
         _bResetDownWindow = True   ; keep them down for the decision — Baka's own ground window keys off this
     EndIf
     _Log("[SNBaka] _CueDecisionIfDowned: firing baka_opportunity for " + akInitiator + " -> " + akVictim + " (abResetWindow=" + abResetWindow + ")")
+    ; REV-146a Task 11 (finding 16283: the opportunity rendered in the
+    ; PLAYER'S conversation; user ruling: the player is NEVER the opportunity
+    ; audience -- their manual path is the lesser power). The originator arg
+    ; routes through _OpportunityAudience (below): an NPC initiator binds as
+    ; before; a PLAYER initiator re-binds to the nearest eligible adult NPC
+    ; witness (or the event is refused sentinel'd when none is around --
+    ; "take advantage of it" is what the lesser power is for).
     ; Bare fact only (no action list) — this "content" arg is SkyrimNet's own narrator/history line,
     ; separate from whatever the baka_opportunity.yaml trigger renders for the same eventType. The YAML's
     ; content already names Escalate/HelpUp/Release plus the talk/demand framing; repeating it here just
     ; produced two different-looking lines for the same moment (confirmed via a screenshot of doubled text).
-    SkyrimNetApi.RegisterEvent("baka_opportunity", \
-        akVictim.GetDisplayName() + " is still down in front of " + akInitiator.GetDisplayName() + ".", \
-        akInitiator, akVictim)
+    Actor akAudience = _OpportunityAudience(akInitiator, akVictim)
+    If akAudience
+        SkyrimNetApi.RegisterEvent("baka_opportunity", \
+            akVictim.GetDisplayName() + " is still down in front of " + akInitiator.GetDisplayName() + ".", \
+            akAudience, akVictim)
+    EndIf
+EndFunction
+
+; REV-146a Task 11 - the baka_opportunity audience router. D8 conversation-
+; binding anatomy of record: the RegisterEvent actor args bind WHICH
+; conversations the event renders in, and the trigger yaml's audience field
+; (baka_opportunity.yaml: "nearby_npcs") filters WHO responds. Finding 16283's
+; render reached the player's conversation because the PLAYER was one of the
+; bound args (initiator); the fix binds an NPC conversation instead when the
+; initiator is the player. Children are never picked as the witness (Task 2).
+Actor Function _OpportunityAudience(Actor akInitiator, Actor akVictim)
+    If akInitiator && akInitiator != PlayerRef
+        Return akInitiator
+    EndIf
+    Actor akWitness = None
+    Float bestDist = 600.0   ; conversation range (the ~600 = same large-hall class)
+    Actor[] akAll = PO3_SKSEFunctions.GetActorsByProcessingLevel(0)
+    Int i = 0
+    While i < akAll.Length
+        Actor ak = akAll[i]
+        If ak && ak != PlayerRef && ak != akVictim && !ak.IsDead() && !ak.IsInCombat() \
+           && !ak.IsChild() && !IsActorLocked(ak) && !IsInSexAnimation(ak)
+            Float d = ak.GetDistance(akVictim)
+            If d < bestDist
+                akWitness = ak
+                bestDist = d
+            EndIf
+        EndIf
+        i += 1
+    EndWhile
+    If akWitness
+        _Log("[SNBaka] opportunity audience routed: player-initiator re-bound to NPC witness " + akWitness.GetDisplayName() + " (player never the opportunity audience) -- REV-146a")
+        Return akWitness
+    EndIf
+    _Log("[SNBaka] opportunity audience REFUSE [no-witness]: player-initiator with no eligible NPC nearby - event suppressed (the lesser power is the player's path) -- REV-146a")
+    Return None
 EndFunction
 
 Function _StartCooldown(Actor akInitiator = None)
@@ -1922,6 +2127,7 @@ Float _fCooldownExpiresAtRT = 0.0   ; 0 = no cooldown pending
 Float _fFHUNextPollRT      = 0.0   ; 0 = poll not running
 Float _RT_POLL_INTERVAL    = 10.0  ; FHU level-poll cadence, real seconds
 Float _fBakaDaemonNextRT   = 0.0   ; REV-145: 0 = daemon tick not armed (both ambient modes off)
+Float _fStripHoldNextRT    = 0.0   ; REV-146a Task 9: strip re-equip block watch (2s cadence while any queue lives)
 
 Function _ArmRealtimeTimer()
     Float now  = Utility.GetCurrentRealTime()
@@ -1934,6 +2140,16 @@ Function _ArmRealtimeTimer()
     EndIf
     If _fBakaDaemonNextRT > 0.0 && _fBakaDaemonNextRT < next
         next = _fBakaDaemonNextRT
+    EndIf
+    ; REV-146a Task 9: the strip re-equip block watch arms on the multiplexer
+    ; whenever a tracked strip queue exists (2s cadence).
+    If _bStripHoldActive
+        If _fStripHoldNextRT <= now + 0.05
+            _fStripHoldNextRT = now + 2.0
+        EndIf
+        If _fStripHoldNextRT < next
+            next = _fStripHoldNextRT
+        EndIf
     EndIf
     If next < 999998.0
         If next <= now
@@ -1957,12 +2173,18 @@ Event OnUpdate()
         SNBaka_FHUInflationModule.PollLevels(Self)
         _fFHUNextPollRT = now + _RT_POLL_INTERVAL
     EndIf
-    ; REV-145 3.1: the Baka ambient daemon tick (Mephala 30s / Molag-Bal 15s cadences,
+    ; REV-145 3.1: the Baka ambient daemon tick (Mephala 45s since REV-146a / Molag-Bal 15s cadences,
     ; the GS arbiter pattern; combat-suspend inside the tick, stamp unspent). The tick
     ; re-stamps its own next-fire (the ACTION START anchor is separate -- per-actor
     ; SNBaka.DaemonLast stamps written at FIRE, per 137f generalized at REV-144).
     If _fBakaDaemonNextRT > 0.0 && now >= _fBakaDaemonNextRT
         _DaemonTick()
+    EndIf
+    ; REV-146a Task 9: the strip re-equip block watch leg (reverts engine-side
+    ; re-equips of tracked queue items while any queue lives; 2s cadence).
+    If _bStripHoldActive && _fStripHoldNextRT > 0.0 && now >= _fStripHoldNextRT
+        _fStripHoldNextRT = now + 2.0
+        _StripHoldWatch()
     EndIf
     _ArmRealtimeTimer()
 EndEvent
@@ -2828,9 +3050,14 @@ Function _RecoveryPeriod(Actor akVictim, Actor akWitness, Float duration)
     EndIf
     Utility.Wait(0.3)
     If !victimIsPlayer
-        SkyrimNetApi.RegisterEvent("baka_opportunity", \
-            akVictim.GetDisplayName() + " is helpless on the ground.", \
-            akWitness, akVictim)
+        ; REV-146a Task 11: the passive down-cue routes through the same
+        ; audience router (the player is never the opportunity audience).
+        Actor akOppAudience = _OpportunityAudience(akWitness, akVictim)
+        If akOppAudience
+            SkyrimNetApi.RegisterEvent("baka_opportunity", \
+                akVictim.GetDisplayName() + " is helpless on the ground.", \
+                akOppAudience, akVictim)
+        EndIf
     EndIf
     ; Victim is in bleedout so IsDead()=True — _WaitOrAbort would abort on tick 1.
     ; Per design, the bleedout is the ONE thing that PERSISTS through combat: the downed
@@ -4712,6 +4939,10 @@ EndFunction
 ; Plays the strangle animation on the downed victim, then starts an aggressive scene.
 ; No second QTE — escalation goes directly to the configured sex framework.
 Function _DoEscalation(Actor akA1, Actor akA2)
+    ; REV-146a Task 2: child boundary - the shared human-escalation gate.
+    If _ChildBoundaryRefused(akA1, akA2, "DoEscalation")
+        Return
+    EndIf
     ; Every HUMAN escalation path funnels here -- Escalate_Execute's "ours" branch (via the ground
     ; window's own loop), its "external" branch, and _DispatchDownedAction's external branch (the
     ; PrismaUI downed-menu AND AcheronNG's native Hunter's Pride menu both call that) -- so this one
@@ -5293,6 +5524,51 @@ Function _LogPair(String sFn, Actor akAtk, Actor akVic, Float wantX, Float wantY
         + "  ATK=" + akAtk.GetDisplayName() + "  VIC=" + akVic.GetDisplayName())
 EndFunction
 
+; REV-146a Task 7 — THE APPROACH WINDOW (user ruling 2026-10-23: "walk, not
+; teleport; timeout safety; teleport as backup"). Pair-action positioning
+; gains the SitOnLap-precedent pattern BEFORE _SetupPair's snap: the NPC
+; actor PATHS toward its partner when out of snap range, arrival is polled,
+; and a bounded ~8s real-time budget expires into the EXISTING teleport
+; (unchanged fallback of record). The player is never walked (never moved
+; by us at all, same rule as _SetupPair). Sentinels per leg: walk issued /
+; arrived / timeout->teleport fallback.
+Float fApproachSnapDist   = 300.0   ; inside this, the snap teleport is invisible (a step, not a jump)
+Float fApproachWalkRadius = 150.0   ; PathToReference stop radius
+Float fApproachTimeout    = 8.0     ; real-time budget before the teleport fallback
+Float fApproachWalkCeiling = 2000.0 ; REV-146a Task 7: manual (player-initiated) pairs admitted from this far
+Function _ApproachWindow(Actor akAtk, Actor akVic, String sFn)
+    If !akAtk || !akVic || akAtk == PlayerRef || akVic == PlayerRef
+        Return
+    EndIf
+    Float dist = akAtk.GetDistance(akVic)
+    If dist <= fApproachSnapDist
+        Return   ; already in snap range -- nothing to walk
+    EndIf
+    _Log("[SNBaka] walk-approach issued: " + akAtk.GetDisplayName() + " -> " + akVic.GetDisplayName() + " (dist=" + dist as Int + ", timeout=" + fApproachTimeout as Int + "s) [" + sFn + "] -- REV-146a")
+    Bool bIssued = akAtk.PathToReference(akVic, fApproachWalkRadius)
+    If !bIssued
+        _Log("[SNBaka] walk-approach issue FAILED (PathToReference false) -> teleport fallback [" + sFn + "] -- REV-146a")
+        Return
+    EndIf
+    Float deadline = Utility.GetCurrentRealTime() + fApproachTimeout
+    Bool bArrived = False
+    Bool bAbort = False
+    While Utility.GetCurrentRealTime() < deadline && !bArrived && !bAbort
+        Utility.Wait(0.25)
+        If akAtk.GetDistance(akVic) <= fApproachSnapDist
+            bArrived = True
+        ElseIf akAtk.IsInCombat() || akVic.IsInCombat() || akAtk.IsDead() || akVic.IsDead()
+            bAbort = True   ; safety: any interruption hands straight to the fallback
+        EndIf
+    EndWhile
+    akAtk.PathToReference(akAtk, 10.0)   ; cancel any residual path (self-target = stop)
+    If bArrived
+        _Log("[SNBaka] walk-approach arrived: " + akAtk.GetDisplayName() + " (dist=" + akAtk.GetDistance(akVic) as Int + ") [" + sFn + "] -- REV-146a")
+    Else
+        _Log("[SNBaka] walk-approach timeout/interrupt (" + fApproachTimeout as Int + "s) -> teleport fallback [" + sFn + "] -- REV-146a")
+    EndIf
+EndFunction
+
 ; ── Shared paired-anim setup ──────────────────────────────────────────────────────────────────
 ; ONE model for every paired animation:
 ;   * The ATTACKER (akAtk) is the origin (0,0,0). An NPC attacker is TELEPORTED onto the victim, so
@@ -5307,6 +5583,13 @@ EndFunction
 ; mk1/mk2 are pre-placed XMarkers used to vehicle-pin the attacker/victim. sFn = label for the log.
 Function _SetupPair(Actor akAtk, Actor akVic, Float xLocal, Float yLocal, Float rotOffset, \
         Bool bDisableCollision, ObjectReference mk1, ObjectReference mk2, String sFn)
+    ; REV-146a Task 7: the approach window runs BEFORE the hard AI stop -- an
+    ; NPC actor out of snap range WALKS to its partner first (bounded ~8s real-
+    ; time, arrival polled), and the unchanged MoveTo snap below is then a short
+    ; final step, not a cross-room jump; on timeout/failure the snap is also
+    ; the teleport fallback of record. Applies to daemon pairs and any manual
+    ; pair that reaches setup (the player is never walked, never moved).
+    _ApproachWindow(akAtk, akVic, sFn)
     Bool atkPlayer = (akAtk == PlayerRef)
     Bool vicPlayer = (akVic == PlayerRef)
 
@@ -6809,6 +7092,17 @@ Function _DispatchInteractAction(Int choice)
     If choice < 0 || !tgt || !cst
         Return
     EndIf
+    ; REV-146a 4.2: the Prisma footer mode buttons (numeric 900/901) arrive on
+    ; the interact dispatcher -- route them to the mode toggles BEFORE any
+    ; action branch (the string sends of REV-145 coerced to 0 = the dogfood
+    ; back-hug dispatch, finding 16283-class). The buttons stay panel-open.
+    If choice == 900
+        _MephalaToggle()
+        Return
+    ElseIf choice == 901
+        _MolagBalToggle()
+        Return
+    EndIf
     If choice == 0
         BackHug_Execute(cst, tgt)
     ElseIf choice == 1
@@ -6875,6 +7169,15 @@ Function _DispatchSexSpankAction(Int choice)
     _pendingSexNPC1 = None
     _pendingSexNPC2 = None
     If choice < 0 || !caster
+        Return
+    EndIf
+    ; REV-146a 4.2: Prisma mode buttons (900/901) also arrive here when the
+    ; sex-spank panel is open -- same routing as the interact dispatcher.
+    If choice == 900
+        _MephalaToggle()
+        Return
+    ElseIf choice == 901
+        _MolagBalToggle()
         Return
     EndIf
     If choice == 0 && npc0
@@ -8015,6 +8318,10 @@ EndFunction
 ; settle, one fresh full-gate revalidation, slipped cue on expiry/permanent failure).
 Function Escalate_Execute(Actor akInitiator, Actor akTarget)
     _Log("[SNBakaACT] Escalate ENTER")
+    ; REV-146a Task 2: child boundary - escalation entry point.
+    If _ChildBoundaryRefused(akInitiator, akTarget, "Escalate")
+        Return
+    EndIf
     _Log("[SNBaka] Escalate_Execute: initiator=" + akInitiator.GetDisplayName() + " target=" + akTarget.GetDisplayName() + " OnGround=" + StorageUtil.GetIntValue(akTarget, "SNBaka.OnGround", 0) + " InitLocked=" + StorageUtil.GetIntValue(akInitiator, "SNBaka.Locked", 0) + " bNPCCanEscalate=" + bNPCCanEscalate)
     String blockReason = _EscalateValidate(akInitiator, akTarget)
     If blockReason == "initiator locked"
@@ -8260,9 +8567,13 @@ Function _Strip_Execute(Actor akCaster, Actor akVictim)
         _Log("[SNBaka] Strip REFUSE [null]: null actor leg")
         Return
     EndIf
+    ; REV-146a Task 2: child boundary (engine-true IsChild) - no module action.
+    If _ChildBoundaryRefused(akCaster, akVictim, "Strip")
+        Return
+    EndIf
     If StorageUtil.FormListCount(akVictim, "SNBaka.StripQueue") > 0
-        _Log("[SNBaka] Strip REFUSE [already]: " + akVictim.GetDisplayName() + " already stripped by us - All to Dress first")
-        _Notify(akVictim.GetDisplayName() + " is already stripped - use All to Dress first.")
+        _Log("[SNBaka] Strip REFUSE [already]: " + akVictim.GetDisplayName() + " already stripped by us - Allow to Dress first")
+        _Notify(akVictim.GetDisplayName() + " is already stripped - use Allow to Dress first.")
         Return
     EndIf
     Int nTaken = 0
@@ -8308,6 +8619,65 @@ Function _Strip_Execute(Actor akCaster, Actor akVictim)
     String sDesc = akCaster.GetDisplayName() + " strips the downed " + akVictim.GetDisplayName() + " of their clothes and armor, leaving them exposed and helpless on the ground."
     SkyrimNetApi.RegisterEvent("sdb_stripped", sDesc, akCaster, akVictim)
     _Log("[SNBaka] Strip: APPLIED " + nTaken + " item(s) -> sdb_stripped cue fired")
+    ; REV-146a Task 9.3: the RE-EQUIP BLOCK WINDOW (the 9.1 verdict: the re-equip
+    ; is engine-side AI outfit re-evaluation, traceless in Papyrus/native logs).
+    ; Keyed to OUR tracked queue: every 2s (the OnUpdate multiplexer) the watch
+    ; re-unequips any queued item the engine put back on, sentinel'd, until the
+    ; queue is cleared by Allow to Dress (id 11) or the victim's down-window
+    ; ends. SeverActions' lock semantics are respected READ-ONLY (a locked
+    ; victim is skipped entirely - their system owns re-dress).
+    _bStripHoldActive = True
+    _ArmRealtimeTimer()
+    _Log("[SNBaka] strip-hold armed: " + akVictim.GetDisplayName() + " (re-equip block window, queue=" + nTaken + ") -- REV-146a")
+EndFunction
+
+; REV-146a Task 9 - THE STRIP RE-EQUIP BLOCK WATCH (multiplexer leg, 2s cadence).
+; 9.1 VERDICT (dogfood Papyrus.0.log 10-23 13:22:51-55, Vorstag): our Strip
+; fired at 13:22:51-52 (SexLab StripActorImpl took 3 items); NO Papyrus or DLL
+; line re-equipped the items (Papyrus.0.log lines 6364-6534 hold zero equip
+; traces; SeverActionsNative.log empty for the window) - the re-equip is
+; ENGINE-SIDE AI outfit re-evaluation, the same force the ecosystem defends
+; against (9.2 study): SexLab keeps actors stripped by holding the stripped
+; set inside the scene thread's lifecycle (sslActorLibrary.psc L125-128 +
+; UnstripActor L144-156; restore happens when the THREAD ends, never before);
+; SeverActions yields to bulk strips under its lock (SA SeverActions_Outfit.psc
+; L1462-1479) and owns re-dress while SeverOutfit_LockActive=1; Devious
+; Devices slot-locks keep devices on by re-locking slots on every removal
+; attempt. OUR mechanism (the queue-keyed block window): while our tracked
+; SNBaka.StripQueue on a victim is non-empty, any engine re-equip of a QUEUED
+; item is reverted (unequipped again) with a receipt sentinel - the same
+; keep-stripped guarantee, held by OUR queue instead of a scene thread.
+; SeverActions victims are SKIPPED entirely (their lock, their rules - the
+; 6.0 pre-check, read-only). The watch disarms itself when no queues remain.
+Bool _bStripHoldActive = False   ; REV-146a Task 9: at least one tracked strip queue exists
+Function _StripHoldWatch()
+    Actor[] akHeld = PO3_SKSEFunctions.GetActorsByProcessingLevel(0)
+    Int i = 0
+    Int nHeld = 0
+    While i < akHeld.Length
+        Actor akV = akHeld[i]
+        If akV && akV != PlayerRef && StorageUtil.FormListCount(akV, "SNBaka.StripQueue") > 0
+            If StorageUtil.GetIntValue(akV, "SeverOutfit_LockActive", 0) == 1
+                ; their lock, their rules - never fight a SeverActions lock
+            Else
+                Form[] akQ = StorageUtil.FormListToArray(akV, "SNBaka.StripQueue")
+                Int q = 0
+                While q < akQ.Length
+                    If akQ[q] && akV.IsEquipped(akQ[q])
+                        akV.UnequipItem(akQ[q])
+                        _Log("[SNBaka] strip-hold re-unequip: " + akV.GetDisplayName() + " re-equipped " + akQ[q].GetName() + " (engine re-equip reverted, queue held) -- REV-146a")
+                    EndIf
+                    q += 1
+                EndWhile
+                nHeld += 1
+            EndIf
+        EndIf
+        i += 1
+    EndWhile
+    If nHeld == 0 && _bStripHoldActive
+        _bStripHoldActive = False
+        _Log("[SNBaka] strip-hold disarmed: no tracked strip queues remain -- REV-146a")
+    EndIf
 EndFunction
 
 ; Called by the DLL (SNBaka_MenuChoice "downed" mode) when the player picks an option from
@@ -8321,6 +8691,21 @@ EndFunction
 Function _DispatchDownedAction(Int choice, Actor akCaster, Actor akVictim)
     _Log("[SNBaka] _DispatchDownedAction: choice=" + choice + " caster=" + akCaster + " victim=" + akVictim)
     If !akCaster || !akVictim
+        Return
+    EndIf
+    ; REV-146a Task 2: child boundary gates EVERY downed-menu dispatch (all
+    ; tiles: Down-tab, Strip/restore, and the +100 paired tabs).
+    If _ChildBoundaryRefused(akCaster, akVictim, "DownedDispatch")
+        Return
+    EndIf
+    ; REV-146a 4.2: Prisma mode buttons (numeric ids 900/901) arrive on the
+    ; downed dispatcher too -- handle them BEFORE the +100 paired-tab reroute
+    ; (900-100=800 would otherwise collide in the interact dispatcher).
+    If choice == 900
+        _MephalaToggle()
+        Return
+    ElseIf choice == 901
+        _MolagBalToggle()
         Return
     EndIf
     ; MERGED MENU: the downed-victim panel now also shows every regular paired-animation tab
@@ -8506,9 +8891,14 @@ EndFunction
 ; SeverOutfit_LockActive says the victim's outfit is under their lock system.
 
 Function _StripRestore_Execute(Actor akCaster, Actor akVictim)
-    _Log("[SNBaka] All to Dress: caster=" + akCaster + " victim=" + akVictim)
+    _Log("[SNBaka] Allow to Dress: caster=" + akCaster + " victim=" + akVictim)
     If !akCaster || !akVictim
         _Log("[SNBaka] All to Dress REFUSE [null]: null actor leg")
+        Return
+    EndIf
+    ; REV-146a Task 2: child boundary - no module action on children, restore
+    ; included (the tile would hand a child actor's outfit back; same boundary).
+    If _ChildBoundaryRefused(akCaster, akVictim, "StripRestore")
         Return
     EndIf
     Int nQueued = StorageUtil.FormListCount(akVictim, "SNBaka.StripQueue")
@@ -8722,6 +9112,11 @@ Function CreatureEscalate_Execute(Actor akInitiator, Actor akTarget)
     If !bCreatureEscalation || !akInitiator || !akTarget
         Return
     EndIf
+    ; REV-146a Task 2: child boundary - creature lane (a child victim is
+    ; never a valid creature-escalation target).
+    If _ChildBoundaryRefused(akInitiator, akTarget, "CreatureEscalate")
+        Return
+    EndIf
     Actor creature = akInitiator
     Actor victim   = akTarget
     If _CreatureAnimKey(creature) == ""
@@ -8881,6 +9276,10 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
     _Log("[SNBaka] _DoCreatureEscalation ENTER: creature=" + akCreature + " victim=" + akVictim)
     If !bCreatureEscalation || !akCreature || !akVictim
         _Log("[SNBaka] CreatureEscalate: blocked — escOff/none (esc=" + bCreatureEscalation + ")")
+        Return
+    EndIf
+    ; REV-146a Task 2: child boundary - creature lane.
+    If _ChildBoundaryRefused(akCreature, akVictim, "DoCreatureEscalation")
         Return
     EndIf
     ; REV-144 4.2: central player-target policy consulted ALONGSIDE the creature-specific
@@ -9431,6 +9830,10 @@ Function _TryCreatureEscalateOnDowned(Actor akVictim)
     EndIf
     If !akVictim || akVictim.IsDead() || IsActorLocked(akVictim)
         _Log("[SNBaka] creature: victim none/dead/locked (locked=" + IsActorLocked(akVictim) + ")")
+        Return
+    EndIf
+    ; REV-146a Task 2: child boundary - creature on-downed lane.
+    If _ChildBoundaryRefused(None, akVictim, "CreatureOnDowned")
         Return
     EndIf
     ; SNBaka.Locked (checked above) covers scenes WE started, but a victim can be in an OStim/SexLab
@@ -10331,6 +10734,10 @@ Function SpankTarget_Execute(Actor akSpanker, Actor akTarget, Bool akForceButt =
         _Log("[SNBaka] SpankTarget: disabled or dead actor.")
         Return
     EndIf
+    ; REV-146a Task 2: child boundary - spank lane entry point.
+    If _ChildBoundaryRefused(akSpanker, akTarget, "SpankTarget")
+        Return
+    EndIf
     ; REV-144 4.2: bPlayerCanBeSpanked FOLDS INTO the central player-target policy --
     ; the spank-scoped gate is retired as an admission gate (existing saves seeded from
     ; its old value; see _SeedPlayerTargetPolicy). Player-own spanks pass ungated.
@@ -10391,6 +10798,10 @@ Function SlapFace_Execute(Actor akSlapper, Actor akTarget)
     _Log("[SNBaka] SlapFace_Execute: slapper=" + akSlapper.GetDisplayName() + " target=" + akTarget.GetDisplayName())
     If !bEnabled || !akSlapper || !akTarget || akTarget.IsDead() || akSlapper.IsDead()
         _Log("[SNBaka] SlapFace_Execute: early exit — bEnabled=" + bEnabled + " dead/None check")
+        Return
+    EndIf
+    ; REV-146a Task 2: child boundary - slap lane entry point.
+    If _ChildBoundaryRefused(akSlapper, akTarget, "SlapFace")
         Return
     EndIf
     ; REV-144 4.2: bPlayerCanBeSpanked FOLDS INTO the central player-target policy

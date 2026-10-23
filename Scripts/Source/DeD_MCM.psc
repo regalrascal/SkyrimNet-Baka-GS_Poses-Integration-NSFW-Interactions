@@ -173,8 +173,9 @@ Int _lapSitOID = -1
 Int _playerTargetOID = -1
 Int _femaleOnlyOID = -1
 ; REV-145 (baka-daemon.md REV-144 SS-B/SS-D): the ambient daemon controls.
-; _mephalaOID/_molagBalOID = the two mode toggles (Prisma footer buttons ride
-; the same motherboard toggles); _ambientSexOID = the three-level target-sex
+; REV-146a (user ruling: Prisma ONLY): _mephalaOID/_molagBalOID RETIRE -
+; the MCM toggles are GONE; the Prisma footer buttons (numeric 900/901)
+; are the only mode surface. _ambientSexOID = the three-level target-sex
 ; dropdown (ruling (c), the SS-C fold).
 Int _mephalaOID = -1
 Int _molagBalOID = -1
@@ -391,7 +392,7 @@ Int Function GetVersion()
     ; motherboard properties stay declared). Visible body change on existing
     ; pages: every existing save crosses this bump once and rebuilds (the
     ; four-saga rule; v2 lesson standing).
-    Return 13
+    Return 14
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -443,8 +444,13 @@ Event OnVersionUpdate(Int aVersion)
     ; REV-145 v13 (baka-daemon session): canary marker - pages rebuilt FIRST
     ; (the v2 lesson, standing). Marker SNBaka.MCMDeD.v13.
     StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v13", 1)
+    ; REV-146a v14 (dogfood fix pass): canary marker - pages rebuilt FIRST
+    ; (the v2 lesson, standing). Marker SNBaka.MCMDeD.v14. The Mephala/Molag
+    ; Bal MCM toggles are REMOVED (user ruling: Prisma panel ONLY); the target-
+    ; sex dropdown + NPCs May Target You stay (settings, not mode controls).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v14", 1)
     _BuildPages()
-    Debug.Trace("[SNBaka] MCM canary: v13 OnVersionUpdate (REV-145: Ambient Modes section - Mephala/Molag Bal toggles; NPCs May Target You + Ambient Target Policy fold-ins; pages: " + Pages.Length + ", Main=" + Main + ")")
+    Debug.Trace("[SNBaka] MCM canary: v14 OnVersionUpdate (REV-146a: Mephala/Molag Bal toggles removed - Prisma panel is the only mode surface; Ambient Target Policy + NPCs May Target You stay; pages: " + Pages.Length + ", Main=" + Main + ")")
 EndEvent
 
 ; ============================================================================
@@ -586,10 +592,11 @@ Event OnPageReset(String page)
         _ambientSexOID     = AddMenuOption("Ambient Target Policy", _targetSexLevelName(Main._TargetSexLevel()))
         _animatedTearsOID  = AddToggleOption("Animated Tears",        Main.bAnimatedTearsEnabled)
         AddEmptyOption()
-        ; ---- Ambient Modes (REV-145: Mephala / Molag Bal; mode names USER-AUTHORED, register-cited) ----
-        AddHeaderOption("Ambient Modes")
-        _mephalaOID    = AddToggleOption("Mephala Mode",  StorageUtil.GetIntValue(None, "SNBaka.MephalaMode", 0) == 1)
-        _molagBalOID   = AddToggleOption("Molag Bal Mode", StorageUtil.GetIntValue(None, "SNBaka.MolagBalMode", 0) == 1)
+        ; ---- Ambient Modes (REV-145) -> REV-146a: the two mode TOGGLES are
+        ; REMOVED (user ruling: the Prisma footer buttons are the ONLY mode
+        ; surface); the target-sex dropdown + player-target policy above STAY
+        ; (settings, not mode controls). The mode FLAGS themselves live on
+        ; StorageUtil and are untouched - existing saves keep their modes.
         AddEmptyOption()
         AddHeaderOption("Capture")
         ; OFF removes the Sell-to-Slavery action entirely (not offered to the LLM). Detection first:
@@ -986,18 +993,10 @@ Event OnOptionSelect(Int option)
         Int v = 1 - StorageUtil.GetIntValue(pol, "SNBaka.PlayerTargetPolicy", 0)
         StorageUtil.SetIntValue(pol, "SNBaka.PlayerTargetPolicy", v)
         SetToggleOptionValue(_playerTargetOID, v == 1)
-    ElseIf option == _mephalaOID
-        ; REV-145: ambient mode toggles -- the same motherboard toggles the
-        ; Prisma footer buttons ride (notification + arm live there).
-        If Main
-            Main._MephalaToggle()
-            SetToggleOptionValue(_mephalaOID, StorageUtil.GetIntValue(None, "SNBaka.MephalaMode", 0) == 1)
-        EndIf
-    ElseIf option == _molagBalOID
-        If Main
-            Main._MolagBalToggle()
-            SetToggleOptionValue(_molagBalOID, StorageUtil.GetIntValue(None, "SNBaka.MolagBalMode", 0) == 1)
-        EndIf
+    ; REV-146a: _mephalaOID/_molagBalOID handlers REMOVED (user ruling:
+    ; Prisma panel is the only mode surface -- the motherboard toggles live
+    ; in SkyrimNet_BakaIntegration, unchanged). Their OID members retire as
+    ; never-bound (-1) no-ops.
     ElseIf option == _sellSlaveryOID
         Main.bSellToSlavery = !Main.bSellToSlavery
         SetToggleOptionValue(_sellSlaveryOID, Main.bSellToSlavery)
@@ -1702,10 +1701,8 @@ Event OnOptionHighlight(Int option)
         SetInfoText("When on, NPCs and creatures may choose you as the target of their autonomous actions (the Baka module's single central gate; your own initiations are never blocked). When off, nothing targets you unless you start it. Existing saves started with their old spank-target setting.")
     ElseIf option == _ambientSexOID
         SetInfoText("The three-level target-sex policy for NPC-initiated actions and the ambient modes: only female targets; male and female targets with male aggressors; or anything goes. Anatomically-specific actions always require female bodies regardless. Existing saves started from their old Target Sex setting.")
-    ElseIf option == _mephalaOID
-        SetInfoText("Mephala Mode: ambient NPC-initiated interactions every 30 seconds (60s per-actor cooldown); the action is chosen by the Mephala consideration call and extremity scales with the initiator's arousal. Random nearby NPCs act on each other - or on you, if NPCs May Target You is on.")
-    ElseIf option == _molagBalOID
-        SetInfoText("Molag Bal Mode: the ambient overdrive - 15 seconds / 30s per-actor, all actions with no arousal gating and no seeded thoughts. Preempts Mephala Mode when both are on.")
+    ; REV-146a: the _mephalaOID/_molagBalOID info texts REMOVED with their
+    ; toggles (Prisma-only ruling; unbound OIDs never reach this handler).
     ElseIf option == _cooldownOID
         SetInfoText("Minimum real-time seconds between NPC-initiated actions. Default 30s.")
     ElseIf option == _execGateOID

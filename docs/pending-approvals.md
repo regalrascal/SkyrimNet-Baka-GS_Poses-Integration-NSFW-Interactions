@@ -981,3 +981,80 @@ ships while the entries are open.
   (wording/install rulings outstanding; no closure registered). Entry 26:
   nothing riding it shipped in this dist; remains OPEN. Full ship receipts:
   PROJECT_STATE 166.
+
+---
+
+## REV-146a (2026-10-23): entry 29 AMENDED (pose narration drafts) + NEW OPEN ENTRY 31 (baka cue-descriptor workshop) + rulings
+
+Register after this rev: open entries **15, 16, 26, 29, 30 (30a/30b), 31**.
+USER'S PEN on the open items; nothing unruled ships beyond the user-ruled
+3.1/3.2 fixes (both compiled this rev, batch mode - gate receipt PROJECT_STATE 167).
+
+- **SHIPPED this rev, user-ruled verbatim (NOT riding the entry):** the
+  gsanim_npc_pose tail ", holding it in place" REMOVED (Task 3.1 ruling);
+  the ASCII sweep of pose desc sources (44 SkyrimNet_AnimationsGS.psc desc
+  literals + poses.js picker descs; the REV-85 Phase C carve-out superseded
+  for the RegisterEvent-desc class per the dated rider note in
+  STANDING_RULESET).
+- **Entry 29 amendment (the per-pose phrasing drafts):** the remaining
+  wording class from the 10-23 dogfood (findings 16193/16197/16206 - "a
+  slow trail of her own fingers - touch with nowhere else to go" read as
+  nonsensical; "victim" a strong word for a sexy dance). Draft per-pose
+  cue variants from the desc census (the user's template of record stands):
+  - dance_sexy: "<NPC> performs a slow, provocative dance - a show with
+    one clear audience in mind." (the "victim"->"audience" class, user
+    suggestion verbatim)
+  - dance (playful): "<NPC> dances a little - light on the feet, feet
+    answering the music."
+  - selftouch: "<NPC> trails a slow line along their own skin - nowhere
+    else for the touch to go, and no hurry to send it."
+  - ground_sexy: "<NPC> stretches out along the ground, unhurried and
+    inviting about it."
+  - present: "<NPC> holds a presenting pose - deliberately on display."
+  - aroused: "<NPC> shifts their weight, restless - arousal worn openly."
+  - The crosshair + player routes carry the same variants with their
+    existing route prefixes. USER'S PEN per variant.
+- **NEW OPEN ENTRY 31 - the baka cue-descriptor workshop (per-action
+  personality).** Provenance: the user's 10-23 dogfood finding (events
+  16325/16340/16285 quoted in the feedback reference): "the difference
+  between flirt and embrace is good, but I feel that the forced/overpowered
+  variants don't have the same individual personality" - baka cues carry
+  only very basic action info. Draft the highest-traffic set (user-directed
+  scope: baka_forced + the intimate family), the user rules here:
+  - baka_forced (per-variant; one desc per forced-family action,
+    personality-matched like flirt/embrace):
+    ForcedKiss: "{A} seized {B}'s mouth mid-word - the kiss taken, not offered."
+    BackHugMolest: "{A} wrapped {B} from behind and helped themselves - roaming hands, no invitation asked."
+    ChokeHug: "{A} caught {B} in a choke-held embrace - control first, everything else after."
+    WombHit: "{A} drove a low, punishing press into {B} - bent and held."
+    PinHelpless: "{A} pinned {B} flat and kept them there - nowhere to go and no one to object."
+    Subdue: "{A} put {B} down hard and made staying down the easy choice."
+    Struggle: "{A} grappled {B} into a struggle - the stronger will deciding the terms."
+  - baka_intimate (family variants keyed by action, flirt/embrace
+    personality class): Flirt "{A} lingered on {B} with their eyes and let
+    it show."; TouchBreasts "{A} reached for {B}'s chest - bold, warm, and
+    unrepentant."; SuckBreasts "{A} bent to {B}'s chest without a word.";
+    FondlePussy "{A}'s hand found {B}'s heat through the crowd's noise.";
+    OralOnTarget "{A} dropped to their knees for {B} - the whole room suddenly secondary."
+  USER'S PEN per line; nothing ships unruled; ASCII-only once ruled.
+- **Molag-Bal cues/thoughts KEEP ruling (user ruling this exchange;
+  supersedes the spec's no-thoughts line for the SHIPPED behavior):**
+  Molag Bal mode was dogfooded "working successfully... No complaints"
+  (feedback reference verbatim); the shipped cue/thought behavior stays.
+  The same exchange's Sheogorath ruling (verbatim, its own lane):
+  "Initially I wanted to avoid cues and thoughts for this mode, but now
+  that they are here, I don't really mind them, and want to keep them" -
+  recorded as the KEEP of record there too.
+- **POLISH-POOL notes (REV-146a, batch):** (a) the verbal-acknowledgment
+  gap - during the 10-23 dogfood "no-one was verbally acknowledging what
+  was happening even though people were feeling each other up all over the
+  place" - NPC dialogue responses to ongoing pair actions is a polish-pool
+  candidate (mechanism shape TBD; the adjacency/thought machinery exists);
+  (b) a future DIRECT-NARRATION MCM option (the Follow-up Prompt pattern,
+  entry-29-of-134f precedent) for pair-action events - continuous
+  narration (SkyrimNet keep-conversation-going) was observed helping in
+  the same session; deferred as a later addition per the user's own note.
+
+*REV-146a register state: open entries 15, 16, 26, 29, 30 (a/b), 31.
+Fork copy lockstep (hashes in PROJECT_STATE 167).*
+

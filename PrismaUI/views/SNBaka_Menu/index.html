@@ -287,6 +287,24 @@
       padding-left: 19px;
     }
 
+    /* ── REV-146a 4.2: ambient mode buttons restyled to MATCH THE PANEL ── */
+    /* (dogfood finding: the old shared .btn styling rendered darker / hard
+       to see against the panel). Same gold language as the accents + tabs. */
+    #btn-mephala, #btn-molagbal {
+      border: 1px solid rgba(196, 162, 72, 0.55);
+      color: #c4a248;
+      background: rgba(196, 162, 72, 0.10);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    }
+    #btn-mephala:hover, #btn-molagbal:hover {
+      border-color: rgba(220, 185, 95, 0.85);
+      color: #e6c35a;
+      background: rgba(196, 162, 72, 0.22);
+    }
+    #btn-mephala:active, #btn-molagbal:active {
+      background: rgba(196, 162, 72, 0.30);
+    }
+
     /* ── Footer ──────────────────────────────────────── */
     .panel-footer {
       padding: 9px 18px;
@@ -467,13 +485,13 @@ const DOWNED_ACTIONS = [
   // REV-144 — the Strip action (baka-module.md REV-134e spec + REV-136 rulings
   // (i)(a)/(ii)(b)/(iii); built this rev, BEFORE the daemon, so the action pool is
   // complete at daemon launch). id 10 strips the downed victim (player-clicked, ungated);
-  // id 11 "All to Dress" restores ONLY our tracked queue (restore OFF by default after
+  // id 11 "Allow to dress" (renamed REV-146a Task 10, user-authored verbatim) restores ONLY our tracked queue (restore OFF by default after
   // the strip — it stays off until this tile activates it). Same unconditional-affordance
   // contract as 8/9 (ruling ②B): the button list is host surface; Papyrus handles
   // empty-state refusals reason-coded. The DLL's numeric pipe is untouched (ids 10/11
   // sit below the +100 regular-pick offset).
-  { id: 10, label: 'Strip'        },
-  { id: 11, label: 'All to Dress' },
+  { id: 10, label: 'Strip'         },
+  { id: 11, label: 'Allow to dress' },
 ];
 
 // In-combat "Grapple" menu — shown instead of the normal interact menu when the target is hostile
@@ -837,14 +855,18 @@ function _sendChoice(value) {
   }
 }
 
-// ── REV-145: ambient mode toggles (GS footer-button pattern) ────────────────
-// Blind send, Papyrus arbitrates (StorageUtil flag flip + state notification).
-// The menu stays open so both modes can be toggled in one visit; Esc/Cancel closes.
+// ── REV-146a 4.2: ambient mode toggles (GS footer-button pattern) ────────────────
+// DISPATCH FIX (finding: both buttons dispatched a back hug): the REV-145
+// string sends ('mephalatoggle'/'molagbaltoggle') fell into the DLL's NUMERIC
+// choice pipe and coerced to 0 = BackHug. Fixed: numeric reserved ids 900/901
+// (handled by _DispatchInteractAction, _DispatchDownedAction BEFORE the +100
+// reroute, and _DispatchSexSpankAction). The menu stays open so both modes
+// can be toggled in one visit; Esc/Cancel closes.
 function toggleMephala() {
-  _sendChoice('mephalatoggle');
+  _sendChoice('900');
 }
 function toggleMolagBal() {
-  _sendChoice('molagbaltoggle');
+  _sendChoice('901');
 }
 
 // ════════════════════════════════════════════════════════════

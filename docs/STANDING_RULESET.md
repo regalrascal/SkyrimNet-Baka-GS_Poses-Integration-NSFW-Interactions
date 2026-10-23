@@ -227,6 +227,18 @@ deliberately out of scope. First application: the REV-85b ASCII sweep
 (MCM 22 + ST module 2 + `_Notify` 3 sites). Rides on §7; the numbered rule
 count stays 10.
 
+**REV-146a dated rider note (2026-10-23, user ruling; supersedes the REV-85
+Phase C carve-out FOR THE RegisterEvent-DESC CLASS):** the ASCII scope
+EXTENDS to `RegisterEvent` DESC STRINGS (user-visible cue text — the
+conversation/chat render). Grounds: the [REV-146] dogfood findings 16193/
+16197/16206 — `gsanim_npc_pose` cues rendered the em-dash as mojibake
+("a$?T"/"â€”", the CP1252 compile class) in SkyrimNet's conversation surface.
+The carve-out survives ONLY for surfaces never rendered to the player
+(comments, `Debug.Trace`). First application: the REV-146a sweep (44
+SkyrimNet_AnimationsGS.psc desc literals + poses.js picker descs); the
+"holding it in place" tail removal rides the same ruling. Rides §7; the
+numbered rule count stays 10.
+
 **Checklist v5 (REV-85b, 2026-10-07 — 5th entry of THE SHIPPING-FEATURES
 CHECKLIST, REV-77 rider):** 5. the [REV-85b] zip contains the three
 fixed/edited scripts with ASCII-only user-facing literals —

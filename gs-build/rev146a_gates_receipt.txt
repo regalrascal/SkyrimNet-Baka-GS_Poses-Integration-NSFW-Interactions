@@ -1,0 +1,89 @@
+REV-146a GATE RECEIPT (batch mode; 2026-10-23)
+================================================
+
+STANDING HEADER: ruleset read (all riders, incl. the REV-146a dated
+RegisterEvent-desc ASCII rider note); FILE_STRUCTURE read; INDEX read in
+full. Rev-55 routing applied.
+
+COMPLETION TABLE
+| # | Task | Status |
+|---|------|--------|
+| 2 | Child-actor boundary | BUILT (12 gate sites + pool + witness pick) |
+| 3.1 | Pose cue tail removal | BUILT (user-ruled verbatim) |
+| 3.2 | ASCII sweep (desc sources) | BUILT (44 psc literals + poses.js) |
+| 3.3 | Per-pose wording | REGISTER entry 29 drafts (user's pen) |
+| 4.1 | MCM mode toggles removed | BUILT (DeD_MCM v14 + canary) |
+| 4.2 | Prisma button fix + restyle | BUILT (numeric 900/901 + panel-gold) |
+| 5 | No-target panel | VERDICT: DLL-SESSION-NEEDED (see below) |
+| 6 | Mephala cadence 45s | BUILT (both stamp sites) |
+| 7 | Walk-to-position | BUILT (approach window, 8s bound, teleport fallback) |
+| 8 | Downed follow-up | BUILT (downed pool + subset; Molag 35% surfaced) |
+| 9 | Strip re-equip | VERDICT + STUDY + FIX (see below) |
+| 10 | Allow to dress rename | BUILT (tile + JS + notifications) |
+| 11 | baka_opportunity routing | BUILT (audience router, both sites) |
+| 12 | Records | DONE (entry 31 NEW; 29 amended; KEEP rulings; POLISH-POOL) |
+| 13 | Compile gates | PASS (12/12 0/0; NO dist; NOTHING archived) |
+| 14 | Records + commits | DONE (PROJECT_STATE 167; INDEX 3/12/13; commits both repos) |
+| Rider | Platform Phase 0 | REPORTED (nothing to bump) |
+
+CHILD-CHECK CITATION: Actor.IsChild() - vanilla Papyrus native, "Is this
+actor a child?", installed Actor.psc L355 (D:\Steam\steamapps\common\Skyrim
+Special Edition\Data\Source\Scripts\Actor.psc). ActorBase.psc / Race.psc
+carry NO exposed child flag (searched) - the Actor native is the
+engine-true surface. NO heuristics.
+
+NO-TARGET VERDICT: DLL-SESSION-NEEDED. The gate is the DLL's view render
+(dll-source\src\PrismaUIBridge.cpp L422-432: no crosshair/nearest target
+-> warn + return, before any view invoke), not the Papyrus REV-61-class
+block (SkyrimNet_BakaInteractEffect.psc L68-74 is upstream but not the
+binding constraint). The grey-out + "no target selected" overlay requires
+a DLL change - its own session (first DLL build since REV-103).
+
+STRIP 9.1 VERDICT: the re-equip is ENGINE-SIDE AI outfit re-evaluation.
+Evidence: our Strip fired 10-23 13:22:51-52 (Papyrus.0.log L6357-6364,
+Vorstag, 3 items via SexLab StripActorImpl); the window L6364-6534 holds
+ZERO equip traces (only two unrelated "Cannot unequip a None item" errors
+at 13:22:54/55, L6429/6465); SeverActionsNative.log empty for the window.
+
+STRIP 9.2 STUDY TABLE (trusted-plugin mechanisms, cited):
+| Plugin | Mechanism | Citation |
+|--------|-----------|----------|
+| SexLab (P+ 2.18.1) | stripped set held in the scene THREAD lifecycle; restore only when the thread/caller ends | sslActorLibrary.psc L125-128, L144-156 |
+| SeverActions | yields to bulk strips; owns re-dress under SeverOutfit_LockActive=1 | SA SeverActions_Outfit.psc L1462-1479 |
+| Devious Devices | slot re-lock on every removal attempt (keep-on class) | DD lock semantics (study class) |
+| OURS (REV-146a) | queue-keyed block window: 2s watch re-unequips engine re-equips of queued items until Allow to Dress | _StripHoldWatch |
+
+JUDGMENTS SURFACED: (a) Molag downed-draw probability set at 35%
+(30-40% band midpoint - a surfaced constant, retunable); (b) walk-approach
+admits manual pairs to 2000 units (fApproachWalkCeiling); (c) the Prisma
+mode buttons cannot show live ON/OFF state without a DLL payload push -
+rides the Task-5 DLL session; (d) the stale modlist baseline was
+REFRESHED from the fresh read-only snapshot (gs-build-side file only);
+refresh-vs-retire stays a planner/user decision.
+
+SECTION 8 AUDIT (downed follow-up): downed actors are TARGETS-ONLY
+(initiator gate unchanged); subset = ForcedKiss, BackHugMolest,
+TouchBreasts, SuckBreasts, FondlePussy, OralOnTarget, CapturedInspect,
+Strip, ApplyTattoo; Execute NEVER; player-target policy + target-sex
+gates run at target selection AND the fire-time IsEligible recheck.
+
+COMPILE GATES: run_compile_rev146a.bat, OUT Compile Archive\
+compile-out-rev146a: COMPILE 12/12 0/0 BUILD OK (12x "0 error(s), 0
+warning(s)", EXITCODE=0); stub-parity blocking-first PASS; denylist
+exit-6 CLEAN; modlist assertion CLEAN pre+post; pex sentinels
+byte-verified (child-boundary / walk-approach / strip-hold / Allow to
+Dress / downed-pool admit / opportunity audience routed / REV-146a all
+True; DeD_MCM.pex v14 canary present, "Mephala Mode" label absent; GS
+pex ASCII labels present, "holding it in place" absent); both psc trees
+byte-identical; poses.js synced (SHA256 CBD03B17...A6AEC). NO dist;
+NOTHING archived ([REV-146] stays latest).
+
+PLATFORM PHASE 0: all three DLL trees pin CommonLibSSE-NG f865d99
+(v4.26.0, 2026-06-05) - NEWER than upstream-HEAD reference b93280e
+(dormant 2024-09-04). NOTHING TO BUMP. Scout chain: SKSE 2.3.1 = 1.7.104
+(silverlock.org); SkyrimNet beta28 full-release lists AE 1.7.99/1.7.104.
+Policy note: one binary set, Address-Library-resolved; never pin users to
+a runtime we can avoid; release-prep line: "boot receipt on 1.7.104 +
+README runtime line".
+
+Modlist writes this session: NONE

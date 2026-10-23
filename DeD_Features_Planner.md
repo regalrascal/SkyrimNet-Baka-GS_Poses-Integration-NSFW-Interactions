@@ -132,6 +132,15 @@ display, and ambient life.
   PASS). Drafts 30a/30b ship DRAFT-flagged - both register entries remain OPEN.
   Full record: gs repo PROJECT_STATE 166 + INDEX row 3 (shipped). Status
   pointer only.
+
+— Project working notes —
+2026-10-23 REV-146a (dogfood fix pass, batch): child boundary (Actor.IsChild) at
+all entry points; pose-cue tail removed + desc ASCII sweep; Prisma-only mode
+toggles (MCM v14) + 900/901 button fix; Mephala 45s; walk-to-position;
+downed follow-up subset (Molag 35% surfaced); strip re-equip block window;
+Allow to dress rename; baka_opportunity NPC-audience routing. Compile gates
+12/12 0/0; NO dist. No-target panel = DLL session needed. Register: entry 29
+drafts + NEW entry 31 (cue-descriptor workshop). Open: 15, 16, 26, 29, 30, 31.
 # Cum Effects
 
 ## Description

@@ -796,7 +796,7 @@ Event OnPoseSelected(String asEventName, String asPose, Float afNum, Form akSend
     Debug.SendAnimationEvent(PlayerRef, sEv)
     String what = "a deliberate pose"
     If sDesc != ""
-        what = "a pose — " + sDesc
+        what = "a pose - " + sDesc
     EndIf
     SkyrimNetApi.RegisterEvent("gsanim_player_pose", \
         PlayerRef.GetDisplayName() + " strikes " + what + ", holding it for show.", \
@@ -1035,7 +1035,7 @@ Bool Function _PoseVibe(Actor ak, String vibe, String label)
     StorageUtil.SetStringValue(ak,  "GSAnim.Vibe",   label)   ; Phase 4 rider: named-pose stop wording
     StorageUtil.SetFloatValue(None, "GSAnim.LastPoseFire", Utility.GetCurrentRealTime())  ; observability only since REV-137f (silence-floor reader retired)
     SkyrimNetApi.RegisterEvent("gsanim_npc_pose", \
-        ak.GetDisplayName() + " strikes " + label + ", holding it in place.", ak, None)
+        ak.GetDisplayName() + " strikes " + label + ".", ak, None)
     ; REV-137d 4.1 (user ruling 2026-10-22, USER-AUTHORED per this ruling -- 17b
     ; precedent, register-cited in gs-poses.md REV-137d + posing-gender.md): every
     ; genuine Sheogorath/T3 fire carries an on-screen receipt mirroring the Sanguine
@@ -1086,7 +1086,7 @@ Function _PoseDirect(Actor ak, String ev, String desc, String cat)
     RegisterForSingleUpdate(3.0)
     String what = "a pose"
     If desc != ""
-        what = "a pose — " + desc
+        what = "a pose - " + desc
     EndIf
     SkyrimNetApi.RegisterEvent("gsanim_npc_pose", \
         ak.GetDisplayName() + " strikes " + what + " at " + PlayerRef.GetDisplayName() + "'s direction.", \
@@ -1463,7 +1463,7 @@ Function _MuseTick()
     Float fLastGlobal = StorageUtil.GetFloatValue(None, "GSAnim.MuseGlobal", 0.0)
     If fLastGlobal > fNow
         Debug.Trace("[SNAnimGS] sanguine mode interval stamp clamped: stale cross-session stamp " \
-            + fLastGlobal + " > boot clock " + fNow + " — treating as 0")
+            + fLastGlobal + " > boot clock " + fNow + " - treating as 0")
         fLastGlobal = 0.0
         StorageUtil.SetFloatValue(None, "GSAnim.MuseGlobal", 0.0)
     EndIf
@@ -1519,13 +1519,13 @@ Function _MuseTick()
             ; right. Reason-coded sentinels, unconditional per §5. The scan filter above
             ; makes these near-silent in steady state; they fire in the scan->tick race.
             If ak.GetSleepState() != 0
-                Debug.Trace("[SNAnimGS] sanguine mode state skip: " + ak.GetDisplayName() + " sleeping (state " + ak.GetSleepState() + ") — excluded, mirrors the seated exclusion")
+                Debug.Trace("[SNAnimGS] sanguine mode state skip: " + ak.GetDisplayName() + " sleeping (state " + ak.GetSleepState() + ") - excluded, mirrors the seated exclusion")
             ElseIf ak.IsSwimming()
-                Debug.Trace("[SNAnimGS] sanguine mode state skip: " + ak.GetDisplayName() + " swimming — excluded")
+                Debug.Trace("[SNAnimGS] sanguine mode state skip: " + ak.GetDisplayName() + " swimming - excluded")
             ElseIf ak.IsOnMount()
-                Debug.Trace("[SNAnimGS] sanguine mode state skip: " + ak.GetDisplayName() + " mounted — excluded")
+                Debug.Trace("[SNAnimGS] sanguine mode state skip: " + ak.GetDisplayName() + " mounted - excluded")
             ElseIf ak.IsSneaking()
-                Debug.Trace("[SNAnimGS] sanguine mode state skip: " + ak.GetDisplayName() + " sneaking — excluded")
+                Debug.Trace("[SNAnimGS] sanguine mode state skip: " + ak.GetDisplayName() + " sneaking - excluded")
             Else
             ; REV-19 Task 1: per-NPC floor (fMusePerNpcSec). Read LastMuse with the same
             ; stale-stamp clamp as MuseGlobal above (boot-relative clock, save-persisted
@@ -1536,7 +1536,7 @@ Function _MuseTick()
             If fLastNpc > fNow
                 Debug.Trace("[SNAnimGS] sanguine mode npc floor stamp clamped: stale cross-session " \
                     + fLastNpc + " > boot clock " + fNow + " for " + ak.GetDisplayName() \
-                    + " — treating as 0")
+                    + " - treating as 0")
                 fLastNpc = 0.0
                 StorageUtil.SetFloatValue(ak, "GSAnim.LastMuse", 0.0)
             EndIf
@@ -1573,12 +1573,12 @@ Function _MuseTick()
             ; (gs-poses.md REV-87 §1.4: idle-dense pool composition was unmeasurable).
             ; Reason-coded, so the combat and busy legs stay distinguishable.
             If ak.IsInCombat()
-                Debug.Trace("[SNAnimGS] sanguine mode walk skip: " + ak.GetDisplayName() + " in combat at walk time — excluded")
+                Debug.Trace("[SNAnimGS] sanguine mode walk skip: " + ak.GetDisplayName() + " in combat at walk time - excluded")
             Else
                 ; REV-135: sentinel class-tagged — with _IsBusyElsewhere class-aware,
                 ; only non-interruptible busy legs reach this branch (interruptible
                 ; idle classes are admitted as candidates and routed at fire time).
-                Debug.Trace("[SNAnimGS] sanguine mode walk skip: " + ak.GetDisplayName() + " busy at walk time — excluded (formerly SILENT skip; REV-135 class-aware, idleclass=" + _IdleClass(ak) + ")")
+                Debug.Trace("[SNAnimGS] sanguine mode walk skip: " + ak.GetDisplayName() + " busy at walk time - excluded (formerly SILENT skip; REV-135 class-aware, idleclass=" + _IdleClass(ak) + ")")
             EndIf
         EndIf   ; REV-90 busy/combat walk-guard Else
         i = (i + 1) % n
@@ -1844,49 +1844,49 @@ EndFunction
 ; register (flagged for user text approval in the rev-20 build report, ruleset §7).
 String Function _MuseFireLabel(String sPose)
     If sPose == "PoseSeduce"
-        Return "a seductive pose — weight on one hip, gaze holding the room"
+        Return "a seductive pose - weight on one hip, gaze holding the room"
     ElseIf sPose == "PoseDance"
-        Return "a light, playful dance — feet answering the music"
+        Return "a light, playful dance - feet answering the music"
     ElseIf sPose == "PoseDanceSexy"
-        Return "a slow, provocative dance — a performance with a single intended victim"
+        Return "a slow, provocative dance - a performance with a single intended victim"
     ElseIf sPose == "PoseHandOnChin"
-        Return "a thoughtful pose — a hand resting on her chin"
+        Return "a thoughtful pose - a hand resting on her chin"
     ElseIf sPose == "PoseHandOnFace"
         Return "a hand brought to her face, something to hold in"
     ElseIf sPose == "PoseAroused"
-        Return "a restless, heated shift of weight — arousal worn openly"
+        Return "a restless, heated shift of weight - arousal worn openly"
     ; REV-24 Task 3: fire labels for the approved tiers. Stretch/Workout reuse their
     ; Pose*_Execute one-liner register; the four Babo-idle picks + Drink carry new lines
     ; in the same register (presented for retro-approval per ruleset §7). Drink's wording
     ; deliberately claims only what BaboDrinkNormal does: a drink, never a stupor.
     ElseIf sPose == "PoseStretch"
-        Return "a long, unhurried stretch — arms overhead, back arching"
+        Return "a long, unhurried stretch - arms overhead, back arching"
     ElseIf sPose == "PoseWorkout"
-        Return "a quick workout drill — keeping the body busy"
+        Return "a quick workout drill - keeping the body busy"
     ElseIf sPose == "PoseScratchHead"
         Return "a scratch at her head, faintly unsure of something"
     ElseIf sPose == "PoseBraceArm"
         Return "an arm braced, weight settling, tension held"
     ElseIf sPose == "PoseMeditate"
-        Return "a quiet meditative seat — eyes closed, breath slowing"
+        Return "a quiet meditative seat - eyes closed, breath slowing"
     ElseIf sPose == "PoseDrink"
         Return "a slow pull from a tankard, throat working"
     ; REV-25 Task 2a/2c labels (retro-approval per §7, same register). Submission deliberately
     ; claims only the pose; Drool carries the user's "reduced to it" frame in-world.
     ElseIf sPose == "PoseSelfTouch"
-        Return "a slow trail of her own fingers — touch with nowhere else to go"
+        Return "a slow trail of her own fingers - touch with nowhere else to go"
     ElseIf sPose == "PosePresent"
-        Return "a presenting pose — offered up, deliberately on display"
+        Return "a presenting pose - offered up, deliberately on display"
     ElseIf sPose == "PoseGroundSexy"
-        Return "a stretch out along the ground — slow, and inviting about it"
+        Return "a stretch out along the ground - slow, and inviting about it"
     ElseIf sPose == "PoseGroundIdle"
-        Return "a slide down to the floor — resting right where she stood"
+        Return "a slide down to the floor - resting right where she stood"
     ElseIf sPose == "PoseSubmission"
-        Return "a surrender pose — hands open, will set aside"
+        Return "a surrender pose - hands open, will set aside"
     ElseIf sPose == "PosePlead"
-        Return "a pleading pose — hands clasped, eyes begging"
+        Return "a pleading pose - hands clasped, eyes begging"
     ElseIf sPose == "PoseDrool"
-        Return "a dazed stare, mouth gone slack — somewhere past words"
+        Return "a dazed stare, mouth gone slack - somewhere past words"
     EndIf
     Return "a pose"
 EndFunction
@@ -1903,9 +1903,9 @@ Function OnMuseConsideration(String response, Int success)
     Bool bDebug = _MuseDebugWindowOpen(fNow)
     If !ak || ak.IsDead() || ak.IsInCombat() || _IsBusyElsewhere(ak)
         If ak
-            Debug.Trace("[SNAnimGS] sanguine mode nudge dropped — actor-local guard failed at seed time: " + ak.GetDisplayName())
+            Debug.Trace("[SNAnimGS] sanguine mode nudge dropped - actor-local guard failed at seed time: " + ak.GetDisplayName())
         Else
-            Debug.Trace("[SNAnimGS] sanguine mode nudge dropped — pending actor vanished at seed time")
+            Debug.Trace("[SNAnimGS] sanguine mode nudge dropped - pending actor vanished at seed time")
         EndIf
         If bDebug
             _MuseDebugHeartbeat(fNow, "guard failed at seed")
@@ -1929,7 +1929,7 @@ Function OnMuseConsideration(String response, Int success)
     Int iPose = StringUtil.Find(response, "POSE:")
     Int iThought = StringUtil.Find(response, "| THOUGHT:")
     If iPose < 0 || iThought < 0 || iThought <= iPose
-        Debug.Trace("[SNAnimGS] sanguine mode nudge miss (parse): " + ak.GetDisplayName() + " — " + response)
+        Debug.Trace("[SNAnimGS] sanguine mode nudge miss (parse): " + ak.GetDisplayName() + " - " + response)
         If bDebug
             _MuseDebugHeartbeat(fNow, "miss (parse)")
         EndIf
@@ -1975,7 +1975,7 @@ Function OnMuseConsideration(String response, Int success)
         ; only in trace logs. The unconditional seed TRACE stays (screen and logs were
         ; parallel before; now the trace alone carries seed-only outcomes).
         String sLine = "Sanguine Mode: nudge -> " + ak.GetDisplayName() + " (" + sPose + ")"
-        Debug.Trace("[SNAnimGS] " + sLine + " — thought: " + sThought)
+        Debug.Trace("[SNAnimGS] " + sLine + " - thought: " + sThought)
         If bDebug
             Debug.Notification(sLine)
         EndIf
@@ -1993,18 +1993,18 @@ Function OnMuseConsideration(String response, Int success)
         ; distribution is the rev-20 headline funnel metric.
         String sFireVibe = _MuseFireVibe(sPose)
         If sFireVibe == ""
-            Debug.Trace("[SNAnimGS] sanguine mode direct fire skipped: not allowlisted (" + sPose + ") — seed-only")
+            Debug.Trace("[SNAnimGS] sanguine mode direct fire skipped: not allowlisted (" + sPose + ") - seed-only")
         ElseIf !_GenderAdmits(ak, sFireVibe)
             ; REV-85 Phase B: the fire-time veto is now policy-mode-aware (was the rev-26
             ; flat male veto) — mode 0/1 constrain picks exactly as the prompt's split
             ; guidance does (mode 1: male picks to the male-ok table; mode 0: males out
             ; entirely); mode 2 admits everyone. _PoseVibe re-runs the gate live as the
             ; third layer. Sentinel per §5 so the veto rate stays measurable.
-            Debug.Trace("[SNAnimGS] sanguine mode direct fire skipped: gender policy veto (" + sPose + " not admitted, mode " + _GenderPolicy() + ") — seed-only")
+            Debug.Trace("[SNAnimGS] sanguine mode direct fire skipped: gender policy veto (" + sPose + " not admitted, mode " + _GenderPolicy() + ") - seed-only")
         ElseIf StorageUtil.GetIntValue(None, "GSAnim.Overdrive", 0) == 1
-            Debug.Trace("[SNAnimGS] sanguine mode direct fire skipped: sheogorath mode running — seed-only")
+            Debug.Trace("[SNAnimGS] sanguine mode direct fire skipped: sheogorath mode running - seed-only")
         ElseIf _IsBusyElsewhere(ak)
-            Debug.Trace("[SNAnimGS] sanguine mode direct fire skipped: busy at fire time — seed-only")
+            Debug.Trace("[SNAnimGS] sanguine mode direct fire skipped: busy at fire time - seed-only")
         Else
             ; REV-137a 2.3 (outcome-true, §157 finding 2.3): the fire sentinel
             ; fires ONLY on a True return from _PoseVibe (event actually sent);
@@ -2025,7 +2025,7 @@ Function OnMuseConsideration(String response, Int success)
                 ; metric. High-tier = the REV-82 chain's >=75 leg (OStim rank is its own
                 ; signal; unknown arousal is NOT lean-flagged — silence about the unknown).
                 If StringUtil.Find(_sMuseArous, "high") != -1
-                    Debug.Trace("[SNAnimGS] sanguine mode direct fire: high-arousal seed — [arousal lean] applies")
+                    Debug.Trace("[SNAnimGS] sanguine mode direct fire: high-arousal seed - [arousal lean] applies")
                 EndIf
                 ; REV-25 Task 2e (user spec): on-screen notification ONLY on actual fires —
                 ; paired message+pose, always. ASCII-only (4f glyph rule).
@@ -2342,46 +2342,47 @@ Function _OdAutoPose()
         + " -> " + sAction + "; accept/refuse receipt per the pose fire sentinels below")
     ; Justification seed: the same thought registers that drive muse, at performance pitch.
     SkyrimNetApi.GenerateNPCThought(ak, \
-        "The music and the crowd's eyes have gotten to you — you feel like dancing for them.")
+        "The music and the crowd's eyes have gotten to you - you feel like dancing for them.")
 EndFunction
 ; Phase 4 rider: labels below are the distilled Phase 3 one-liners — they flow into the
-; gsanim_npc_pose event ("strikes <label>, holding it in place") AND into the per-actor
+; gsanim_npc_pose event ("strikes <label>." since REV-146a Task 3.1 — the ", holding
+; it in place" tail removed by user ruling 2026-10-23) AND into the per-actor
 ; GSAnim.Vibe key the stop paths read for named-pose stop wording.
 Function PoseSeduce_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "seduce", "a seductive pose — weight on one hip, gaze holding the room")
+    _PoseVibe(akInitiator, "seduce", "a seductive pose - weight on one hip, gaze holding the room")
 EndFunction
 Function PoseSelftouch_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "selftouch", "a suggestive, self-touching pose — arousal worn openly")
+    _PoseVibe(akInitiator, "selftouch", "a suggestive, self-touching pose - arousal worn openly")
 EndFunction
 Function PosePresent_Execute(Actor akInitiator)
     _PoseVibe(akInitiator, "present", "a bent-forward presenting pose, deliberately offering the view")
 EndFunction
 Function PoseDance_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "dance", "a light, playful dance — feet answering the music")
+    _PoseVibe(akInitiator, "dance", "a light, playful dance - feet answering the music")
 EndFunction
 Function PoseDanceSexy_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "dance_sexy", "a slow, provocative dance — a performance with a single intended victim")
+    _PoseVibe(akInitiator, "dance_sexy", "a slow, provocative dance - a performance with a single intended victim")
 EndFunction
 Function PoseGroundSexy_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "ground_sexy", "a sultry sprawl on the ground — low, languid, unhurried")
+    _PoseVibe(akInitiator, "ground_sexy", "a sultry sprawl on the ground - low, languid, unhurried")
 EndFunction
 Function PoseGroundIdle_Execute(Actor akInitiator)
     _PoseVibe(akInitiator, "ground_idle", "a spent, sprawling rest on the ground")
 EndFunction
 Function PoseWorkout_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "workout", "a set of exercises — strength and stamina on display")
+    _PoseVibe(akInitiator, "workout", "a set of exercises - strength and stamina on display")
 EndFunction
 Function PoseStretch_Execute(Actor akInitiator)
     _PoseVibe(akInitiator, "stretch", "a long, reaching stretch")
 EndFunction
 Function PoseSubmission_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "submission", "a surrendered pose — body lowered, the shape of yielding")
+    _PoseVibe(akInitiator, "submission", "a surrendered pose - body lowered, the shape of yielding")
 EndFunction
 Function PosePlead_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "plead", "a kneeling plea — lowered before someone it matters to")
+    _PoseVibe(akInitiator, "plead", "a kneeling plea - lowered before someone it matters to")
 EndFunction
 Function PoseIdle_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "idle", "an easy stance — hip against the wall, nowhere to be")
+    _PoseVibe(akInitiator, "idle", "an easy stance - hip against the wall, nowhere to be")
 EndFunction
 
 ; Phase 4 rider: shared stop wording — names the held pose from GSAnim.Vibe when present,
