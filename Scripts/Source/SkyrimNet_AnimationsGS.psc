@@ -100,7 +100,17 @@ EndFunction
 ;   GSAnim.Overdrive          1 = performance mode running (T1 cues, T2 floored cooldowns,
 ;                             T3 silence-floor auto-pose; expires ~5 min; 2nd press = OFF)
 ;   GSAnim.Muse               1 = ambient thought-seeder running (throttled GenerateNPCThought)
-;   GSAnim.LastPoseFire       global timestamp of the last pose fire — T3's silence-floor clock
+;   GSAnim.LastPoseFire       global timestamp of the last pose fire — observability only
+;                           since REV-137f 3.3 (the T3 silence-floor reader is retired)
+;   GSAnim.LastT3Fire        REV-137f 3.3: T3 multi-poser fire clock — a NEW candidate every
+;                           fOdT3IntervalSec; fresh key (absent from old saves, no residue)
+;   GSAnim.T3Mark            REV-137f 3.1: per-actor timestamp of the latest T3 dispatch;
+;                           consumed by _PoseVibe's success leg within 30s for the user-ruled
+;                           on-screen Sheogorath receipt (replaces the _bT3InFlight window)
+;   GSAnim.NudgeInterval     REV-137f 3.2: Sanguine nudge interval of record (StorageUtil;
+;                           defaults to the fMuseNudgeIntervalSec compile-time value — a KEY,
+;                           because the save-resident member value 100.0 was shadowing the
+;                           compiled 30.0 on long-lived saves, the diagnosed ~100s gap source)
 ;   GSAnim.LastOdCue          global timestamp of the last T1 ambience cue
 ;   GSAnim.OverdriveExpire    absolute real-time timestamp when performance mode auto-OFFs
 ;   GSAnim.CombatSuspendStart when the current player-combat suspend began (0 = not suspended;
@@ -1023,16 +1033,25 @@ Bool Function _PoseVibe(Actor ak, String vibe, String label)
     StorageUtil.SetIntValue(ak,    "GSAnim.LockAI",  lockAI as Int)
     StorageUtil.FormListAdd(None,  "GSAnim.Posing", ak, False)
     StorageUtil.SetStringValue(ak,  "GSAnim.Vibe",   label)   ; Phase 4 rider: named-pose stop wording
-    StorageUtil.SetFloatValue(None, "GSAnim.LastPoseFire", Utility.GetCurrentRealTime())  ; Phase 4: T3 silence-floor clock
+    StorageUtil.SetFloatValue(None, "GSAnim.LastPoseFire", Utility.GetCurrentRealTime())  ; observability only since REV-137f (silence-floor reader retired)
     SkyrimNetApi.RegisterEvent("gsanim_npc_pose", \
         ak.GetDisplayName() + " strikes " + label + ", holding it in place.", ak, None)
     ; REV-137d 4.1 (user ruling 2026-10-22, USER-AUTHORED per this ruling -- 17b
     ; precedent, register-cited in gs-poses.md REV-137d + posing-gender.md): every
     ; genuine Sheogorath/T3 fire carries an on-screen receipt mirroring the Sanguine
     ; notification format ("Sanguine Mode - <NPC> (<pose>)"). ASCII-only (4f rule).
-    ; Gated on the in-flight flag set by _OdAutoPose so crosshair/muse fires that
-    ; merely happen while overdrive runs never masquerade as T3 fires.
-    If _bT3InFlight && StorageUtil.GetIntValue(None, "GSAnim.Overdrive", 0) == 1
+    ; REV-137f 3.1 (gated-behind-a-branch verdict, 2.1): the old _bT3InFlight member
+    ; window closed at the synchronous ExecuteAction RETURN, before the async dispatch's
+    ; fire reached this success leg -- the 10-22 dogfood log shows 4/4 dispatched rc=0
+    ; fires with package-hold ENGAGED receipts and 0/4 "T3 FIRE receipt" lines. The gate
+    ; is now a per-actor GSAnim.T3Mark timestamp (set at dispatch in _OdAutoPose,
+    ; consumed here within 30s) + the overdrive flag, so genuine T3 fires notify while
+    ; crosshair/muse fires that merely happen while overdrive runs never masquerade.
+    Float fT3Mark = StorageUtil.GetFloatValue(ak, "GSAnim.T3Mark", 0.0)
+    Float fNowT3  = Utility.GetCurrentRealTime()
+    If fT3Mark > 0.0 && fT3Mark <= fNowT3 && fNowT3 - fT3Mark <= 30.0 \
+       && StorageUtil.GetIntValue(None, "GSAnim.Overdrive", 0) == 1
+        StorageUtil.SetFloatValue(ak, "GSAnim.T3Mark", 0.0)   ; consume (0.0 = no mark; UnSetValue is not in this API surface)
         Debug.Trace("[SNAnimGS] sheogorath T3 FIRE receipt: " + ak.GetDisplayName() + " (" + vibe + ")")
         Debug.Notification("Sheogorath - " + ak.GetDisplayName() + " (" + vibe + ")")
     EndIf
@@ -1063,7 +1082,7 @@ Function _PoseDirect(Actor ak, String ev, String desc, String cat)
     StorageUtil.SetIntValue(ak,    "GSAnim.LockAI",  0)
     StorageUtil.FormListAdd(None,  "GSAnim.Posing", ak, False)
     StorageUtil.SetStringValue(ak,  "GSAnim.Vibe",   desc)    ; Phase 4 rider (desc; "" if the pick carried none)
-    StorageUtil.SetFloatValue(None, "GSAnim.LastPoseFire", Utility.GetCurrentRealTime())  ; Phase 4: T3 silence-floor clock
+    StorageUtil.SetFloatValue(None, "GSAnim.LastPoseFire", Utility.GetCurrentRealTime())  ; observability only since REV-137f (silence-floor reader retired)
     RegisterForSingleUpdate(3.0)
     String what = "a pose"
     If desc != ""
@@ -1149,14 +1168,15 @@ Event OnUpdate()
         EndIf
     EndIf
     ; ── Interval arbiter — the script's ONLY re-register point ──
-    ; Posers need the fast sweep; overdrive polls at 10s (T1 ~20s cadence, T3 30-45s floor,
-    ; both time-based inside the tick, so a faster sweep tick can't accelerate them); muse
+    ; Posers need the fast sweep; overdrive polls at 15s (T1 ~20s cadence internal, T3
+    ; every-15s multi-poser internal — both time-based inside the tick, so a faster sweep
+    ; tick can't accelerate them; REV-137f 3.3); muse
     ; polls at 15s (internal 2-min/5-min clocks). Both flags off + no posers = idle, zero
     ; cost (same as before Phase 4) — casting the selector power re-arms the loop.
     If anyLeft
         RegisterForSingleUpdate(3.0)
     ElseIf StorageUtil.GetIntValue(None, "GSAnim.Overdrive", 0) == 1
-        RegisterForSingleUpdate(10.0)
+        RegisterForSingleUpdate(15.0)
     ElseIf StorageUtil.GetIntValue(None, "GSAnim.Muse", 0) == 1
         RegisterForSingleUpdate(15.0)
     EndIf
@@ -1184,7 +1204,11 @@ Int   iOdCooldownFloor   = 10        ; T2 (Fix B, 4f): floor ON applies to all 2
                                      ;   spam confirmed in the 4e re-test). USER TASTE CALL 2026-09-10:
                                      ;   10s; retune here, recompile. OFF restores 0 (live-config parity).
                                      ;   Int — SetActionCooldown takes cooldownTimeSeconds as int.
-Float fOdSilenceFloor    = 40.0      ; T3: auto-pose after this long without a pose fire (30-45s band)
+Float fOdT3IntervalSec  = 15.0      ; T3 (REV-137f 3.3, user ruling 2026-10-22 "I want chaos --
+                                     ;   multiple posers and poses at the same time"): a NEW candidate
+                                     ;   fires every interval with overlapping pose lifetimes permitted
+                                     ;   (planner overdrive cadence 15s; the 40s silence floor is RETIRED —
+                                     ;   the one-at-a-time constraint it enforced is the subdued feel)
 Float fOdCueSeconds      = 20.0      ; T1: ambience cue cadence
 Float fMuseNudgeIntervalSec = 30.0   ; muse (v1.2 redesign, docs/MUSE_REDESIGN_DESIGN.md): nudge loop — ONE
                                      ;   consideration call per interval. REV-25 Task 2b (user tempo ruling,
@@ -1193,6 +1217,13 @@ Float fMuseNudgeIntervalSec = 30.0   ; muse (v1.2 redesign, docs/MUSE_REDESIGN_D
                                      ;   cost while ON — the cadence itself bounds spend. Replaces the old
                                      ;   120s-global / 300s-per-NPC throttle pair (user spec); REV-19's
                                      ;   100.0->60.0 hold is superseded by this ruling.
+                                     ; REV-137f 3.2: this member is NO LONGER the interval of record on
+                                     ;   long-lived saves — save state restores a pre-rev-25 member value
+                                     ;   (100.0) over this compiled 30.0 initializer (the deployed [REV-142]
+                                     ;   pex hash-matched the dist yet the 10-22 dogfood log printed
+                                     ;   100.000000s — the diagnosed ~100s-gap source). The live interval
+                                     ;   now reads the StorageUtil key GSAnim.NudgeInterval with THIS
+                                     ;   value as default (fresh key, absent from old saves -> 30.0).
 Float fMusePerNpcSec     = 60.0       ; REV-25 Task 2b (user tempo ruling): per-NPC floor 120s -> 60s — a
                                      ;   candidate whose LastMuse seed is younger than this is skipped in
                                      ;   the walk (seed-time write of GSAnim.LastMuse unchanged; the READ
@@ -1227,11 +1258,10 @@ String[] _PoseActions
 ; own action selection — the thought is the nudge, cue-not-floor stands.
 ; The pending actor bridges the call to OnMuseConsideration (guards re-checked at seed time).
 Actor   _musePendingActor = None
-; REV-137d 4.1: in-flight flag for a T3 (Sheogorath) auto-pose dispatch -- set by _OdAutoPose
-; around ExecuteAction, read by _PoseVibe's success leg so the user-ruled on-screen
-; receipt ("Sheogorath - <NPC> (<pose>)", USER-AUTHORED per the 2026-10-22 ruling) fires
-; ONLY on genuine T3 fires (never on crosshair or muse fires that happen while overdrive runs).
-Bool    _bT3InFlight = False
+; REV-137d 4.1 -> REV-137f 3.1: the _bT3InFlight member is RETIRED (save-member of no
+; further use; Papyrus silently skips absent names on load). The T3 receipt gate is now
+; the per-actor StorageUtil stamp GSAnim.T3Mark, set at dispatch and consumed within 30s
+; by _PoseVibe's success leg — see the receipt block there for the async-window evidence.
 ; OStimExcitementFaction, resolved once via PO3 editor-ID lookup (arousal context for the
 ; nudge pack); None when OStim is absent — arousal then drops out of the pack gracefully.
 Faction _kMuseArousalFaction = None
@@ -1395,7 +1425,7 @@ Int Function _DaemonScan(Bool bAllowMales = False)
 EndFunction
 
 ; Muse nudge loop (v1.2 redesign — docs/MUSE_REDESIGN_DESIGN.md, user-authoritative spec).
-; Every ~100s (fMuseNudgeIntervalSec) ONE consideration call: pull context -> present the 27
+; Every ~30s (GSAnim.NudgeInterval, default fMuseNudgeIntervalSec; REV-137f key of record) ONE consideration call: pull context -> present the 27
 ; pose categories -> WEIGHTED TOWARD YES — pick the best-fitting pose unless ALL are unsuited
 ; (a miss is the EXCEPTION, not the goal). The YES-output is a JOB, not a flag: the call
 ; returns WHICH pose fits + the grounded in-world thought; OnMuseConsideration seeds it via
@@ -1440,18 +1470,26 @@ Function _MuseTick()
     ; REV-17 1b rider: one unconditional trace on the FIRST gated tick of each boot with
     ; the actual compare values, so a silent-muse session diagnoses itself from one grep —
     ; no re-arm dance needed, the sentinel rides along every session from now on.
+    ; REV-137f 3.2: the interval OF RECORD is the StorageUtil key GSAnim.NudgeInterval
+    ; (default = the compiled member). The member alone was being shadowed on long-lived
+    ; saves by a pre-rev-25 save-resident value of 100.0 (the deployed [REV-142] pex
+    ; hash-matched its dist yet the 10-22 dogfood log printed 100.000000s) -- a fresh key
+    ; carries no such residue, so the ruled 30s cadence finally takes effect. First-read
+    ; sentinel per ruleset 5 rides the first-gate trace below.
+    Float fInterval = StorageUtil.GetFloatValue(None, "GSAnim.NudgeInterval", fMuseNudgeIntervalSec)
     If !_bMuseGateLogged
         _bMuseGateLogged = True
         Debug.Trace("[SNAnimGS] sanguine mode gate (first check this boot): fNow=" + fNow \
             + " stamp=" + fLastGlobal + " delta=" + (fNow - fLastGlobal) \
-            + " interval=" + fMuseNudgeIntervalSec)
+            + " interval=" + fInterval + " (key of record GSAnim.NudgeInterval, default " \
+            + fMuseNudgeIntervalSec + "s; REV-137f save-residue member retired)")
     EndIf
-    If fNow - fLastGlobal < fMuseNudgeIntervalSec
+    If fNow - fLastGlobal < fInterval
         ; REV-137d 3.2 full-chain receipt (user ruling 2026-10-22): the tick-opportunity
         ; sentinel is now UNCONDITIONAL, not bDebug-gated -- the cadence itself must be
         ; readable from the log on every session.
         Debug.Trace("[SNAnimGS] sanguine mode tick: no opportunity (interval clock " + (fNow - fLastGlobal) \
-            + "s < " + fMuseNudgeIntervalSec + "s)")
+            + "s < " + fInterval + "s)")
         If bDebug
             _MuseDebugHeartbeat(fNow, "interval clock")
         EndIf
@@ -1992,6 +2030,13 @@ Function OnMuseConsideration(String response, Int success)
                 ; REV-25 Task 2e (user spec): on-screen notification ONLY on actual fires —
                 ; paired message+pose, always. ASCII-only (4f glyph rule).
                 Debug.Notification("Sanguine Mode - " + ak.GetDisplayName() + " (" + sPose + ")")
+                ; REV-137f 3.2 (user ruling 2026-10-22): the next-nudge clock is RE-ARMED
+                ; at pose START -- MuseGlobal is re-stamped HERE at the actual fire, so the
+                ; next ask is a full interval after THIS pose began (never pose-end; the
+                ; ask-time stamp at dispatch remains the spend bound for seed-only
+                ; outcomes). Sentinel per ruleset 5.
+                StorageUtil.SetFloatValue(None, "GSAnim.MuseGlobal", fNow)
+                Debug.Trace("[SNAnimGS] sanguine mode interval re-armed at pose start: " + ak.GetDisplayName() + " (REV-137f)")
             Else
                 Debug.Trace("[SNAnimGS] sanguine mode direct fire REFUSED (no event sent): " + ak.GetDisplayName() + " (" + sPose + ") -- reason per the refusal sentinel above")
             EndIf
@@ -2139,19 +2184,17 @@ Function _OverdriveOn()
         Debug.Trace("[SNAnimGS] sheogorath mode T2 floor: " + iSkipped + " Baka-hosted pose cooldowns skipped - Baka half absent (REV-103 S3 guard)")
     EndIf
     StorageUtil.SetFloatValue(None, "GSAnim.OverdriveExpire", Utility.GetCurrentRealTime() + fOdExpireSeconds)
-    StorageUtil.SetFloatValue(None, "GSAnim.LastPoseFire", Utility.GetCurrentRealTime())
+    StorageUtil.SetFloatValue(None, "GSAnim.LastPoseFire", Utility.GetCurrentRealTime())  ; observability only since REV-137f 3.3 (silence-floor reader retired)
     StorageUtil.SetFloatValue(None, "GSAnim.LastOdCue", 0.0)
-    ; REV-137d 3.2 full-chain receipt (user ruling 2026-10-22): the ON state, its armed
-    ; cadence parameters and the policy mode are now trace-receipted -- the [REV-139]
-    ; log could not show ON/OFF/expiry at all (notification-only), which made the
-    ; "silent minutes" indistinguishable from expiry-by-design. Census of the armed
-    ; machinery: poll 10s, T3 floor 40s measured against EVERY pose fire, expire 300s.
-    Debug.Trace("[SNAnimGS] sheogorath mode ON (REV-137d receipt): armed -- poll 10s, T3 silence floor " \
-        + fOdSilenceFloor + "s (reset by EVERY pose fire incl. crosshair/muse), expire " + fOdExpireSeconds \
+    ; REV-137d 3.2 -> REV-137f 3.3 receipt: the ON state, its armed cadence parameters
+    ; and the policy mode are trace-receipted. Census of the armed machinery
+    ; (REV-137f): poll 15s, T3 every-15s multi-poser (silence floor RETIRED), expire 300s.
+    Debug.Trace("[SNAnimGS] sheogorath mode ON (REV-137f receipt): armed -- poll 15s, T3 multi-poser every " \
+        + fOdT3IntervalSec + "s (one-at-a-time silence floor retired; overlapping lifetimes permitted), expire " + fOdExpireSeconds \
         + "s, T3 pool policy mode " + _GenderPolicy() + " (REV-137d 3.1 blanket)")
     Debug.Notification("Sheogorath Mode - the room is yours.")
     _OdCue()                 ; first ambience cue right away (sets GSAnim.LastOdCue)
-    RegisterForSingleUpdate(10.0)
+    RegisterForSingleUpdate(15.0)
 EndFunction
 
 ; Performance Mode OFF — the single exit path shared by 2nd-press (button branch) and
@@ -2198,8 +2241,8 @@ Function _OdCue()
         _OdCues[Utility.RandomInt(0, _OdCues.Length - 1)], "", 75000, PlayerRef, None)
 EndFunction
 
-; The 10s overdrive tick: expiry check (incl. combat-pause already applied upstream in
-; OnUpdate), T1 cue if due, T3 silence-floor auto-pose if due.
+; The 15s overdrive tick (REV-137f 3.3): expiry check (incl. combat-pause already applied
+; upstream in OnUpdate), T1 cue if due, T3 every-interval multi-poser fire if due.
 Function _OverdriveTick()
     _EnsurePools()   ; Phase 4d: heal BEFORE the body — in the stale instance the _OdCue crash aborted this tick before the T3 floor check could even run
     Float fNow = Utility.GetCurrentRealTime()
@@ -2208,23 +2251,32 @@ Function _OverdriveTick()
         Return
     EndIf
     _OdCue()
-    ; REV-137d 3.2 full-chain receipt (user ruling 2026-10-22): every tick carries its
-    ; opportunity verdict with the actual compare values -- the cadence itself is the
-    ; observable (tick census 5.1: poll 10s, floor 40s vs LastPoseFire which EVERY
-    ; _PoseVibe fire stamps, so crosshair/muse fires reset the T3 clock too).
-    Float fSilence = fNow - StorageUtil.GetFloatValue(None, "GSAnim.LastPoseFire", 0.0)
-    If fSilence >= fOdSilenceFloor
-        Debug.Trace("[SNAnimGS] sheogorath mode tick: T3 OPPORTUNITY (silence " + fSilence \
-            + "s >= floor " + fOdSilenceFloor + "s; expire in " \
-            + (StorageUtil.GetFloatValue(None, "GSAnim.OverdriveExpire", 0.0) - fNow) + "s)")
+    ; REV-137f 3.3 (user ruling 2026-10-22, "I want chaos -- multiple posers and poses
+    ; at the same time"): the one-at-a-time silence floor is RETIRED -- a NEW candidate
+    ; fires every fOdT3IntervalSec (15s, planner overdrive cadence) with overlapping pose
+    ; lifetimes permitted; eligibility gates UNCHANGED (policy/loaded/near/not-posing/
+    ; not-combat + busy backstop). Concurrency verified safe: all GSAnim bookkeeping is
+    ; per-actor keyed (Pose/Start/Timeout/LockAI/Vibe/IdleHold/T3Mark), the posing list
+    ; is a FormList append, and no global lock exists. The clock is a fresh key
+    ; (GSAnim.LastT3Fire) so save-resident members can't shadow it; a faster live sweep
+    ; (3s, posers up) cannot accelerate the 15s cadence. Census sentinels unconditional.
+    Float fLastT3 = StorageUtil.GetFloatValue(None, "GSAnim.LastT3Fire", 0.0)
+    If fLastT3 > fNow
+        fLastT3 = 0.0   ; stale cross-session stamp -- house clamp class (REV-17 pattern)
+    EndIf
+    If fNow - fLastT3 >= fOdT3IntervalSec
+        StorageUtil.SetFloatValue(None, "GSAnim.LastT3Fire", fNow)
+        Debug.Trace("[SNAnimGS] sheogorath mode tick: T3 multi-poser fire (clock " + (fNow - fLastT3) \
+            + "s >= interval " + fOdT3IntervalSec + "s; expire in " \
+            + (StorageUtil.GetFloatValue(None, "GSAnim.OverdriveExpire", 0.0) - fNow) + "s; REV-137f)")
         _OdAutoPose()
     Else
-        Debug.Trace("[SNAnimGS] sheogorath mode tick: no T3 opportunity (silence " + fSilence \
-            + "s < floor " + fOdSilenceFloor + "s)")
+        Debug.Trace("[SNAnimGS] sheogorath mode tick: T3 window not yet due (clock " + (fNow - fLastT3) \
+            + "s < interval " + fOdT3IntervalSec + "s; REV-137f)")
     EndIf
 EndFunction
 
-; T3 silence floor: one random eligible NPC (policy-admitted, REV-137d 3.1 blanket)
+; T3 multi-poser (REV-137f 3.3): one random eligible NPC (policy-admitted, REV-137d 3.1 blanket)
 ; strikes a weighted solo-safe GS vibe. ExecuteAction bypasses eligibility AND cooldowns
 ; by design — our guard chain is the ONLY protection, so it's strict: _DaemonScan
 ; (policy-admitted/loaded/near/not-posing/not-combat) + _IsBusyElsewhere backstop + not
@@ -2275,12 +2327,17 @@ Function _OdAutoPose()
         Debug.Trace("[SNAnimGS] sheogorath T3 attempt REFUSED: idle interrupt (exit/recheck refused -- reason per the idle-svc sentinel above): " + ak.GetDisplayName())
         Return
     EndIf
-    Debug.Trace("[SNAnimGS] T3 silence-floor auto-pose: " + ak.GetDisplayName() + " -> " + sAction)
-    ; REV-137d 4.1: the in-flight flag lets _PoseVibe's success leg fire the
-    ; user-ruled on-screen receipt ONLY on genuine T3 fires.
-    _bT3InFlight = True
+    Debug.Trace("[SNAnimGS] T3 multi-poser auto-pose: " + ak.GetDisplayName() + " -> " + sAction)
+    ; REV-137f 3.1: the receipt gate is a per-actor GSAnim.T3Mark timestamp set HERE at
+    ; dispatch (cleared on a non-zero rc) and consumed by _PoseVibe's success leg within
+    ; 30s -- the old _bT3InFlight member window closed at this function's synchronous
+    ; return, before the async dispatch's fire reached the receipt block, so the
+    ; user-ruled on-screen notification never printed (0/4 in the 10-22 dogfood log).
+    StorageUtil.SetFloatValue(ak, "GSAnim.T3Mark", Utility.GetCurrentRealTime())
     Int rcOd = SkyrimNetApi.ExecuteAction(sAction, ak, "{}")
-    _bT3InFlight = False
+    If rcOd != 0
+        StorageUtil.SetFloatValue(ak, "GSAnim.T3Mark", 0.0)   ; dispatch refused -- clear the mark (0.0 = none)
+    EndIf
     Debug.Trace("[SNAnimGS] sheogorath T3 attempt dispatched (rc=" + rcOd + "): " + ak.GetDisplayName() \
         + " -> " + sAction + "; accept/refuse receipt per the pose fire sentinels below")
     ; Justification seed: the same thought registers that drive muse, at performance pitch.

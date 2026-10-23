@@ -242,8 +242,6 @@ Reborn -> SL Aroused -> neutral) + the runtime chain itself. The line SHIPPED
 as a draft (README.md, after the SeverActions entry); wording ruling pending
 — user edits the draft.
 
-***User ruling: text is tentatively approved pending the next full release, when the readme will be fully checked and edited.***
-
 **REV-111 rider (2026-10-14):** the README arousal line now RIDES the
 public-staging README — the [REV-111] stake copied the shipped README as the
 public repo's README base and the draft line ships there in the Soft
@@ -327,8 +325,6 @@ homes are now the six STACKED sections of the ONE "Baka Interactions"
 page body (REV-109c, PROJECT_STATE §119; the 109b navigation rows are
 gone); the reworded strings ship on those stacked section surfaces
 as-is. The 16a-16d rulings remain pending.
-
-***User ruling: The restructured state of the MCM is user approved pending any further requests, which should be routed to new entries.***
 
 ---
 
@@ -824,7 +820,6 @@ Two things ride here:
 
 **Status: OPEN — the user's pen.** Receipts: PROJECT_STATE §145 + cum-prompt-spec.md (as-built note).
 
-***User note: Approved. Prompt fragment text for cum detection will receive an edit pass eventually, but they are working well for now.***
 
 ---
 
@@ -905,3 +900,36 @@ cue-only deletion) is deleted from the modlist this rev. Text of record = entry 
   **15, 16, 26**. Fork copy lockstep (hashes reported in PROJECT_STATE
   §155). Receipts: PROJECT_STATE §155 + baka-module.md / slavetats.md
   REV-136 sections + INDEX rows 3/6/18 notes.
+
+---
+
+## REV-137f: NEW OPEN ENTRY 29 (2026-10-22) — the POSE NARRATION wording workshop
+
+Register after this entry: open entries **15, 16, 26, 29**. USER'S PEN; nothing
+ships while the entry is open.
+
+- **Entry 29 (pose narration desc wording + the three MCM toggle titles/tooltips).**
+  Provenance: REV-137f rider (Task 10, report-only; census + spec in gs-poses.md
+  REV-137f rider section; diagnosis receipts PROJECT_STATE §163.4).
+  - **The user's template (quoted verbatim):** "{{name}} performed a {{category}},
+    they did a {{specific pose}}" — to be workshop-resolved into per-family event
+    desc variants drafted from the R.4 census (today's register: "<NPC> strikes
+    <label>, holding it in place." on vibe routes; "<NPC> strikes a pose -- <desc>
+    at <Player>'s direction." on the crosshair route; "<Player> strikes ... holding
+    it for show." on the player route). Names ride in the EVENT TEXT, never
+    template vars (the D8/§137 lesson); the player character is named when the
+    player performs.
+  - **Three toggle titles (DRAFTS, user's pen; DeD_MCM GS Poses page, GetVersion
+    bump with the build):**
+    1. "Sanguine Pose Narration" — draft tooltip: "Show a cue line in the event log
+       when Sanguine Mode makes someone pose."
+    2. "Emergent Pose Narration" — draft tooltip: "Show a cue line in the event log
+       when someone strikes a pose on their own."
+    3. "Player Initiated Pose Narration" — draft tooltip: "Show a cue line in the
+       event log when you pose someone or yourself."
+  - **{{prompt/trigger}} resolution note (SURFACED for the user's ruling):** the
+    cue rides the EXISTING RegisterEvent route — cue-only desc lands in the
+    SkyrimNet event log verbatim (the REV-134d anatomy). Strategist lean:
+    **"narration cue"** — no new trigger YAMLs, no prompt-template surface, unless
+    the user rules otherwise.
+  - NO build rode the rider; the build rides this wording ruling.
