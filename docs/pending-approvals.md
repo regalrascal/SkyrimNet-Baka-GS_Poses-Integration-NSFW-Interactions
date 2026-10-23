@@ -1058,3 +1058,7 @@ USER'S PEN on the open items; nothing unruled ships beyond the user-ruled
 *REV-146a register state: open entries 15, 16, 26, 29, 30 (a/b), 31.
 Fork copy lockstep (hashes in PROJECT_STATE 167).*
 
+
+- **REV-147 citation line - "no target selected" (overlay text; the 17b precedent):** user-ruled in the REV-147 instruction set 2.2, verbatim: "power with no target opens the panel; all target-actions greyed + a 'no target selected' overlay; the two ambient-mode buttons LIVE". The overlay string "no target selected" is USER-AUTHORED, ASCII-only, shipped in SNBaka_Menu/index.html (overlay + grey-out) with the DLL null-target panel-open path and the Papyrus reason-coded refusal sentinel. As-built receipts: PROJECT_STATE 168 + rev147_gates_receipt.txt.
+
+*REV-147 register state: open entries 15, 16, 26, 29, 30 (a/b), 31 (no new entries this session; one citation line). Fork copy lockstep (hashes in PROJECT_STATE 168).*

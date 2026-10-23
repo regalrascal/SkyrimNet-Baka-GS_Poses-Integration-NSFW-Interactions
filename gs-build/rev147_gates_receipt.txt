@@ -1,0 +1,115 @@
+REV-147 GATE RECEIPT - THE DLL SESSION (no-target panel + mode-button
+live state + Platform Phase 1). Date: 2026-10-23. Batch mode: compile
+gates ONLY, NO DIST. Ruleset: read, 10 rules checked. Reading sequence
+(ruleset/FILE_STRUCTURE/INDEX): CONFIRMED. Rev-55 routing applied.
+
+COMPLETION TABLE
+| # | Task                                    | Result |
+|---|-----------------------------------------|--------|
+| 1 | Standing header + modlist baseline      | CLEAN (read-only; assertion CLEAN pre+post) |
+| 2 | Feature A: no-target panel (2.1-2.4)    | BUILT (bridge/JS/Papyrus + sentinels) |
+| 3 | Feature B: mode-button live state       | BUILT (SetModeStates native + keep-open fix) |
+| 4 | Platform Phase 1: 4.1 SKSE 2.3.1 fetch  | BLOCKED (evidence-cited; surfaced, no substitute) |
+| 4 | Platform Phase 1: 4.2 pin provenance    | RECORDED (f865d990f = tag v4.26.0, CommonLibVR fork) |
+| 4 | Platform Phase 1: 4.3 rebuild 3/3       | CLEAN (492/492 + 7/7 + BUILD SUCCEEDED vs f865d99 pin) |
+| 4 | Platform Phase 1: 4.4 dumpbin 3/3       | CLEAN (Load/Query/Version every DLL) |
+| 4 | Platform Phase 1: 4.5 verdict           | FRAMED (user dogfood; dual-binary = user ruling) |
+| 4 | Platform Phase 1: 4.6 hashes            | RECORDED (below; superseded-at-batch-cut) |
+| 5 | Build gates (compile/DLL/modlist)       | CLEAN (12/12 0/0; denylist; fc/b; assertion) |
+| 6 | Records + commits both repos            | DONE (PROJECT_STATE 168; INDEX 3/12; register) |
+| 7 | Gate report (this file)                 | DONE |
+
+BRIDGE-CHANGE RECEIPTS (Feature A, 2.1-2.4)
+2.1 PrismaUIBridge.cpp ShowInteractMenu: null-target branch sets
+    target=nullptr and RUNS the view render (was: warn + return).
+    s_interactTarget = 0 = the no-target session marker; JS payload
+    window.snbaka_open_interact(''). Fields the JS reads (cited):
+    targetName ONLY (header-target textContent, `|| ''` null-guard
+    pre-existing); tabs/actions are static tables. No null-deref paths.
+2.2 SNBaka_Menu/index.html: #panel.no-target grey-out (tabs +
+    action-items, opacity .28, pointer-events none) +
+    #no-target-overlay "no target selected" (USER-AUTHORED text,
+    register-cited, 17b precedent, ASCII); footer mode buttons live;
+    all other entry points reset the flag; _choose JS guard.
+2.3 Papyrus: SkyrimNet_BakaInteractEffect null path routes to
+    Interact_NoTargetPanel (new); _DispatchInteractAction: 900/901
+    first (footer live), choice<0, then REFUSAL sentinel
+    "[SNBaka][PANEL] REFUSED - no target selected (choice=N) -
+    REV-147 no-target session". Bridge dispatches null-target picks
+    (defense-in-depth under the JS grey-out).
+2.4 Sentinels per leg: see PROJECT_STATE 168 (2.4). Child boundary +
+    all standing gates UNCHANGED (no *_Execute touched).
+
+PAYLOAD-PUSH SHAPE (Feature B) + NEW NATIVE
+New native: SNBakaUI.SetModeStates(Bool, Bool) - registered
+(PapyrusFunctions.cpp) + stub mirrored (Scripts/Source/SNBakaUI.psc).
+Bridge: PrismaUIBridge::SetModeStates invokes
+window.snbakaSetModeStates(b,b) on s_view (the SetGetUpCharge Invoke
+pattern; CreateMenuView recovery). Papyrus _PushModeStates() at panel
+open (3 interact branches + sexspank + no-target) + end of both
+toggles. Keep-open fix: OnJSChoice intercepts "900"/"901" FIRST (no
+mode exchange, no Unfocus/Hide) -> own task -> Papyrus
+_MenuModeButton(int); old 900/901 legs retained as defense-in-depth.
+
+THREE DLL HASHES + EXPORT TABLES (dumpbin /exports)
+SkyrimNet_BakaIntegration.dll 1,050,624 B
+  NEW  SHA256 93A4A6F6213AB6B925C894467FB8DF1806D347442C71BDE96778914D1702FD87
+  OLD  SHA256 5B3DA430EE44BAF932742... (superseded-at-batch-cut)
+  Exports: SKSEPlugin_Load @000020C0, SKSEPlugin_Query @00037B50,
+           SKSEPlugin_Version @000F32F0  (3/3)
+SNAnimGS_UI.dll 574,464 B
+  NEW  SHA256 8F05DC4AA67C24223A7C8E16E86DAA9C8CEAAFE107CD84FA085CA60D436150C0
+  OLD  SHA256 0D9B2F7697FF1C57CC7B16... (superseded-at-batch-cut)
+  Exports: SKSEPlugin_Load @0001C7A0, SKSEPlugin_Query @0001F510,
+           SKSEPlugin_Version @000860D0  (3/3)
+DeDService.dll 667,136 B
+  NEW  SHA256 DDB68A6627B89000B49DEA8A7AD7B48BB78FAEB54CA3306D4856BF3E324DAC6C
+  OLD  SHA256 2AE6905FA9A7C936143046... (superseded-at-batch-cut)
+  Exports: SKSEPlugin_Load @0001E830, SKSEPlugin_Query @0002D9E0,
+           SKSEPlugin_Version @000980D0  (3/3)
+NOTE: new bytes in NO dist this session (batch mode) - [REV-146] keeps
+the current DLLs until the next batch cut. Ship tree SKSE/Plugins
+(fork repo) updated as the dist SOURCE at the cut.
+
+4.2 PIN PROVENANCE (recorded once, cited): f865d990f8d1495a5e9e7fc8
+a8d2b42c9af5619d = tag v4.26.0, release commit "chore(release): 4.26.0"
+(2026-06-05), alandtse/CommonLibVR fork (fork .gitmodules submodule url;
+git describe --tags = v4.26.0). dll-source-gs/ded resolve the SAME
+lineage via the vcpkg overlay source-build.
+
+4.1 BLOCKED FINDING (REV-114 evidence-cited absence): silverlock front
+page lists 2.3.1 (game 1.7.104) as "Nexus" ONLY
+(skyrimspecialedition/mods/30379?tab=files; Cloudflare-challenge-gated,
+account-gated). The silverlock archive directory listing (captured in
+full) tops out at skse64_2_02_06 - NO skse64_2_03_* binary or _src.
+STOP CONDITION honored: no guessed/substituted headers; rebuild ran
+against the pinned f865d99 vendored SKSE headers. USER SUPPLY: the
+Nexus-fetched archive, if a 2.3.1-header verification rebuild is wanted.
+
+4.5 VERDICT FRAMING (surfaced, not decided): the binaries are
+CommonLibSSE-NG f865d99 dynamic-runtime builds (SE/AE/VR enabled,
+Address-Library load-resolution). Loadability on current 1.6.x AND/OR
+1.7.104 rides the USER's batch dogfood (both boots). If one binary
+cannot serve both: DUAL-BINARY PACKAGING = USER RULING (options
+surfaced: one-binary/Address-Library; two-binary + SKSE select or
+FOMOD condition; 1.7.104-only + README line). Nothing built toward it.
+
+JUDGMENTS SURFACED
+1. SKSE 2.3.1 headers = user-supply (4.1 blocked).
+2. Multi-runtime verdict + dual-binary = user rulings (4.5).
+3. Boot/live receipts = user-run legs at the batch dogfood.
+
+8-ASSUMPTIONS AUDIT: (a) bridge re-resolution == Papyrus resolution
+(same native logic/frame; safe failure on disagreement); (b) Invoke on
+hidden-but-created view = harmless (SetGetUpCharge precedent); (c)
+900/901 intercept safe across modes (reserved ids, panel-global footer);
+(d) effect pex ad-hoc rebuild (REV-91 precedent) pending a future
+island fold (flagged for planner). Full text PROJECT_STATE 168.
+
+GATES: compile 12/12 0/0 BUILD OK (run_compile_rev147.bat; stub-parity
+PASS; denylist CLEAN; failure-propagation pex-verified) + effect ad-hoc
+0/0; shipped-bytes string checks all True (see PROJECT_STATE 168
+Gates); psc trees fc/b identical; JS node --check RC=0; DLL builds
+3/3 clean + dumpbin 3/3.
+
+Modlist writes this session: NONE.

@@ -1023,6 +1023,7 @@ Function _MephalaToggle()
         _Log("[SNBaka] daemon mode OFF: Mephala -- REV-145")
     EndIf
     _DaemonArm()
+    _PushModeStates()
 EndFunction
 
 Function _MolagBalToggle()
@@ -1036,6 +1037,34 @@ Function _MolagBalToggle()
         _Log("[SNBaka] daemon mode OFF: Molag Bal -- REV-145")
     EndIf
     _DaemonArm()
+    _PushModeStates()
+EndFunction
+
+; REV-147 Feature B: push the live mode-button ON/OFF highlight to the open panel.
+; Papyrus is the arbiter (the flags above); the DLL relays the payload to JS. Called
+; at panel open and after every toggle, so the footer buttons always mirror the flags.
+Function _PushModeStates()
+    Int iMeph  = StorageUtil.GetIntValue(None, "SNBaka.MephalaMode", 0)
+    Int iMolag = StorageUtil.GetIntValue(None, "SNBaka.MolagBalMode", 0)
+    SNBakaUI.SetModeStates(iMeph == 1, iMolag == 1)
+    _Log("[SNBaka][PANEL] mode states pushed: Mephala=" + iMeph + " MolagBal=" + iMolag)
+EndFunction
+
+; REV-147 Feature B: the footer mode buttons (numeric 900/901) now arrive on their own
+; DLL dispatch that KEEPS THE PANEL OPEN (the bridge intercepts the ids before the
+; modal unfocus/hide path -- the REV-146a JS design intent "both modes toggled in one
+; visit" is now actually true bridge-side). Papyrus arbitrates exactly as before; the
+; toggles push the new highlight state back through _PushModeStates.
+Function _MenuModeButton(Int aiWhich)
+    If aiWhich == 900
+        _Log("[SNBaka][PANEL] mode button 900 (Mephala) - panel stays open")
+        _MephalaToggle()
+    ElseIf aiWhich == 901
+        _Log("[SNBaka][PANEL] mode button 901 (Molag Bal) - panel stays open")
+        _MolagBalToggle()
+    Else
+        _Log("[SNBaka][PANEL] mode button: unknown id " + aiWhich + " - ignored")
+    EndIf
 EndFunction
 
 ; Arm/disarm the shared tick: Molag-Bal cadence (15s) preempts Mephala (30s)
@@ -6916,11 +6945,30 @@ EndFunction
 ;     SNBaka_InteractMenuAggPhysical: relabel to Sexual actions: Forced Kiss/Spank/Touch Breasts/Examine/Cancel
 ;     SNBaka_InteractMenuAggSexual:   relabel to Devious actions: Ogle Body/Drunk Exploit/Drug Food/Fondle/Cancel
 ;     SNBaka_InteractMenuAffectionate: NO CHANGE
+; REV-147 Feature A: the no-target panel open. The interact power with nobody on
+; the crosshair routes here (the REV-61 blocked sentinel becomes the panel-open
+; path - user ruling). The bridge re-resolves the crosshair itself; when it also
+; finds nobody it opens the panel with the "no target selected" overlay: all
+; target-actions greyed, the two ambient-mode footer buttons live, their state
+; pushed right after. Every target-action pick from a null-target session is
+; refused with the reason-coded sentinel in _DispatchInteractAction.
+Function Interact_NoTargetPanel(Actor akCaster)
+    _Log("[SNBaka][PANEL] no-target panel open (REV-147)")
+    SNBakaUI.ShowInteractMenu(akCaster, None)
+    _PushModeStates()   ; REV-147 Feature B: initial button state at panel open
+EndFunction
+
 Function Interact_ShowMenu(Actor akTarget, Actor akCaster)
     If !akTarget || !akCaster
         _Log("[SNBaka] interact menu: blocked — null target/caster")
         Return
     EndIf
+
+    ; REV-147 Feature A: the no-target panel open lives in Interact_NoTargetPanel
+    ; (below) - the user ruling that a power press with nobody on the crosshair opens
+    ; the panel instead of doing nothing. The REV-61 blocked sentinel path in
+    ; SkyrimNet_BakaInteractEffect routes there. This function keeps its null guard:
+    ; it requires a real target; the null-target session is the separate entry point.
 
     ; If the target is downed — either by US (SNBaka.OnGround, from a QTE defeat/drug), by an external
     ; mod/cause (any bleedout, e.g. Surrender), or held purely by Acheron (SNAcheron.Held) — open the
@@ -6938,6 +6986,7 @@ Function Interact_ShowMenu(Actor akTarget, Actor akCaster)
         _pendingCaster = akCaster
         _pendingTarget = akTarget
         SNBakaUI.ShowDownedMenu(akCaster, akTarget)
+        _PushModeStates()   ; REV-147 Feature B: initial button state at panel open
         Return
     EndIf
 
@@ -6964,6 +7013,7 @@ Function Interact_ShowMenu(Actor akTarget, Actor akCaster)
         _pendingCaster = akCaster
         _pendingTarget = akTarget
         SNBakaUI.ShowMidCombatMenu(akCaster, akTarget)
+        _PushModeStates()   ; REV-147 Feature B: initial button state at panel open
         Return
     EndIf
 
@@ -6981,6 +7031,7 @@ Function Interact_ShowMenu(Actor akTarget, Actor akCaster)
         ; longer leave us with the wrong actors.
         _Log("[SNBaka] interact menu: opening PrismaUI interact menu (" + akCaster.GetDisplayName() + " -> " + akTarget.GetDisplayName() + ")")
         SNBakaUI.ShowInteractMenu(akCaster, akTarget)
+        _PushModeStates()   ; REV-147 Feature B: initial button state at panel open
         Return  ; result arrives via _DispatchInteractActionWithActors
     EndIf
 
@@ -7089,18 +7140,31 @@ Function _DispatchInteractAction(Int choice)
     Actor cst = _pendingCaster
     _pendingTarget = None
     _pendingCaster = None
-    If choice < 0 || !tgt || !cst
-        Return
-    EndIf
-    ; REV-146a 4.2: the Prisma footer mode buttons (numeric 900/901) arrive on
-    ; the interact dispatcher -- route them to the mode toggles BEFORE any
-    ; action branch (the string sends of REV-145 coerced to 0 = the dogfood
-    ; back-hug dispatch, finding 16283-class). The buttons stay panel-open.
+    ; REV-147 2.3: the reserved mode ids route FIRST, unconditionally - a no-target
+    ; panel session keeps the footer mode buttons live, so 900/901 must not fall
+    ; through the null-target refusal below. (The live path is the DLL's own
+    ; keep-open _MenuModeButton dispatch; this ordering is the defense-in-depth
+    ; leg, unchanged for the MCM routing precedent.)
     If choice == 900
         _MephalaToggle()
         Return
     ElseIf choice == 901
         _MolagBalToggle()
+        Return
+    EndIf
+    If choice < 0
+        Return
+    EndIf
+    ; REV-147 2.3: every target-action choice from a null-target session refuses
+    ; with a reason-coded sentinel (the user ruling: such a panel is ambient-only -
+    ; the JS grey-out makes this unreachable by pointer events, so reaching here
+    ; means a keyboard/bypass path; the refusal is explicit and logged).
+    If !tgt
+        _Log("[SNBaka][PANEL] REFUSED - no target selected (choice=" + choice + ") - REV-147 no-target session")
+        Return
+    EndIf
+    If !cst
+        _Log("[SNBaka][PANEL] REFUSED - no caster (choice=" + choice + ")")
         Return
     EndIf
     If choice == 0
@@ -11356,6 +11420,7 @@ Function SexSpank_ShowMenu(Actor akCaster)
             json += "],\"playerInScene\":false}"
         EndIf
         SNBakaUI.ShowSexSpankMenu(json)
+        _PushModeStates()   ; REV-147 Feature B: initial button state at panel open
         Return  ; result arrives via OnSNBakaMenuChoice
     EndIf
 
