@@ -453,6 +453,8 @@ Function Setup()
     ; REV-144 4.2: player-target policy migration seed (the bPlayerCanBeSpanked fold-in).
     ; One-shot; see _SeedPlayerTargetPolicy for the continuity-vs-default decision.
     _SeedPlayerTargetPolicy()
+    _SeedTargetSexLevel()
+    _DaemonArm()   ; REV-145: re-arm the ambient daemon tick from save-persisted mode flags (idempotent when both off)
     ; Confirmed real bug from testing: THIS is the actual primary re-registration path (called from
     ; SkyrimNet_BakaIntegration_MCM's OnGameReload on every single load -- see that script's own comment;
     ; the OnUpdateGameTime heartbeat in this quest is only a secondary backup), yet it never refreshed
@@ -800,13 +802,71 @@ EndFunction
 ; sex-gated at all: iTargetSex had zero effect on who Escalate could target, regardless of the setting.
 ; HelpUp/Release deliberately do NOT call this — recovering or releasing a downed victim should never be
 ; blocked by target sex.
+; REV-145 3.3 (ruling (c), the baka-daemon.md REV-144 SS-C gate map): the three-level
+; target-sex dropdown FOLDS this gate under SNBaka.TargetSexLevel. The retired
+; iTargetSex property stays declared for save-member/VMAD compatibility but no
+; longer gates anything; existing saves seed the level once from it
+; (_SeedTargetSexLevel, the REV-144 bPlayerCanBeSpanked fold-in precedent).
+;   Level 1 "Only female targets"                 -> female targets only (the old iTargetSex=1)
+;   Level 2 "Male and female targets, male aggr." -> any target, MALE aggressors only
+;   Level 3 "Anything goes"                       -> any target, any aggressor
 Bool Function _TargetSexAllowed(Actor akTarget)
-    If iTargetSex == 1 && !HasFemaleBody(akTarget)
-        Return False
-    ElseIf iTargetSex == 2 && HasFemaleBody(akTarget)
+    If _TargetSexLevel() == 1 && !HasFemaleBody(akTarget)
         Return False
     EndIf
     Return True
+EndFunction
+
+; REV-145 3.3: the level of record (StorageUtil on None, save-persisted).
+; Unknown/clamped values read as 1 -- never a silent behavior change on an
+; unread value (the 6a discipline; conservative default = female-only).
+Int Function _TargetSexLevel()
+    Int iLevel = StorageUtil.GetIntValue(None, "SNBaka.TargetSexLevel", 1)
+    If iLevel < 1 || iLevel > 3
+        Return 1
+    EndIf
+    Return iLevel
+EndFunction
+
+; REV-145 3.3 one-shot seed from the retired keys (guarded, logged; the REV-144
+; fold-in precedent). Existing saves: iTargetSex 1 -> L1 (female-only, behavior-
+; preserving); 0 or 2 -> L3 (both/male-only target admission preserved; no level
+; covers male-only targets, the closest target-admission-preserving level is L3).
+; Fresh boots: L1 (female-only, the conservative reading -- same default class
+; as the PlayerTargetPolicy DEFAULT OFF ruling).
+Function _SeedTargetSexLevel()
+    If StorageUtil.GetIntValue(None, "SNBaka.TargetSexLevel.Seeded", 0) == 1
+        Return
+    EndIf
+    Int v = 1
+    If !_bFreshBoot && iTargetSex != 1
+        v = 3
+    EndIf
+    StorageUtil.SetIntValue(None, "SNBaka.TargetSexLevel", v)
+    StorageUtil.SetIntValue(None, "SNBaka.TargetSexLevel.Seeded", 1)
+    If _bFreshBoot
+        _Log("[SNBaka] target-sex level SEEDED: L" + v + " (fresh boot -- female-only default, REV-145)")
+    Else
+        _Log("[SNBaka] target-sex level SEEDED: L" + v + " (existing save -- seeded from retired iTargetSex=" + iTargetSex + ", REV-145)")
+    EndIf
+EndFunction
+
+; REV-145 3.3: LEVEL-2 AGGRESSOR-SEX HELPER (the REV-144 SS-C surfaced conflict:
+; level-2's male-aggressor constraint had no aggressor-side sex check). First
+; consumer = the daemon's pair selection; the escalation funnel sites adopt it
+; as they are touched. Level 1: no aggressor constraint (targets are female-only
+; at the target gate). Level 2: the initiator must be male. Level 3: no
+; constraint. Reason-coded sentinel on the refuse leg only (the admit is the
+; common path; the SS-C receipt rides the daemon pair log).
+Bool Function _AggressorSexAllowed(Actor akInitiator, String asSite)
+    If _TargetSexLevel() != 2
+        Return True
+    EndIf
+    If _SexOf(akInitiator) == 0
+        Return True
+    EndIf
+    _Log("[SNBaka] aggressor-sex REFUSED: L2 requires male aggressors (site=" + asSite + ", initiator=" + akInitiator.GetDisplayName() + ") -- REV-145")
+    Return False
 EndFunction
 
 ; ============================================================
@@ -879,6 +939,673 @@ Bool Function _PlayerTargetAdmitted(Actor akInitiator, Actor akTarget, String as
     EndIf
     _Log("[SNBaka] player-target REFUSED: policy OFF (site=" + asSite + ", initiator=" + sWho + ") -- REV-144 central gate")
     Return False
+EndFunction
+
+; ============================================================
+; REV-145 — THE BAKA AMBIENT DAEMON (Mephala Mode / Molag Bal Mode)
+; ============================================================
+; Spec of record: baka-daemon.md REV-144 SS-A..SS-D + the REV-134e design pass
+; (planner text verbatim). ONE daemon, two vocabularies (the module boundary
+; respected): Baka = SECOND CONSUMER of the GS service class -- the arbiter/
+; scan/floor patterns are copied shape, never merged scripts.
+;   StorageUtil class SNBaka (on None, save-persisted, the GSAnim.Muse pattern):
+;     SNBaka.MephalaMode   1 = ambient thought-seeding mode ON (30s tick, 60s per-actor)
+;     SNBaka.MolagBalMode  1 = ambient overdrive ON (15s tick, 30s per-actor, no LLM, no thoughts)
+;   Mode names = USER-AUTHORED, register-cited (17b precedent; entry 30/REV-134e (e)).
+; Session-scoped by StorageUtil save-persistence exactly like GSAnim.Muse (the
+; GS toggle-scope precedent -- SURFACED: same behavior, flags persist in saves).
+; TIMER ANCHOR: the scan clock re-stamps at tick time (the GS interval-clock
+; pattern); the per-actor action clock stamps at ACTION START (137f generalized
+; at REV-144 SS-B(f)) -- SNBaka.DaemonLast, GAME-time, per-actor.
+; Molag-Bal preempts Mephala when both ON (the GS overdrive-preempts-muse
+; arbiter precedent). Multi-actor: Molag-Bal permitted (137f precedent,
+; per-actor bookkeeping, no single-flight gate); Mephala ONE pending action
+; at a time.
+
+Actor[] _daemonPool
+Actor _akMephalaInitiator = None   ; pending consideration pair (ONE at a time)
+Actor _akMephalaTarget    = None
+Int _iMephalaBand         = 0      ; arousal band of the in-flight pick (1/2/3)
+Bool _bMephalaPending     = False
+
+; REV-145 3.6: the two mode toggles (Prisma footer buttons + MCM both route here).
+; Names/notifications USER-AUTHORED (register-cited); ASCII throughout.
+Function _MephalaToggle()
+    Int v = 1 - StorageUtil.GetIntValue(None, "SNBaka.MephalaMode", 0)
+    StorageUtil.SetIntValue(None, "SNBaka.MephalaMode", v)
+    If v == 1
+        Debug.Notification("Mephala Mode: on. The web of whispers stirs.")
+        _Log("[SNBaka] daemon mode ON: Mephala (30s/60s) -- REV-145")
+    Else
+        _bMephalaPending = False
+        _akMephalaInitiator = None
+        _akMephalaTarget = None
+        Debug.Notification("Mephala Mode: off.")
+        _Log("[SNBaka] daemon mode OFF: Mephala -- REV-145")
+    EndIf
+    _DaemonArm()
+EndFunction
+
+Function _MolagBalToggle()
+    Int v = 1 - StorageUtil.GetIntValue(None, "SNBaka.MolagBalMode", 0)
+    StorageUtil.SetIntValue(None, "SNBaka.MolagBalMode", v)
+    If v == 1
+        Debug.Notification("Molag Bal Mode: on. The ball begins.")
+        _Log("[SNBaka] daemon mode ON: Molag Bal (15s/30s, no thoughts) -- REV-145")
+    Else
+        Debug.Notification("Molag Bal Mode: off.")
+        _Log("[SNBaka] daemon mode OFF: Molag Bal -- REV-145")
+    EndIf
+    _DaemonArm()
+EndFunction
+
+; Arm/disarm the shared tick: Molag-Bal cadence (15s) preempts Mephala (30s)
+; when both ON (the GS arbiter ElseIf discipline). Both off = disarmed (the
+; multiplexer drops the daemon leg; zero cost, same as GS flags-off idle).
+Function _DaemonArm()
+    Int iMolag = StorageUtil.GetIntValue(None, "SNBaka.MolagBalMode", 0)
+    Int iMeph  = StorageUtil.GetIntValue(None, "SNBaka.MephalaMode", 0)
+    If iMolag == 1
+        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 15.0
+    ElseIf iMeph == 1
+        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 30.0
+    Else
+        _fBakaDaemonNextRT = 0.0
+    EndIf
+    _ArmRealtimeTimer()
+EndFunction
+
+; The tick (receipt standard: EVERY leg sentinel'd, ASCII, unconditional -- the
+; 137f precedent template). Combat suspend: player in combat = early return,
+; scan clock NOT re-stamped (resumes cleanly at cadence; the GS MuseTick
+; pattern, ruling rev-9 (b)). No expiry clock exists (modes are manual toggles),
+; so the GS expiry clock-pause leg has no equivalent here -- SURFACED, not
+; silently dropped.
+Function _DaemonTick()
+    _Log("[SNBaka] daemon tick opportunity (Mephala=" + StorageUtil.GetIntValue(None, "SNBaka.MephalaMode", 0) + " MolagBal=" + StorageUtil.GetIntValue(None, "SNBaka.MolagBalMode", 0) + ", level L" + _TargetSexLevel() + ") -- REV-145")
+    If PlayerRef.IsInCombat()
+        _Log("[SNBaka] daemon suspend-player-combat: tick skipped, clock unspent -- REV-145")
+        Return
+    EndIf
+    Int iMolag = StorageUtil.GetIntValue(None, "SNBaka.MolagBalMode", 0)
+    Int iMeph  = StorageUtil.GetIntValue(None, "SNBaka.MephalaMode", 0)
+    Int iMode = 0   ; 2 = Molag-Bal (preempts), 1 = Mephala
+    If iMolag == 1
+        iMode = 2
+    ElseIf iMeph == 1
+        iMode = 1
+    EndIf
+    If iMode == 0
+        _fBakaDaemonNextRT = 0.0
+        _Log("[SNBaka] daemon refuse: both modes off at tick -- disarmed")
+        Return
+    EndIf
+    ; re-stamp the scan clock at tick time (the interval-clock pattern)
+    If iMode == 2
+        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 15.0
+    Else
+        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 30.0
+    EndIf
+    If iMode == 1 && _bMephalaPending
+        _Log("[SNBaka] daemon refuse: busy (Mephala pending) -- one pending action at a time -- REV-145")
+        Return
+    EndIf
+    _DaemonAttempt(iMode)
+EndFunction
+
+; REV-145 3.2: THE CANDIDATE POOL (paired-action _DaemonScan; the GS service-class
+; pattern, Baka-side filters). Radius 2500 (fDaemonRadius precedent), loaded/alive/
+; not-combat, plus the Baka busy guards (SNBaka.Locked, downed, mid sex scene,
+; creature skeleton). Seated/idle candidates are ADMITTED as candidates when the
+; REV-135/136/137 idle-interrupt service is present (the REV-87/88/89 seated-
+; candidate question resolved interrupt-then-fire per the 2026-10-20 ruling (d)):
+; class 1/2 (furniture sit / idle-marker hold) enter the pool and are exited at
+; fire time; essential classes (-1 sleep, -2 downed, -3 mounted, -4 swimming,
+; -5 sneaking) never enter. Without the GS esp there is no class read and no
+; interrupt: seated candidates are refused reason-coded (the old exclusion, now
+; named instead of silent -- the REV-90 rider class).
+Int Function _DaemonScan()
+    If !_daemonPool || _daemonPool.Length < 64
+        _daemonPool = New Actor[64]
+    EndIf
+    Int n = 0
+    Bool bGSPresent = Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None
+    Actor[] akAll = PO3_SKSEFunctions.GetActorsByProcessingLevel(0)
+    Int i = 0
+    While i < akAll.Length && n < 64
+        Actor ak = akAll[i]
+        If !ak || ak == PlayerRef || ak.IsDead() || ak.IsInCombat() || ak.GetDistance(PlayerRef) > 2500.0
+            ; walk-neutral: never-candidates, no sentinel (the pool census logs n)
+        ElseIf _IsCreatureActor(ak)
+            _Log("[SNBaka] daemon pool refuse: creature-skeleton (" + ak.GetDisplayName() + ") -- REV-145")
+        ElseIf IsInSexAnimation(ak) || StorageUtil.GetIntValue(ak, "SNBaka.Locked", 0) == 1
+            _Log("[SNBaka] daemon pool refuse: busy (in-scene/locked) (" + ak.GetDisplayName() + ") -- REV-145")
+        ElseIf _IsDownedAny(ak)
+            _Log("[SNBaka] daemon pool refuse: downed (" + ak.GetDisplayName() + ") -- REV-145")
+        ElseIf StorageUtil.GetStringValue(ak, "GSAnim.Pose", "") != ""
+            _Log("[SNBaka] daemon pool refuse: busy (GS pose active) (" + ak.GetDisplayName() + ") -- REV-145")
+        ElseIf !bGSPresent && ak.GetSitState() != 0
+            _Log("[SNBaka] daemon pool refuse: busy (seated, no idle-svc) (" + ak.GetDisplayName() + ") -- REV-145")
+        ElseIf bGSPresent && SkyrimNet_AnimationsGS._IdleClass(ak) < 0
+            _Log("[SNBaka] daemon pool refuse: busy (essential idle class) (" + ak.GetDisplayName() + ") -- REV-145")
+        Else
+            _daemonPool[n] = ak
+            n += 1
+        EndIf
+        i += 1
+    EndWhile
+    Return n
+EndFunction
+
+; REV-145 3.4: arousal band on the INITIATOR (the REV-82 tiering chain read:
+; band -> action-class subset). Same framework reads as GetDedArousal; no
+; framework = tier 1 (mild -- never a silent extremity unlock).
+Int Function _DaemonArousalTier(Actor ak)
+    Int arousal = -1
+    If SKSE.GetPluginVersion("OSLAroused") > 0
+        arousal = OSLArousedNative.GetArousalNoSideEffects(ak) as Int
+    Else
+        slaFrameworkScr kNG = Quest.GetQuest("sla_Framework") as slaFrameworkScr
+        If kNG
+            arousal = kNG.GetActorArousal(ak)
+        EndIf
+    EndIf
+    If arousal < 0
+        Return 1
+    EndIf
+    If arousal >= 75
+        Return 3
+    ElseIf arousal <= 25
+        Return 1
+    EndIf
+    Return 2
+EndFunction
+
+; REV-145 3.4: the ACTION -> CLASS -> EXTREMITY-BAND table of record (ruling (a):
+; ALL module actions in the pool; Mephala subsets by band, Molag-Bal draws the
+; full set; asset-guards stay UNCONDITIONAL in the executors (rev-55b) -- the
+; pool never pre-clears them).
+;   Band 1 (mild / social-affection):  Flirt, FlirtFace, FlirtBreast, FlirtPussy,
+;     BackHug, FrontHug, KissLove, ArmHold, ShowingOffBody
+;   Band 2 (mid / intimate-touch, tier 2+): ForcedKiss, TouchBreasts, SuckBreasts,
+;     ExaminePrivates, PlayPrivates, FondlePussy, Spanking, DrunkExploit,
+;     DrugFood, OralOnTarget, Investigate, CapturedInspect, Strip
+;   Band 3 (aggressive/overpower, tier 3 only): Struggle, ChokeHug, ChokeHelpless,
+;     WombHit, PinHelpless, Subdue, BackHugMolest
+; STRUGGLE-CHAIN (ruling): forced/choke/wombhit-class REQUIRE the struggle first
+; (see _DaemonIsStruggleChain). Strip is in the pool from day one (REV-144 6.x
+; build, SS-B(a)); the player-side downed-menu tile stays its manual surface.
+String[] Function _DaemonActionPool(Int aiBand)
+    If aiBand < 1
+        aiBand = 1
+    ElseIf aiBand > 3
+        aiBand = 3
+    EndIf
+    If aiBand == 1
+        String[] pool1 = New String[9]
+        pool1[0] = "Flirt"
+        pool1[1] = "FlirtFace"
+        pool1[2] = "FlirtBreast"
+        pool1[3] = "FlirtPussy"
+        pool1[4] = "BackHug"
+        pool1[5] = "FrontHug"
+        pool1[6] = "KissLove"
+        pool1[7] = "ArmHold"
+        pool1[8] = "ShowingOffBody"
+        Return pool1
+    ElseIf aiBand == 2
+        String[] pool2 = New String[22]
+        pool2[0] = "Flirt"
+        pool2[1] = "FlirtFace"
+        pool2[2] = "FlirtBreast"
+        pool2[3] = "FlirtPussy"
+        pool2[4] = "BackHug"
+        pool2[5] = "FrontHug"
+        pool2[6] = "KissLove"
+        pool2[7] = "ArmHold"
+        pool2[8] = "ShowingOffBody"
+        pool2[9]  = "ForcedKiss"
+        pool2[10] = "TouchBreasts"
+        pool2[11] = "SuckBreasts"
+        pool2[12] = "ExaminePrivates"
+        pool2[13] = "PlayPrivates"
+        pool2[14] = "FondlePussy"
+        pool2[15] = "Spanking"
+        pool2[16] = "DrunkExploit"
+        pool2[17] = "DrugFood"
+        pool2[18] = "OralOnTarget"
+        pool2[19] = "Investigate"
+        pool2[20] = "CapturedInspect"
+        pool2[21] = "Strip"
+        Return pool2
+    EndIf
+    String[] pool3 = New String[29]
+    pool3[0] = "Flirt"
+    pool3[1] = "FlirtFace"
+    pool3[2] = "FlirtBreast"
+    pool3[3] = "FlirtPussy"
+    pool3[4] = "BackHug"
+    pool3[5] = "FrontHug"
+    pool3[6] = "KissLove"
+    pool3[7] = "ArmHold"
+    pool3[8] = "ShowingOffBody"
+    pool3[9]  = "ForcedKiss"
+    pool3[10] = "TouchBreasts"
+    pool3[11] = "SuckBreasts"
+    pool3[12] = "ExaminePrivates"
+    pool3[13] = "PlayPrivates"
+    pool3[14] = "FondlePussy"
+    pool3[15] = "Spanking"
+    pool3[16] = "DrunkExploit"
+    pool3[17] = "DrugFood"
+    pool3[18] = "OralOnTarget"
+    pool3[19] = "Investigate"
+    pool3[20] = "CapturedInspect"
+    pool3[21] = "Strip"
+    pool3[22] = "Struggle"
+    pool3[23] = "ChokeHug"
+    pool3[24] = "ChokeHelpless"
+    pool3[25] = "WombHit"
+    pool3[26] = "PinHelpless"
+    pool3[27] = "Subdue"
+    pool3[28] = "BackHugMolest"
+    Return pool3
+EndFunction
+
+; REV-145 3.4: the struggle-chain class (ruling: forced/choke/wombhit-class
+; REQUIRE the struggle first -- the ambient seeds the INTENTION, the actor
+; initiates, the follow-up rides the outcome through the existing struggle/
+; escalation machinery (Struggle_Execute's _DefeatGroundWindow -> baka_escalate
+; funnel, and _CueDecisionIfDowned's ground-window keep-alive).
+Bool Function _DaemonIsStruggleChain(String sAction)
+    Return sAction == "ChokeHug" || sAction == "ChokeHelpless" || sAction == "WombHit" \
+        || sAction == "PinHelpless" || sAction == "Subdue" || sAction == "ForcedKiss" \
+        || sAction == "BackHugMolest"
+EndFunction
+
+; REV-145 3.7: the drunk/tavern variant (planner: "struggle action picks should
+; do the drunk struggle action when in taverns or if the target is drunk").
+; Tavern-class read: the player's current location carries LocTypeInn.
+Bool Function _DaemonIsTavernClass()
+    If !PlayerRef || !PlayerRef.GetCurrentLocation()
+        Return False
+    EndIf
+    Return PlayerRef.GetCurrentLocation().HasKeyword(Keyword.GetKeyword("LocTypeInn"))
+EndFunction
+
+; REV-145 3.7: drunk-target read. The tree has NO dedicated drunk-state query
+; (SURFACED -- the REV-134e "Baka drunk-state queries" pointer was design-
+; inferred, not site-verified; not a spec-vs-tree conflict: the variant is fully
+; deliverable on tree-true signals); the two signals used: the PoseDrink
+; blackout stamp (written at the blackout site, cleared at its recovery leg) and
+; the LastAnim=="DrunkExploit" trace (a just-exploited impaired victim).
+Bool Function _DaemonIsDrunkTarget(Actor akTarget)
+    If !akTarget
+        Return False
+    EndIf
+    If StorageUtil.GetIntValue(akTarget, "SNBaka.DrunkBlackout", 0) == 1
+        Return True
+    EndIf
+    Return StorageUtil.GetStringValue(akTarget, "SNBaka.LastAnim", "") == "DrunkExploit"
+EndFunction
+
+; REV-145 3.2/3.4: ONE attempt = scan -> initiator -> target -> select -> fire.
+; Every refusal NAMED (toggle/pool-empty/policy-refused/target-sex-refused/
+; aggressor-sex-refused/busy/anim-reject). Player-target consults the ONE central
+; gate (rev-55a blanket; site codes mephala.scan / molagbal.scan).
+Function _DaemonAttempt(Int aiMode)
+    String sMode = "Mephala"
+    If aiMode == 2
+        sMode = "MolagBal"
+    EndIf
+    Int n = _DaemonScan()
+    If n < 2
+        _Log("[SNBaka] daemon refuse: pool-empty (n=" + n + ", mode=" + sMode + ") -- REV-145")
+        Return
+    EndIf
+    ; initiator: random-walk first-eligible (the GS muse walk pattern)
+    Float fFloor = 60.0
+    If aiMode == 2
+        fFloor = 30.0
+    EndIf
+    Float fFloorDays = fFloor / (24.0 * 60.0 * 60.0)
+    Actor akInitiator = None
+    Int i = Utility.RandomInt(0, n - 1)
+    Int steps = 0
+    While steps < n && !akInitiator
+        Actor akC = _daemonPool[i]
+        If Utility.GetCurrentGameTime() - StorageUtil.GetFloatValue(akC, "SNBaka.DaemonLast", 0.0) < fFloorDays
+            _Log("[SNBaka] daemon floor skip: " + akC.GetDisplayName() + " (per-actor cooldown, mode=" + sMode + ") -- REV-145")
+        ElseIf !_AggressorSexAllowed(akC, sMode + ".scan")
+            ; aggressor-sex refused (sentinel inside the helper); walk continues
+        Else
+            akInitiator = akC
+        EndIf
+        If !akInitiator
+            i = (i + 1) % n
+            steps += 1
+        EndIf
+    EndWhile
+    If !akInitiator
+        _Log("[SNBaka] daemon refuse: pool-empty (no initiator past floor/gates, n=" + n + ", mode=" + sMode + ") -- REV-145")
+        Return
+    EndIf
+    ; target: random NPC partner within NPC reach; the player only via the
+    ; central policy + target-sex level
+    Actor akTarget = None
+    Int j = Utility.RandomInt(0, n - 1)
+    Int jSteps = 0
+    While jSteps < n && !akTarget
+        Actor akT = _daemonPool[j]
+        If akT != akInitiator && akT.GetDistance(akInitiator) <= fNPCInteractionDistance
+            If !_TargetSexAllowed(akT)
+                _Log("[SNBaka] daemon refuse: target-sex-refused (" + akT.GetDisplayName() + ", level L" + _TargetSexLevel() + ", mode=" + sMode + ") -- REV-145")
+            ElseIf !_PlayerTargetAdmitted(akInitiator, akT, sMode + ".scan")
+                ; policy-refused (sentinel inside the central gate)
+            Else
+                akTarget = akT
+            EndIf
+        EndIf
+        If !akTarget
+            j = (j + 1) % n
+            jSteps += 1
+        EndIf
+    EndWhile
+    If !akTarget
+        ; the player remains: policy + level gated
+        If _TargetSexAllowed(PlayerRef) && _PlayerTargetAdmitted(akInitiator, PlayerRef, sMode + ".scan") \
+           && akInitiator.GetDistance(PlayerRef) <= fNPCInteractionDistance
+            akTarget = PlayerRef
+        EndIf
+    EndIf
+    If !akTarget
+        _Log("[SNBaka] daemon refuse: pool-empty (no target for " + akInitiator.GetDisplayName() + ", mode=" + sMode + ") -- REV-145")
+        Return
+    EndIf
+    _Log("[SNBaka] daemon candidate selected: " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + " (mode=" + sMode + ", pool n=" + n + ", level L" + _TargetSexLevel() + ") -- REV-145")
+    If aiMode == 2
+        _DaemonMolagPick(akInitiator, akTarget)
+    Else
+        _DaemonMuseAsk(akInitiator, akTarget)
+    EndIf
+EndFunction
+
+; REV-145 3.5: MOLAG-BAL PICK -- random from the FULL pool (ruling (a): all
+; actions, no arousal gating, no thoughts, no LLM call).
+Function _DaemonMolagPick(Actor akInitiator, Actor akTarget)
+    String[] pool = _DaemonActionPool(3)
+    String sAction = pool[Utility.RandomInt(0, pool.Length - 1)]
+    _Log("[SNBaka] daemon MolagBal pick: " + sAction + " (" + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + ", random, no LLM) -- REV-145")
+    _DaemonDispatchAction(akInitiator, akTarget, sAction, "MolagBal")
+EndFunction
+
+; REV-145 3.5: MEPHALA ASK -- the consideration pattern (ONE call picks the
+; action AND seeds the thought; the gsanim_muse_consideration precedent). The
+; prompt = pending-approvals entry 30b DRAFT (snbaka_muse_consideration.prompt,
+; staged draft-flagged in-tree): the user's install ruling = their 30b ruling;
+; with the prompt absent the LLM call fails and the attempt is refused named
+; (prompt-absent) -- no silent degradation.
+Function _DaemonMuseAsk(Actor akInitiator, Actor akTarget)
+    Int iBand = _DaemonArousalTier(akInitiator)
+    _bMephalaPending = True
+    _akMephalaInitiator = akInitiator
+    _akMephalaTarget = akTarget
+    _iMephalaBand = iBand
+    String sPack = _DaemonPackContext(akInitiator, akTarget, iBand)
+    _Log("[SNBaka] daemon Mephala consideration asked: " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + " (band " + iBand + ") -- REV-145")
+    Int sent = SkyrimNetApi.SendCustomPromptToLLM("snbaka_muse_consideration", "", sPack, Self as Quest, "SkyrimNet_BakaIntegration", "OnBakaMuseConsideration")
+    If sent != 1
+        _bMephalaPending = False
+        _akMephalaInitiator = None
+        _akMephalaTarget = None
+        _iMephalaBand = 0
+        _Log("[SNBaka] daemon refuse: prompt-absent/not-sent (rc=" + sent + ", snbaka_muse_consideration; Mephala lane REQUIRES the 30b prompt) -- REV-145")
+    EndIf
+EndFunction
+
+; REV-145 3.5: the context pack -- candidate pair (names, sexes, arousal band),
+; mode, target-sex level, player-target policy state, place/hour, drunk/tavern
+; signals. Everything Papyrus can verify at ask time (the GS _MusePackContext
+; discipline).
+String Function _DaemonPackContext(Actor akInitiator, Actor akTarget, Int aiBand)
+    String sSexI = "unknown"
+    Int iSexI = _SexOf(akInitiator)
+    If iSexI == 0
+        sSexI = "male"
+    ElseIf iSexI == 1
+        sSexI = "female"
+    EndIf
+    String sSexT = "unknown"
+    Int iSexT = _SexOf(akTarget)
+    If iSexT == 0
+        sSexT = "male"
+    ElseIf iSexT == 1
+        sSexT = "female"
+    EndIf
+    String sLoc = "unknown"
+    If PlayerRef.GetCurrentLocation()
+        sLoc = PlayerRef.GetCurrentLocation().GetName()
+    EndIf
+    String sPolicy = "NPCs may not target the player"
+    If _PlayerTargetPolicy() == 1
+        sPolicy = "NPCs may target the player"
+    EndIf
+    String sDrunk = "no"
+    If _DaemonIsDrunkTarget(akTarget)
+        sDrunk = "yes"
+    EndIf
+    String sTavern = "no"
+    If _DaemonIsTavernClass()
+        sTavern = "yes"
+    EndIf
+    ; Time-of-day register from the game clock (the GS _MusePackContext shape)
+    Int iHour = (Utility.GetCurrentGameTime() * 24.0) as Int % 24
+    String sTod = "midday"
+    If iHour < 5 || iHour >= 21
+        sTod = "deep night"
+    ElseIf iHour < 8
+        sTod = "early morning"
+    ElseIf iHour >= 17
+        sTod = "evening"
+    EndIf
+    ; the action library line (the band's pool, comma-joined)
+    String sLib = ""
+    String[] pool = _DaemonActionPool(aiBand)
+    Int a = 0
+    While a < pool.Length
+        If a > 0
+            sLib = sLib + ", "
+        EndIf
+        sLib = sLib + pool[a]
+        a += 1
+    EndWhile
+    ; JSON with keys matching snbaka_muse_consideration.prompt placeholders
+    ; (the SendCustomPromptToLLM context channel renders {{ key }} fields).
+    Return "{\"initiatorName\":\"" + akInitiator.GetDisplayName() + "\",\"initiatorSex\":\"" + sSexI + "\",\"arousalBand\":\"" + aiBand + "\",\"targetName\":\"" + akTarget.GetDisplayName() + "\",\"targetSex\":\"" + sSexT + "\",\"targetDrunk\":\"" + sDrunk + "\",\"location\":\"" + sLoc + "\",\"tavern\":\"" + sTavern + "\",\"timeOfDay\":\"" + sTod + "\",\"targetSexLevel\":\"" + _TargetSexLevel() + "\",\"playerTargetPolicy\":\"" + sPolicy + "\",\"actionLibrary\":\"" + sLib + "\"}"
+EndFunction
+
+; REV-145 3.5: the SendCustomPromptToLLM callback (the OnMuseConsideration
+; template; guards RE-CHECKED at seed time -- the moment between ask and answer
+; can change everything; a failed guard is a dropped pick, never a fire).
+; Output contract: "ACTION: <name> | THOUGHT: <one-sentence grounded thought>",
+; "REFUSE: <reason>", or "MISS".
+Function OnBakaMuseConsideration(String response, Int success)
+    Actor akInitiator = _akMephalaInitiator
+    Actor akTarget = _akMephalaTarget
+    Int iBand = _iMephalaBand
+    _bMephalaPending = False
+    _akMephalaInitiator = None
+    _akMephalaTarget = None
+    _iMephalaBand = 0
+    If !akInitiator || !akTarget
+        _Log("[SNBaka] daemon Mephala pick dropped: pending pair vanished at seed time -- REV-145")
+        Return
+    EndIf
+    If PlayerRef.IsInCombat()
+        _Log("[SNBaka] daemon suspend-player-combat: Mephala pick dropped at seed time -- REV-145")
+        Return
+    EndIf
+    If akInitiator.IsDead() || akInitiator.IsInCombat() || akTarget.IsDead() || akTarget.IsInCombat()
+        _Log("[SNBaka] daemon refuse: busy (combat/death at seed time, " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + ") -- REV-145")
+        Return
+    EndIf
+    If StorageUtil.GetIntValue(akInitiator, "SNBaka.Locked", 0) == 1 || StorageUtil.GetIntValue(akTarget, "SNBaka.Locked", 0) == 1
+        _Log("[SNBaka] daemon refuse: busy (locked at seed time, " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + ") -- REV-145")
+        Return
+    EndIf
+    If success != 1 || response == ""
+        _Log("[SNBaka] daemon refuse: prompt-miss (success=" + success + ") -- REV-145")
+        Return
+    EndIf
+    Int iAct = StringUtil.Find(response, "ACTION:")
+    Int iThought = StringUtil.Find(response, "| THOUGHT:")
+    If iAct < 0 || iThought < 0 || iThought <= iAct
+        _Log("[SNBaka] daemon refuse: prompt-miss (parse) -- " + response + " -- REV-145")
+        Return
+    EndIf
+    String sAction = _DaemonTrimSpaces(StringUtil.Substring(response, iAct + 7, iThought - iAct - 7))
+    String sThought = _DaemonTrimSpaces(StringUtil.Substring(response, iThought + 10, 700))
+    If sAction == "" || sThought == ""
+        _Log("[SNBaka] daemon refuse: prompt-miss (empty fields) -- REV-145")
+        Return
+    EndIf
+    If StringUtil.Find(response, "REFUSE:") >= 0
+        _Log("[SNBaka] daemon refuse: LLM refused the pick -- " + response + " -- REV-145")
+        Return
+    EndIf
+    ; rev-22 direct-fire allowlist discipline: EXACT match against the band's
+    ; pool only (an out-of-band or hallucinated action name is refused, never
+    ; degraded to a guess).
+    String[] pool = _DaemonActionPool(iBand)
+    Bool bAllowed = False
+    Int p = 0
+    While p < pool.Length && !bAllowed
+        If pool[p] == sAction
+            bAllowed = True
+        EndIf
+        p += 1
+    EndWhile
+    If !bAllowed
+        _Log("[SNBaka] daemon refuse: anim-reject (out-of-band pick '" + sAction + "', band " + iBand + ") -- REV-145")
+        Return
+    EndIf
+    _Log("[SNBaka] daemon Mephala pick accepted: " + sAction + " (" + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + ") -- REV-145")
+    Int rc = SkyrimNetApi.GenerateNPCThought(akInitiator, sThought)
+    _Log("[SNBaka] daemon Mephala thought seeded (rc=" + rc + "): " + sThought + " -- REV-145")
+    _DaemonDispatchAction(akInitiator, akTarget, sAction, "Mephala")
+EndFunction
+
+; Leading/trailing space trim (the REV-21 trailing-space lesson; Papyrus has no Trim()).
+String Function _DaemonTrimSpaces(String s)
+    While StringUtil.GetLength(s) > 0 && StringUtil.GetNthChar(s, 0) == " "
+        s = StringUtil.Substring(s, 1, StringUtil.GetLength(s) - 1)
+    EndWhile
+    While StringUtil.GetLength(s) > 0 && StringUtil.GetNthChar(s, StringUtil.GetLength(s) - 1) == " "
+        s = StringUtil.Substring(s, 0, StringUtil.GetLength(s) - 1)
+    EndWhile
+    Return s
+EndFunction
+
+; REV-145 3.2/3.4: THE DISPATCH. Idle-interrupt exit first (class-aware exit ->
+; recheck -> the action's own hold machinery, Baka _HoldActorAI order per
+; SS161 R.2; the REV-136 2.2 hold acquired at exit-issue), then IsEligible
+; recheck, then the per-actor ACTION-START stamp (137f anchor), then the
+; executor. Struggle-chain: the ambient seeds the INTENTION (GenerateNPCThought
+; names the intent), the actor initiates via Struggle_Execute, the follow-up
+; rides the outcome (the existing _DefeatGroundWindow / baka_escalate funnel).
+; Drunk/tavern variant: a struggle-class pick becomes DrunkExploit when in a
+; tavern-class location OR the target is drunk (planner verbatim).
+Function _DaemonDispatchAction(Actor akInitiator, Actor akTarget, String sAction, String asMode)
+    If !akInitiator || !akTarget
+        Return
+    EndIf
+    ; idle-interrupt: seated/marker-held initiators exit first (REV-135/136/137
+    ; service via the GS module-neutral globals; the GS presence probe gates).
+    Bool bGSPresent = Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None
+    If bGSPresent
+        Int iIdle = SkyrimNet_AnimationsGS._IdleClass(akInitiator)
+        If iIdle == 1 || iIdle == 2
+            _Log("[SNBaka] daemon idle-svc exit: " + akInitiator.GetDisplayName() + " class=" + iIdle + " (interrupt-then-fire, ruling (d)) -- REV-145")
+            If !SkyrimNet_AnimationsGS._ExitIdle(akInitiator, iIdle)
+                _Log("[SNBaka] daemon refuse: busy (idle exit FAILED, " + akInitiator.GetDisplayName() + " class=" + iIdle + ") -- REV-145")
+                Return
+            EndIf
+        EndIf
+    EndIf
+    ; the eligibility recheck (rev-20 revalidation precedent): everything can
+    ; have changed between selection and fire
+    If !IsEligible(akInitiator, akTarget)
+        _Log("[SNBaka] daemon refuse: anim-reject (IsEligible failed at fire, " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + ", action " + sAction + ") -- REV-145")
+        Return
+    EndIf
+    ; 137f TIMER ANCHOR: the per-actor action clock starts when the ACTION fires
+    StorageUtil.SetFloatValue(akInitiator, "SNBaka.DaemonLast", Utility.GetCurrentGameTime())
+    ; struggle-chain: seed the INTENTION, fire the struggle (or its drunk
+    ; variant), the follow-up rides the outcome
+    If _DaemonIsStruggleChain(sAction)
+        Bool bDrunkVariant = _DaemonIsTavernClass() || _DaemonIsDrunkTarget(akTarget)
+        If bDrunkVariant
+            _Log("[SNBaka] daemon fire: " + sAction + " -> drunk variant (DrunkExploit; tavern=" + _DaemonIsTavernClass() + " drunk=" + _DaemonIsDrunkTarget(akTarget) + ") -- " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + " -- REV-145")
+            DrunkExploit_Execute(akInitiator, akTarget)
+        Else
+            _Log("[SNBaka] daemon fire: " + sAction + " -> struggle-chain (intention seeded, actor initiates, follow-up rides the outcome) -- " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + " -- REV-145")
+            Struggle_Execute(akInitiator, akTarget)
+        EndIf
+        Return
+    EndIf
+    _Log("[SNBaka] daemon fire: " + sAction + " (" + asMode + ") -- " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + " -- REV-145")
+    If sAction == "Flirt"
+        Flirt_Execute(akInitiator, akTarget)
+    ElseIf sAction == "FlirtFace"
+        FlirtFace_Execute(akInitiator, akTarget)
+    ElseIf sAction == "FlirtBreast"
+        FlirtBreast_Execute(akInitiator, akTarget)
+    ElseIf sAction == "FlirtPussy"
+        FlirtPussy_Execute(akInitiator, akTarget)
+    ElseIf sAction == "BackHug"
+        BackHug_Execute(akInitiator, akTarget)
+    ElseIf sAction == "FrontHug"
+        FrontHug_Execute(akInitiator, akTarget)
+    ElseIf sAction == "KissLove"
+        KissLove_Execute(akInitiator, akTarget)
+    ElseIf sAction == "ArmHold"
+        ArmHold_Execute(akInitiator, akTarget)
+    ElseIf sAction == "ShowingOffBody"
+        ShowingOffBody_Execute(akInitiator, akTarget)
+    ElseIf sAction == "TouchBreasts"
+        TouchBreasts_Execute(akInitiator, akTarget)
+    ElseIf sAction == "SuckBreasts"
+        SuckBreasts_Execute(akInitiator, akTarget)
+    ElseIf sAction == "ExaminePrivates"
+        ExaminePrivates_Execute(akInitiator, akTarget)
+    ElseIf sAction == "PlayPrivates"
+        PlayPrivates_Execute(akInitiator, akTarget)
+    ElseIf sAction == "FondlePussy"
+        FondlePussy_Execute(akInitiator, akTarget)
+    ElseIf sAction == "Spanking"
+        Spanking_Execute(akInitiator, akTarget)
+    ElseIf sAction == "DrunkExploit"
+        DrunkExploit_Execute(akInitiator, akTarget)
+    ElseIf sAction == "DrugFood"
+        DrugFood_Execute(akInitiator, akTarget)
+    ElseIf sAction == "OralOnTarget"
+        OralOnTarget_Execute(akInitiator, akTarget)
+    ElseIf sAction == "Investigate"
+        Investigate_Execute(akInitiator, akTarget)
+    ElseIf sAction == "CapturedInspect"
+        CapturedInspect_Execute(akInitiator, akTarget)
+    ElseIf sAction == "Strip"
+        _Strip_Execute(akInitiator, akTarget)
+    ElseIf sAction == "Struggle"
+        If _DaemonIsTavernClass() || _DaemonIsDrunkTarget(akTarget)
+            _Log("[SNBaka] daemon fire: Struggle -> drunk variant (DrunkExploit; tavern/drunk) -- " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + " -- REV-145")
+            DrunkExploit_Execute(akInitiator, akTarget)
+        Else
+            Struggle_Execute(akInitiator, akTarget)
+        EndIf
+    Else
+        _Log("[SNBaka] daemon refuse: anim-reject (unknown action '" + sAction + "') -- REV-145")
+    EndIf
 EndFunction
 
 ; Same technique AcheronIntegration already uses to tell creatures (Draugr, Falmer, Giant, wolves,
@@ -1194,6 +1921,7 @@ EndFunction
 Float _fCooldownExpiresAtRT = 0.0   ; 0 = no cooldown pending
 Float _fFHUNextPollRT      = 0.0   ; 0 = poll not running
 Float _RT_POLL_INTERVAL    = 10.0  ; FHU level-poll cadence, real seconds
+Float _fBakaDaemonNextRT   = 0.0   ; REV-145: 0 = daemon tick not armed (both ambient modes off)
 
 Function _ArmRealtimeTimer()
     Float now  = Utility.GetCurrentRealTime()
@@ -1203,6 +1931,9 @@ Function _ArmRealtimeTimer()
     EndIf
     If _fFHUNextPollRT > 0.0 && _fFHUNextPollRT < next
         next = _fFHUNextPollRT
+    EndIf
+    If _fBakaDaemonNextRT > 0.0 && _fBakaDaemonNextRT < next
+        next = _fBakaDaemonNextRT
     EndIf
     If next < 999998.0
         If next <= now
@@ -1225,6 +1956,13 @@ Event OnUpdate()
         ; (behavior-preserving move; this multiplexed tick chain stays on the quest).
         SNBaka_FHUInflationModule.PollLevels(Self)
         _fFHUNextPollRT = now + _RT_POLL_INTERVAL
+    EndIf
+    ; REV-145 3.1: the Baka ambient daemon tick (Mephala 30s / Molag-Bal 15s cadences,
+    ; the GS arbiter pattern; combat-suspend inside the tick, stamp unspent). The tick
+    ; re-stamps its own next-fire (the ACTION START anchor is separate -- per-actor
+    ; SNBaka.DaemonLast stamps written at FIRE, per 137f generalized at REV-144).
+    If _fBakaDaemonNextRT > 0.0 && now >= _fBakaDaemonNextRT
+        _DaemonTick()
     EndIf
     _ArmRealtimeTimer()
 EndEvent
@@ -6043,6 +6781,12 @@ Event OnSNBakaMenuChoice(String eventName, String strArg, Float numArg, Form sen
         _ExecuteGateAnswer(choice == 0, "popup")
     ElseIf strArg == "sexspank"
         _DispatchSexSpankAction(choice)
+    ElseIf strArg == "mephalatoggle"
+        ; REV-145 3.6: the SNBaka_Menu footer mode button (GS footer-button
+        ; pattern -> SNBaka.* keys; Papyrus arbitrates).
+        _MephalaToggle()
+    ElseIf strArg == "molagbaltoggle"
+        _MolagBalToggle()
     Else
         _DispatchInteractAction(choice)
     EndIf
@@ -9233,6 +9977,9 @@ Function PoseDrink_Execute(Actor akInitiator)
         akInitiator.SetDontMove(True)
         Debug.SendAnimationEvent(akInitiator, "IdleForceDefaultState")
         Utility.Wait(0.15)
+        ; REV-145 3.7: the drunk-state stamp of record (write at the blackout site,
+        ; clear at the recovery leg below) -- the daemon drunk read rides this key.
+        StorageUtil.SetIntValue(akInitiator, "SNBaka.DrunkBlackout", 1)
         Debug.SendAnimationEvent(akInitiator, "BaboDrinkBlackOut")   ; Start -> BlackOutLoop; held, not re-asserted
         _WaitOrAbort(akInitiator, akInitiator, fSoloPoseDuration)
         akInitiator.SetRestrained(False)
@@ -9240,6 +9987,7 @@ Function PoseDrink_Execute(Actor akInitiator)
         _PacifyActor(akInitiator, False)
         _HoldActorAI(akInitiator, False)
         Debug.SendAnimationEvent(akInitiator, "IdleForceDefaultState")
+        StorageUtil.SetIntValue(akInitiator, "SNBaka.DrunkBlackout", 0)   ; REV-145 3.7: recovery leg clears the stamp
         akInitiator.EvaluatePackage()
     Else
         _PlaySoloHold(akInitiator, "BaboDrinkNormal", False, akInitiator.GetDisplayName() + " takes a drink.")

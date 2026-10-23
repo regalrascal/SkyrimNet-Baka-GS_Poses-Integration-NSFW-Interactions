@@ -389,6 +389,10 @@
     <div class="panel-footer">
       <span class="footer-hint" id="footer-hint">Esc · cancel</span>
       <div class="footer-buttons">
+        <!-- REV-145 3.6: ambient mode buttons (GS footer-button pattern -> SNBaka.* keys;
+             blind send, Papyrus arbitrates: flips the StorageUtil mode flag + notification). -->
+        <button class="btn" id="btn-mephala" onclick="toggleMephala()">Mephala Mode</button>
+        <button class="btn" id="btn-molagbal" onclick="toggleMolagBal()">Molag Bal Mode</button>
         <button class="btn hidden" id="btn-back" onclick="goBack()">← Back</button>
         <button class="btn btn-cancel" onclick="cancel()">Cancel</button>
       </div>
@@ -831,6 +835,16 @@ function _sendChoice(value) {
   } catch(e) {
     console.log('[SNBaka] choice =', value, '(snbaka_chose unavailable in browser preview)');
   }
+}
+
+// ── REV-145: ambient mode toggles (GS footer-button pattern) ────────────────
+// Blind send, Papyrus arbitrates (StorageUtil flag flip + state notification).
+// The menu stays open so both modes can be toggled in one visit; Esc/Cancel closes.
+function toggleMephala() {
+  _sendChoice('mephalatoggle');
+}
+function toggleMolagBal() {
+  _sendChoice('molagbaltoggle');
 }
 
 // ════════════════════════════════════════════════════════════

@@ -172,6 +172,13 @@ Int _panicOID = -1
 Int _lapSitOID = -1
 Int _playerTargetOID = -1
 Int _femaleOnlyOID = -1
+; REV-145 (baka-daemon.md REV-144 SS-B/SS-D): the ambient daemon controls.
+; _mephalaOID/_molagBalOID = the two mode toggles (Prisma footer buttons ride
+; the same motherboard toggles); _ambientSexOID = the three-level target-sex
+; dropdown (ruling (c), the SS-C fold).
+Int _mephalaOID = -1
+Int _molagBalOID = -1
+Int _ambientSexOID = -1
 Int _execGateOID = -1      ; REV-93 Task 1: ported from the DEAD v7 script (REV-92 built it there by
                       ; mistake — SkyrimNet_BakaIntegration_MCM is the neutered pre-REV-76 quest;
                       ; THIS quest is the live MCM). Levels: 0 Unlimited / 1 Companions ask /
@@ -374,7 +381,17 @@ Int Function GetVersion()
     ; KEY MIGRATION (flagged, default-fresh per the user's OCum-default
     ; ruling): bSLProxyEnabled is NOT migrated to iDecalSource -- the
     ; dropdown starts at 0/OCum on every save.
-    Return 12
+    ; REV-145: TWELFTH canonical bump (v12 -> v13) - THE BAKA-DAEMON SESSION:
+    ; the Ambient Modes section (Mephala Mode / Molag Bal Mode toggles) joins
+    ; the Baka Interactions page; "NPCs May Target You" (the REV-144 central
+    ; player-target policy, entry-30a DRAFT label) replaces "Player Can Be
+    ; Target"; "Ambient Target Policy" (the three-level target-sex dropdown,
+    ; ruling (c)) replaces "Target Sex"; the fold-in rows ("Player Can Be
+    ; Spanked", "Allow Male Targets", "Victim Sex Allowed") are REMOVED (the
+    ; motherboard properties stay declared). Visible body change on existing
+    ; pages: every existing save crosses this bump once and rebuilds (the
+    ; four-saga rule; v2 lesson standing).
+    Return 13
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -423,8 +440,11 @@ Event OnVersionUpdate(Int aVersion)
     ; REV-134d v12 (the MCM redesign): canary marker - pages rebuilt FIRST
     ; (the v2 lesson, standing). Marker SNBaka.MCMDeD.v12.
     StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v12", 1)
+    ; REV-145 v13 (baka-daemon session): canary marker - pages rebuilt FIRST
+    ; (the v2 lesson, standing). Marker SNBaka.MCMDeD.v13.
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v13", 1)
     _BuildPages()
-    Debug.Trace("[SNBaka] MCM canary: v12 OnVersionUpdate (REV-134d: Cum Cues Module Toggle renamed; Decal Source Selection dropdown replaces the Proxy Share toggle; subtext rows retired for info-text tooltips, presence-gated pages: " + Pages.Length + ", Main=" + Main + ")")
+    Debug.Trace("[SNBaka] MCM canary: v13 OnVersionUpdate (REV-145: Ambient Modes section - Mephala/Molag Bal toggles; NPCs May Target You + Ambient Target Policy fold-ins; pages: " + Pages.Length + ", Main=" + Main + ")")
 EndEvent
 
 ; ============================================================================
@@ -555,9 +575,21 @@ Event OnPageReset(String page)
         AddEmptyOption()
         ; ---- General (the former "Baka - General" body, moved verbatim) ----
         AddHeaderOption("General")
-        _playerTargetOID   = AddToggleOption("Player Can Be Target",  Main.bPlayerCanBeTarget)
-        _femaleOnlyOID     = AddMenuOption("Target Sex",   _targetSexName(Main.iTargetSex))
+        ; REV-145: the REV-144 fold-ins surface here. "NPCs May Target You" =
+        ; the central player-target policy (SNBaka.PlayerTargetPolicy, player-
+        ; keyed, default OFF) -- label/tooltip = pending-approvals entry 30a
+        ; DRAFT, register-cited. "Ambient Target Policy" = the three-level
+        ; target-sex dropdown (ruling (c)); the retired "Player Can Be Target" /
+        ; "Target Sex" / "Allow Male Targets" / "Victim Sex Allowed" rows fold
+        ; under these two (properties stay declared for save-member compatibility).
+        _playerTargetOID   = AddToggleOption("NPCs May Target You", _PlayerTargetPolicyOn())
+        _ambientSexOID     = AddMenuOption("Ambient Target Policy", _targetSexLevelName(Main._TargetSexLevel()))
         _animatedTearsOID  = AddToggleOption("Animated Tears",        Main.bAnimatedTearsEnabled)
+        AddEmptyOption()
+        ; ---- Ambient Modes (REV-145: Mephala / Molag Bal; mode names USER-AUTHORED, register-cited) ----
+        AddHeaderOption("Ambient Modes")
+        _mephalaOID    = AddToggleOption("Mephala Mode",  StorageUtil.GetIntValue(None, "SNBaka.MephalaMode", 0) == 1)
+        _molagBalOID   = AddToggleOption("Molag Bal Mode", StorageUtil.GetIntValue(None, "SNBaka.MolagBalMode", 0) == 1)
         AddEmptyOption()
         AddHeaderOption("Capture")
         ; OFF removes the Sell-to-Slavery action entirely (not offered to the LLM). Detection first:
@@ -611,8 +643,11 @@ Event OnPageReset(String page)
         AddHeaderOption("Spank")
         AddEmptyOption()
         AddHeaderOption("Behaviour")
-        _spankPlayerOID    = AddToggleOption("Player Can Be Spanked",  Main.bPlayerCanBeSpanked)
-        _spankMaleOID      = AddToggleOption("Allow Male Targets",     Main.bSpankMaleTargets)
+        ; REV-145 fold-in: "Player Can Be Spanked" (retired at REV-144 -- the
+        ; central player-target policy owns it, surfaced as "NPCs May Target
+        ; You" in General) and "Allow Male Targets" (folds under the Ambient
+        ; Target Policy dropdown, SS-C) are REMOVED as MCM rows; the motherboard
+        ; properties stay declared for save-member/VMAD compatibility.
         _spankFurnitureOID = AddToggleOption("Furniture Reactions",    Main.bSpankFurnitureTriggers)
         AddEmptyOption()
         AddHeaderOption("Tattoo Marks")
@@ -636,7 +671,9 @@ Event OnPageReset(String page)
         _llmGateOID           = AddToggleOption("LLM Decides Escalations",   Main.bLLMGateEscalation)
         _notifyOID            = AddToggleOption("Show Corner Notifications", Main.bShowNotifications)
         ; REV-109: "Enable Debug Logging" moved to the Settings page (framework-level).
-        _creatureVictimSexOID = AddMenuOption("Victim Sex Allowed",  _victimSexName(Main.iCreatureVictimSex))
+        ; REV-145 fold-in: "Victim Sex Allowed" (iCreatureVictimSex) folds under the
+        ; Ambient Target Policy dropdown (SS-C: same level mapping) -- row REMOVED;
+        ; the property stays declared for save-member compatibility.
         _creatureBackendOID   = AddMenuOption("Creature Framework",  _backendName(Main.iCreatureBackend))
         _creatureSuccessOID   = AddSliderOption("NPC Success Chance", Main.iCreatureSuccessPct as Float, "{0}%")
         _creatureHitChanceOID = AddSliderOption("Chance to Struggle on Hit", Main.iCreatureHitEngageChance as Float, "{0}%")
@@ -942,8 +979,25 @@ Event OnOptionSelect(Int option)
             Main.TearSpell = Game.GetFormFromFile(0x000802, "EmoTears4NPCs.esp") as Spell
         EndIf
     ElseIf option == _playerTargetOID
-        Main.bPlayerCanBeTarget = !Main.bPlayerCanBeTarget
-        SetToggleOptionValue(_playerTargetOID, Main.bPlayerCanBeTarget)
+        ; REV-145: the central player-target policy (SNBaka.PlayerTargetPolicy,
+        ; player-keyed, default OFF; the REV-144 bPlayerCanBeSpanked/bPlayerCanBeTarget
+        ; fold-ins). The motherboard gates read it live on every consult.
+        Actor pol = Game.GetPlayer()
+        Int v = 1 - StorageUtil.GetIntValue(pol, "SNBaka.PlayerTargetPolicy", 0)
+        StorageUtil.SetIntValue(pol, "SNBaka.PlayerTargetPolicy", v)
+        SetToggleOptionValue(_playerTargetOID, v == 1)
+    ElseIf option == _mephalaOID
+        ; REV-145: ambient mode toggles -- the same motherboard toggles the
+        ; Prisma footer buttons ride (notification + arm live there).
+        If Main
+            Main._MephalaToggle()
+            SetToggleOptionValue(_mephalaOID, StorageUtil.GetIntValue(None, "SNBaka.MephalaMode", 0) == 1)
+        EndIf
+    ElseIf option == _molagBalOID
+        If Main
+            Main._MolagBalToggle()
+            SetToggleOptionValue(_molagBalOID, StorageUtil.GetIntValue(None, "SNBaka.MolagBalMode", 0) == 1)
+        EndIf
     ElseIf option == _sellSlaveryOID
         Main.bSellToSlavery = !Main.bSellToSlavery
         SetToggleOptionValue(_sellSlaveryOID, Main.bSellToSlavery)
@@ -967,12 +1021,8 @@ Event OnOptionSelect(Int option)
     ElseIf option == _resistEnabledOID
         Main.bResistEnabled = !Main.bResistEnabled
         SetToggleOptionValue(_resistEnabledOID, Main.bResistEnabled)
-    ElseIf option == _spankPlayerOID
-        Main.bPlayerCanBeSpanked = !Main.bPlayerCanBeSpanked
-        SetToggleOptionValue(_spankPlayerOID, Main.bPlayerCanBeSpanked)
-    ElseIf option == _spankMaleOID
-        Main.bSpankMaleTargets = !Main.bSpankMaleTargets
-        SetToggleOptionValue(_spankMaleOID, Main.bSpankMaleTargets)
+    ; REV-145: the _spankPlayerOID/_spankMaleOID legs are RETIRED with their rows
+    ; (REV-144 policy + the SS-C fold); nothing else touches those properties.
     ElseIf option == _spankFurnitureOID
         Main.bSpankFurnitureTriggers = !Main.bSpankFurnitureTriggers
         SetToggleOptionValue(_spankFurnitureOID, Main.bSpankFurnitureTriggers)
@@ -1205,13 +1255,11 @@ Event OnOptionMenuOpen(Int option)
         SetMenuDialogOptions(_backendNames())
         SetMenuDialogStartIndex(Main.iCreatureBackend)
         SetMenuDialogDefaultIndex(0)
-    ElseIf option == _creatureVictimSexOID
-        SetMenuDialogOptions(_victimSexNames())
-        SetMenuDialogStartIndex(Main.iCreatureVictimSex)
-        SetMenuDialogDefaultIndex(0)
-    ElseIf option == _femaleOnlyOID
-        SetMenuDialogOptions(_targetSexNames())
-        SetMenuDialogStartIndex(Main.iTargetSex)
+    ; REV-145: the _creatureVictimSexOID/_femaleOnlyOID legs are RETIRED with
+    ; their rows (the SS-C fold); the _ambientSexOID dropdown replaces them.
+    ElseIf option == _ambientSexOID
+        SetMenuDialogOptions(_targetSexLevelNames())
+        SetMenuDialogStartIndex(Main._TargetSexLevel() - 1)
         SetMenuDialogDefaultIndex(0)
     ElseIf option == _gsGenderPolicyOID
         SetMenuDialogOptions(_gsGenderPolicyNames())
@@ -1243,12 +1291,17 @@ Event OnOptionMenuAccept(Int option, Int index)
     ElseIf option == _creatureBackendOID
         Main.iCreatureBackend = index
         SetMenuOptionValue(_creatureBackendOID, _backendName(index))
-    ElseIf option == _creatureVictimSexOID
-        Main.iCreatureVictimSex = index
-        SetMenuOptionValue(_creatureVictimSexOID, _victimSexName(index))
-    ElseIf option == _femaleOnlyOID
-        Main.iTargetSex = index
-        SetMenuOptionValue(_femaleOnlyOID, _targetSexName(index))
+    ; REV-145: the _creatureVictimSexOID/_femaleOnlyOID legs are RETIRED with
+    ; their rows (the SS-C fold); the _ambientSexOID dropdown replaces them.
+    ElseIf option == _ambientSexOID
+        ; Ruling (c), the SS-C level mapping. Labels USER-AUTHORED, register-
+        ; cited. The motherboard gates read the level live on every consult.
+        If index < 0 || index > 2
+            index = 0
+        EndIf
+        StorageUtil.SetIntValue(None, "SNBaka.TargetSexLevel", index + 1)
+        SetMenuOptionValue(_ambientSexOID, _targetSexLevelName(index + 1))
+        Debug.Notification("Ambient target policy set - " + _targetSexLevelName(index + 1))
     ElseIf option == _gsGenderPolicyOID
         ; REV-85 Phase B: write GSAnim.GenderPolicy (StorageUtil int on None, the
         ; GS script's own key style; save-persisted, no migration — 0 is shipped
@@ -1301,6 +1354,37 @@ Function _SetExecGateLevel(Int i)
         p = Game.GetPlayer()
     EndIf
     StorageUtil.SetIntValue(p, "SNBaka.ExecuteGateLevel", i)
+EndFunction
+
+; ============================================================================
+; REV-145: the ambient-target-policy dropdown labels (ruling (c); labels
+; USER-AUTHORED, register-cited: baka-daemon.md REV-144 SS-C map verbatim) and
+; the 30a policy read for the toggle's displayed state.
+; ============================================================================
+String[] Function _targetSexLevelNames()
+    String[] a = new String[3]
+    a[0] = "Only female targets"
+    a[1] = "Male and female targets, male aggressors"
+    a[2] = "Anything goes"
+    Return a
+EndFunction
+
+String Function _targetSexLevelName(Int iLevel)
+    If iLevel == 2
+        Return "Male and female targets, male aggressors"
+    ElseIf iLevel == 3
+        Return "Anything goes"
+    EndIf
+    Return "Only female targets"
+EndFunction
+
+; Entry-30a DRAFT label read: the central player-target policy's live state.
+Bool Function _PlayerTargetPolicyOn()
+    Actor p = Game.GetPlayer()
+    If !p
+        Return False
+    EndIf
+    Return StorageUtil.GetIntValue(p, "SNBaka.PlayerTargetPolicy", 0) == 1
 EndFunction
 
 String[] Function _targetSexNames()
@@ -1613,9 +1697,15 @@ Event OnOptionHighlight(Int option)
     ElseIf option == _animatedTearsOID
         SetInfoText("Apply animated 3D tears to female victims during aggressive scenes. Requires Emotional Tears Effect SE (EmoTears4NPCs.esp). Has no effect if that mod is not installed.")
     ElseIf option == _playerTargetOID
-        SetInfoText("Allow NPCs to initiate Baka animations on the player.")
-    ElseIf option == _femaleOnlyOID
-        SetInfoText("Which target sex ALL actions allow: Both, Female only, or Male only. Note: breast/intimate actions always require female targets regardless.")
+        ; REV-145: entry-30a DRAFT tooltip, register-cited (pending-approvals
+        ; L949-953 verbatim); ships as the staged draft while the entry is open.
+        SetInfoText("When on, NPCs and creatures may choose you as the target of their autonomous actions (the Baka module's single central gate; your own initiations are never blocked). When off, nothing targets you unless you start it. Existing saves started with their old spank-target setting.")
+    ElseIf option == _ambientSexOID
+        SetInfoText("The three-level target-sex policy for NPC-initiated actions and the ambient modes: only female targets; male and female targets with male aggressors; or anything goes. Anatomically-specific actions always require female bodies regardless. Existing saves started from their old Target Sex setting.")
+    ElseIf option == _mephalaOID
+        SetInfoText("Mephala Mode: ambient NPC-initiated interactions every 30 seconds (60s per-actor cooldown); the action is chosen by the Mephala consideration call and extremity scales with the initiator's arousal. Random nearby NPCs act on each other - or on you, if NPCs May Target You is on.")
+    ElseIf option == _molagBalOID
+        SetInfoText("Molag Bal Mode: the ambient overdrive - 15 seconds / 30s per-actor, all actions with no arousal gating and no seeded thoughts. Preempts Mephala Mode when both are on.")
     ElseIf option == _cooldownOID
         SetInfoText("Minimum real-time seconds between NPC-initiated actions. Default 30s.")
     ElseIf option == _execGateOID
@@ -1644,10 +1734,8 @@ Event OnOptionHighlight(Int option)
         SetInfoText("FALLBACK ONLY (used when Acheron is not installed): seconds the attacker has to escalate after a QTE defeat. With Acheron, the downed state is owned by the Acheron bridge instead.")
     ElseIf option == _escalationDifficultyOID
         SetInfoText("Difficulty of the second QTE (choke hold) in the fallback defeat window. Same scale as Escape Difficulty.")
-    ElseIf option == _spankPlayerOID
-        SetInfoText("Allow the player character to be spanked by NPCs.")
-    ElseIf option == _spankMaleOID
-        SetInfoText("Allow male actors to be spanked. Off by default - moans and marks are female-only, so male spank is just the impact sound.")
+    ; REV-145: the _spankPlayerOID/_spankMaleOID highlight legs are RETIRED with
+    ; their rows (REV-144 policy + the SS-C fold).
     ElseIf option == _spankFurnitureOID
         SetInfoText("Enable special reactions when the target is using furniture (alchemy lab, forge, etc).")
     ElseIf option == _spankTatIntensityOID
@@ -1684,8 +1772,8 @@ Event OnOptionHighlight(Int option)
         SetInfoText("Show this mod's top-left corner messages ('X collapses...', 'What will you do to...', etc.). Turn OFF for a clean HUD - narration, dialogue and log traces are unaffected.")
     ElseIf option == _debugLogOID
         SetInfoText("Write this mod's detailed traces to the Papyrus log. Keep ON while testing/reporting issues (the log is how problems get diagnosed); turn OFF for less script-engine load during normal play.")
-    ElseIf option == _creatureVictimSexOID
-        SetInfoText("Which victim sex creatures may target: Both, Female only, or Male only.")
+    ; REV-145: the _creatureVictimSexOID highlight leg is RETIRED with its row
+    ; (the SS-C fold under Ambient Target Policy).
     ElseIf option == _creatureBackendOID
         SetInfoText("Which framework plays creature sex scenes (Auto / SexLab / OStim).")
     ElseIf option == _creatureSuccessOID
