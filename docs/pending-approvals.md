@@ -834,7 +834,7 @@ name `sdb_stripped`, actor names interpolated at fire time. DRAFT description:
 ```
 
 **Status: OPEN — edit or approve; the build session cuts from the ruled text.**
-
+***User: text approved***
 ---
 
 ## Entry 28 — REV-134e (2026-10-21): the FORCED-TATTOO cue text — DRAFT, the user’s pen
@@ -849,6 +849,7 @@ fire time. DRAFT description:
 ```
 
 **Status: OPEN — edit or approve; the build session cuts from the ruled text.**
+***User: text approved.***
 
 *REV-134e register state: open entries 15, 16, 26, 27, 28. Fork copy lockstep (this
 refresh). Receipts: PROJECT_STATE §152 + the four feature-doc scout sections.*
@@ -933,3 +934,4 @@ ships while the entry is open.
     **"narration cue"** — no new trigger YAMLs, no prompt-template surface, unless
     the user rules otherwise.
   - NO build rode the rider; the build rides this wording ruling.
+***User: approved text and cue source ruling.***
