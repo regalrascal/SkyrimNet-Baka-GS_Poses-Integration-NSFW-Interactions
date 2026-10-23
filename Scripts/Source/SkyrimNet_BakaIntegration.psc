@@ -400,7 +400,13 @@ Actor _pendingSexNPC2  = None
 ; ============================================================
 ; Init
 ; ============================================================
+Bool _bFreshBoot = False  ; REV-144 4.2: True only when OnInit (a new game, or this module's
+                          ; first boot inside an ongoing save) started this instance -- NOT set
+                          ; when a save restores the script and Setup() runs via the MCM reload
+                          ; chain. Drives the player-target policy migration seed.
+
 Event OnInit()
+    _bFreshBoot = True    ; REV-144 4.2: fresh-boot marker (see _SeedPlayerTargetPolicy)
     PlayerRef   = Game.GetPlayer()
     XMarkerBase = Game.GetFormFromFile(0x0E, "Skyrim.esm")
     Setup()
@@ -444,6 +450,9 @@ Function Setup()
     ; the clamp must run BEFORE anything arms so no arming path can consume a
     ; stale stamp. Boot (new game) is a no-op pass: stamps are fresh.
     SNBaka_CumDetectionModule.ClampStaleRTStamps(Self)
+    ; REV-144 4.2: player-target policy migration seed (the bPlayerCanBeSpanked fold-in).
+    ; One-shot; see _SeedPlayerTargetPolicy for the continuity-vs-default decision.
+    _SeedPlayerTargetPolicy()
     ; Confirmed real bug from testing: THIS is the actual primary re-registration path (called from
     ; SkyrimNet_BakaIntegration_MCM's OnGameReload on every single load -- see that script's own comment;
     ; the OnUpdateGameTime heartbeat in this quest is only a secondary backup), yet it never refreshed
@@ -689,11 +698,12 @@ Bool Function IsEligible(Actor akA1, Actor akA2, Bool abAllowMidCombat = False)
         _Log("[SNBaka] IsEligible: blocked — attacker in combat, target not downed (" + akA1.GetDisplayName() + " -> " + akA2.GetDisplayName() + ")")
         Return False
     EndIf
-    ; "Player Can Be Target" gates only the player being the VICTIM (akA2) — NOT the player
-    ; initiating on an NPC (akA1). The old check also blocked akA1==player, so unchecking this
-    ; disabled every player-started action and made the whole mod look "off".
-    If !bPlayerCanBeTarget && akA2 == PlayerRef
-        _Log("[SNBaka] IsEligible: blocked — player-as-target disabled (" + akA1.GetDisplayName() + " -> player)")
+    ; REV-144 4.2: central player-target admission (rev-55a blanket). The retired
+    ; bPlayerCanBeTarget property FOLDED IN here -- one policy, StorageUtil class
+    ; SNBaka.PlayerTargetPolicy (player-keyed, default OFF), consulted for every
+    ; NPC-initiated player-target site. Player-own initiations (akA1 == player)
+    ; pass ungated (the Execute pattern). Gates only akA2 == player, never akA1.
+    If !_PlayerTargetAdmitted(akA1, akA2, "IsEligible")
         Return False
     EndIf
     ; Content-preference filter (what the LLM/an NPC should be allowed to pick), not a technical
@@ -797,6 +807,78 @@ Bool Function _TargetSexAllowed(Actor akTarget)
         Return False
     EndIf
     Return True
+EndFunction
+
+; ============================================================
+; REV-144 4.2 — CENTRAL PLAYER-TARGET POLICY (rev-55a required deliverable)
+; ============================================================
+; User ruling: ONE central admission function, blanket across the ENTIRE Baka
+; module (fresh interactions, the escalation funnel, spank/slap lanes, every
+; creature lane, and -- at the daemon build -- both ambient modes: Mephala and
+; Molag-Bal consult this same policy at candidate selection). StorageUtil class
+; SNBaka.PlayerTargetPolicy, PLAYER-KEYED, DEFAULT OFF (0 = refuse NPC-initiated
+; player-targeting). MCM-controlled -- the toggle builds with the baka-daemon MCM
+; session; its label/tooltip is a pending-approvals DRAFT (gated, §7).
+;
+; MIGRATION (the bPlayerCanBeSpanked fold-in; DECIDED + SURFACED at REV-144): a
+; save-restored instance that already ran this module reads the OLD spank key's
+; value as the policy's INITIAL value (continuity: the save's recorded spank-target
+; permission carries module-wide; the spank-scoped gate itself is retired as an
+; admission gate). A FRESH boot (new game, or first-time module install into an
+; ongoing save) seeds 0 = OFF -- the ruled DEFAULT. The retired properties
+; (bPlayerCanBeSpanked / bPlayerCanBeTarget) stay declared for save-member +
+; esp-VMAD compatibility; they no longer gate anything.
+Int Function _PlayerTargetPolicy()
+    Return StorageUtil.GetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy", 0)
+EndFunction
+
+Function _SeedPlayerTargetPolicy()
+    If !PlayerRef
+        Return
+    EndIf
+    If StorageUtil.GetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy.Seeded", 0) == 1
+        Return
+    EndIf
+    Int v = 0
+    If !_bFreshBoot && bPlayerCanBeSpanked
+        v = 1   ; save-restored instance: old spank key = policy's initial value
+    EndIf
+    StorageUtil.SetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy", v)
+    StorageUtil.SetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy.Seeded", 1)
+    String sV = "OFF (0)"
+    If v == 1
+        sV = "ON (1)"
+    EndIf
+    If _bFreshBoot
+        _Log("[SNBaka] player-target policy SEEDED: " + sV + " (fresh boot -- DEFAULT OFF ruling, REV-144)")
+    Else
+        _Log("[SNBaka] player-target policy SEEDED: " + sV + " (existing save -- seeded from retired bPlayerCanBeSpanked=" + bPlayerCanBeSpanked + ", REV-144)")
+    EndIf
+EndFunction
+
+; The central admission check. Returns True = this action MAY target the player.
+; Unconditional passes: target is not the player; PLAYER-OWN action (initiator ==
+; PlayerRef -- the Execute pattern: buttons/power/crosshair initiations stay
+; ungated, the user's deliberate choice is never second-guessed). Otherwise the
+; central policy is consulted, with a per-site reason code on the §5 sentinel
+; (unconditional trace on BOTH admit and refuse).
+Bool Function _PlayerTargetAdmitted(Actor akInitiator, Actor akTarget, String asSite)
+    If !akTarget || akTarget != PlayerRef
+        Return True
+    EndIf
+    If akInitiator == PlayerRef
+        Return True
+    EndIf
+    String sWho = "None"
+    If akInitiator
+        sWho = akInitiator.GetDisplayName()
+    EndIf
+    If _PlayerTargetPolicy() == 1
+        _Log("[SNBaka] player-target ADMITTED: policy ON (site=" + asSite + ", initiator=" + sWho + ") -- REV-144 central gate")
+        Return True
+    EndIf
+    _Log("[SNBaka] player-target REFUSED: policy OFF (site=" + asSite + ", initiator=" + sWho + ") -- REV-144 central gate")
+    Return False
 EndFunction
 
 ; Same technique AcheronIntegration already uses to tell creatures (Draugr, Falmer, Giant, wolves,
@@ -3899,6 +3981,14 @@ Function _DoEscalation(Actor akA1, Actor akA2)
     ; here -- _DoCreatureEscalation calls _StartSexScene directly.)
     If _IsCreatureActor(akA1) || _IsCreatureActor(akA2)
         _Log("[SNBaka] _DoEscalation: blocked — creature actor")
+        Return
+    EndIf
+    ; REV-144 4.2: central player-target admission -- this funnel carries EVERY human
+    ; escalation lane (Escalate_Execute's ours/external branches + _DispatchDownedAction's
+    ; external branch), so the policy is consulted once here and the downed-player case
+    ; (which bypasses IsEligible by design) is finally gated by it. Player-own escalations
+    ; pass ungated (the Execute pattern).
+    If !_PlayerTargetAdmitted(akA1, akA2, "EscalateFunnel")
         Return
     EndIf
     ; _TargetSexAllowed is a content-PREFERENCE filter (what should the LLM/an NPC be allowed to pick),
@@ -7215,6 +7305,11 @@ String Function _EscalateValidate(Actor akInitiator, Actor akTarget)
         _Log("[SNBaka] Escalate_Execute: blocked — creature actor (use CreatureEscalate instead)")
         Return "creature actor"
     EndIf
+    ; REV-144 4.2: central player-target admission rides the shared Escalate gate chain so
+    ; the retry window revalidates it identically (absolute revalidation discipline).
+    If !_PlayerTargetAdmitted(akInitiator, akTarget, "EscalateValidate")
+        Return "player-target policy off"
+    EndIf
     ; Content-preference filter, not a technical constraint -- same precedent as bNPCCanEscalate below,
     ; only gates a non-player initiator. The player targeting whoever they want is their own choice.
     If akInitiator != PlayerRef && !_TargetSexAllowed(akTarget)
@@ -7904,8 +7999,10 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
         _Log("[SNBaka] CreatureEscalate: blocked — escOff/none (esc=" + bCreatureEscalation + ")")
         Return
     EndIf
-    If akVictim == PlayerRef && !bCreatureOnPlayer
-        _Log("[SNBaka] CreatureEscalate: blocked — player victim, bCreatureOnPlayer OFF")
+    ; REV-144 4.2: central player-target policy consulted ALONGSIDE the creature-specific
+    ; bCreatureOnPlayer toggle (AND -- the toggle stays live; the policy blankets the module).
+    If akVictim == PlayerRef && (!bCreatureOnPlayer || !_PlayerTargetAdmitted(akCreature, akVictim, "CreatureEscalate"))
+        _Log("[SNBaka] CreatureEscalate: blocked — player victim, bCreatureOnPlayer OFF or REV-144 policy OFF")
         Return
     EndIf
     Bool vFemale = _SexOf(akVictim) == 1
@@ -8459,8 +8556,11 @@ Function _TryCreatureEscalateOnDowned(Actor akVictim)
         _Log("[SNBaka] creature: victim is in a sex scene — never a pounce candidate mid-scene")
         Return
     EndIf
-    If akVictim == PlayerRef && !bCreatureOnPlayer
-        _Log("[SNBaka] creature: player victim but bCreatureOnPlayer is OFF — enable it in the MCM")
+    ; REV-144 4.2: central player-target policy blankets the creature pounce lane too;
+    ; the aggressor is not resolved at this scan stage, so the initiator slot is None
+    ; (any NPC/creature source -- the function only exempts the player as initiator).
+    If akVictim == PlayerRef && (!bCreatureOnPlayer || !_PlayerTargetAdmitted(None, akVictim, "CreatureOnDowned"))
+        _Log("[SNBaka] creature: player victim but bCreatureOnPlayer is OFF (or REV-144 policy OFF)")
         Return
     EndIf
     If !_IsDownedAny(akVictim)
@@ -8680,8 +8780,10 @@ Event OnCreatureHitFollower(string eventName, string strArg, float numArg, Form 
         Return
     EndIf
     Bool victimIsPlayer = (victim == PlayerRef)
-    If victimIsPlayer && !bCreatureOnPlayer
-        _Log("[SNBaka] OnCreatureHitFollower: blocked — player victim but bCreatureOnPlayer is OFF in MCM")
+    ; REV-144 4.2: central policy consulted alongside the creature toggle; the aggressor
+    ; is resolved later in this handler, so the initiator slot is None at this check.
+    If victimIsPlayer && (!bCreatureOnPlayer || !_PlayerTargetAdmitted(None, victim, "CreatureHitFollower"))
+        _Log("[SNBaka] OnCreatureHitFollower: blocked — player victim, bCreatureOnPlayer OFF or REV-144 policy OFF")
         Return
     EndIf
     If _InDefeatGrace(victim)
@@ -8793,7 +8895,9 @@ Actor Function _FindCreatureVictim(Actor akCreature)
         Actor a = c.GetNthRef(i, 62) as Actor
         If a && a != akCreature && !a.IsDead() && _CreatureAnimKey(a) == ""
             Bool ok = True
-            If a == PlayerRef && !bCreatureOnPlayer
+            ; REV-144 4.2: the candidate scan consults the central policy alongside the
+            ; creature toggle (the policy blankets every player-target admission site).
+            If a == PlayerRef && (!bCreatureOnPlayer || !_PlayerTargetAdmitted(akCreature, a, "FindCreatureVictim"))
                 ok = False
             EndIf
             If ok
@@ -9339,8 +9443,10 @@ Function SpankTarget_Execute(Actor akSpanker, Actor akTarget, Bool akForceButt =
         _Log("[SNBaka] SpankTarget: disabled or dead actor.")
         Return
     EndIf
-    If !bPlayerCanBeSpanked && akTarget == PlayerRef
-        _Log("[SNBaka] SpankTarget: player-as-target is disabled.")
+    ; REV-144 4.2: bPlayerCanBeSpanked FOLDS INTO the central player-target policy --
+    ; the spank-scoped gate is retired as an admission gate (existing saves seeded from
+    ; its old value; see _SeedPlayerTargetPolicy). Player-own spanks pass ungated.
+    If !_PlayerTargetAdmitted(akSpanker, akTarget, "SpankTarget")
         Return
     EndIf
     If !bSpankMaleTargets && _SexOf(akTarget) == 0
@@ -9399,7 +9505,9 @@ Function SlapFace_Execute(Actor akSlapper, Actor akTarget)
         _Log("[SNBaka] SlapFace_Execute: early exit — bEnabled=" + bEnabled + " dead/None check")
         Return
     EndIf
-    If !bPlayerCanBeSpanked && akTarget == PlayerRef
+    ; REV-144 4.2: bPlayerCanBeSpanked FOLDS INTO the central player-target policy
+    ; (same fold-in as SpankTarget above). Player-own slaps pass ungated.
+    If !_PlayerTargetAdmitted(akSlapper, akTarget, "SlapFace")
         Return
     EndIf
     Float lastSpank = StorageUtil.GetFloatValue(None, "SkyrimNetSDB.LastSpankTime", 0.0)

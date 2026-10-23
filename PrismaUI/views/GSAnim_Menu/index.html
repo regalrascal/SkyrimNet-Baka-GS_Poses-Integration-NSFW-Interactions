@@ -213,13 +213,13 @@ function cancel()    { _close(); _send(''); }
 // state, so it always sends the sentinel and Papyrus arbitrates (notify vs. stop).
 function stopPose()  { _close(); _send('STOP_POSE'); }
 
-// ── Phase 4: Performance Mode (overdrive) ──────────────────────────────────
+// ── Phase 4: Sheogorath Mode (internal id: overdrive) ───────────────────────
 // Blind send, exactly the STOP_POSE pattern: the view never blocks on pipe state and
 // Papyrus arbitrates (flag flip, cooldown zero/restore, expiry, combat pause).
 // Rev-15 label fix (Option B, user-approved 2026-09-15): the label is IN-MEMORY,
 // per-open optimistic only — plain at every gsanim_open(), flipped only by a press of
 // THIS menu. The old localStorage mirror is GONE: it outlived the per-save StorageUtil
-// flag (and overdrive's ~5-min auto-expiry), so at open it could show the opposite of
+// flag (and Sheogorath Mode's ~5-min auto-expiry), so at open it could show the opposite of
 // the real state and every subsequent press then did the reverse of what the label
 // said (live-observed 2026-09-15: fresh load showed ON, one press flipped the label
 // OFF while Papyrus fired the ON "Muse stirring" line). The Papyrus notification is
@@ -237,13 +237,13 @@ function toggleOverdrive() {
   _send('OVERDRIVE_TOGGLE');
 }
 
-// ── Phase 4 amendment: Muse toggle (pulled forward from the 4b rider list) ──
+// ── Phase 4 amendment: Sanguine Mode toggle (internal id: muse; pulled forward from the 4b rider list) ──
 // Blind send, Papyrus arbitrates the GSAnim.Muse flag. Rev-15 label fix (Option B):
-// in-memory per-open label, same rationale as Performance Mode above — the localStorage
+// in-memory per-open label, same rationale as Sheogorath Mode above — the localStorage
 // mirror (gsanim_muse) is GONE; the old "desync self-heals on next open" claim was
 // never true (an open just re-displayed the stale mirror; once out of parity, every
 // press inverted both layers permanently). Defaults OFF for attribution isolation;
-// if overdrive is also ON, Papyrus's arbiter preempts muse — it just waits.
+// if Sheogorath Mode is also ON, Papyrus's arbiter preempts Sanguine Mode — it just waits.
 let g_museOn = false;
 function museApply() {
   const b = document.getElementById('btn-muse');
