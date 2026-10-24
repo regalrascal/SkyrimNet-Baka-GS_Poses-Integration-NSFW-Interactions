@@ -10683,7 +10683,16 @@ Function _RegisterModEvents()
     If Game.IsPluginInstalled("SLACS_2_Plus_SCO.esp")
         RegisterForModEvent("DnB_CleanActorDirt", "OnDnBCleanActorDirt")
     EndIf
-    _Log("[SNBaka] _RegisterModEvents: REV-65 detection triggers armed (OCum x2 [5-arg + 6-arg npc_scene], SL HookStageEnd [2-arg], FHU start [0-arg]) + REV-117 cum-v2 (P+ ApplyCumFX [3-arg], ambient due [4-slot]) + REV-149 FHU entry-capture (AnimationStart/End [2-arg])")
+    ; REV-155: the OStim climax lane -- OStim's native per-orgasm broadcast
+    ; ("ostim_actor_orgasm", 4-slot payload: eventName, SceneID:String,
+    ; ThreadID:Float, OrgasmedActor:Form). Presence-gated per the 0171
+    ; convention (OStim.esp absent = event never sent = listener idle); the
+    ; driver body is module-owned (SNBaka_FHUInflationModule.HandleOStimOrgasm,
+    ; which carries its own FHU presence + ocummale double-fire guards).
+    If Game.IsPluginInstalled("OStim.esp")
+        RegisterForModEvent("ostim_actor_orgasm", "OnOStimActorOrgasm")
+    EndIf
+    _Log("[SNBaka] _RegisterModEvents: REV-65 detection triggers armed (OCum x2 [5-arg + 6-arg npc_scene], SL HookStageEnd [2-arg], FHU start [0-arg]) + REV-117 cum-v2 (P+ ApplyCumFX [3-arg], ambient due [4-slot]) + REV-149 FHU entry-capture (AnimationStart/End [2-arg]) + REV-155 OStim climax (ostim_actor_orgasm [4-slot, presence-gated])")
     ; REV-116 instrumentation (report-only; PROJECT_STATE 125 open item): the
     ; arm-time gate ECHO -- what the detection gates are RIGHT NOW, so MCM
     ; user-values vs ModEvent-delivery becomes distinguishable from logs.
@@ -11939,5 +11948,17 @@ Function _PollFHULevels()
     ; REV-96 Task 2: body MOVED VERBATIM to SNBaka_FHUInflationModule.PollLevels.
     SNBaka_FHUInflationModule.PollLevels(Self)
 EndFunction
+
+; REV-155: OStim climax -> FHU inflation driver. OStim broadcasts
+; "ostim_actor_orgasm" per orgasming actor (4-slot service ModEvent shape:
+; eventName, SceneID:String, ThreadID:Float, OrgasmedActor:Form -- the
+; orgasming actor is the cum SOURCE). Registered presence-gated above
+; (OStim.esp); the body is module-owned (SNBaka_FHUInflationModule.
+; HandleOStimOrgasm -- the 0.18 bridge's orgasm logic replicated self-owned,
+; with the ocummale double-fire guard demoting the 0.18 patch to
+; reference-only). NO MCM/yaml surface this rev.
+Event OnOStimActorOrgasm(String eventName, String SceneID, Float OrgasmThreadID, Form OrgasmedActor)
+    SNBaka_FHUInflationModule.HandleOStimOrgasm(Self, eventName, SceneID, OrgasmThreadID, OrgasmedActor)
+EndEvent
 
 

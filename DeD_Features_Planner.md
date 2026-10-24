@@ -579,3 +579,13 @@ A compilation of issues, bugs, and requirements not connected to any specific mo
 
 
 
+
+REV-155 working-note pointer (2026-10-24, REV-88 convention): FHU v2 final
+lane BUILT — self-owned OStim climax->FHU inflation driver
+(SNBaka_FHUInflationModule.HandleOStimOrgasm + motherboard presence-gated
+ostim_actor_orgasm forwarder; the SL FHU Baka OStim 0.18 bridge DEMOTED TO
+REFERENCE-ONLY, double-fire-guarded via the patch-only ocummale property on
+sr_inflateQuest 0x06000D63). As-built + gates of record:
+SkyrimNet-Animations-GS/docs/features/fhu-inflation.md REV-155 section;
+PROJECT_STATE GS-repo section for REV-155. Batch mode: compile gates only,
+no dist; modlist writes NONE.

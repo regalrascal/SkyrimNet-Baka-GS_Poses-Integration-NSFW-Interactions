@@ -614,3 +614,151 @@ EndFunction
 ; (the SpermOut ability path exposes no event); sr.inflater.start is used ONLY
 ; as an immediate-poll nudge (now via HandleFHUStartSignal, above).
 
+; (the SpermOut ability path exposes no event); sr.inflater.start is used ONLY
+; as an immediate-poll nudge (now via HandleFHUStartSignal, above).
+
+; ---- REV-155: OSTIM CLIMAX DRIVER (self-owned inflation fills) ----
+; The planner's final FHU v2 lane: OStim scenes had NO inflation driver in the
+; enabled profile (the SL FHU Baka OStim 0.18 bridge is DISABLED in the active
+; Ultra profile; the enabled FHU 2.11 Beta registers SexLab hooks only,
+; sr_inflateQuest L383-385), so OStim-driven sex never filled FHU. This driver
+; REPLICATES the 0.18 bridge's OStim orgasm logic (patch sr_inflateQuest.psc
+; L557-678, reference copy: [NoDelete] SL FHU Baka Ostim 0.18 -- the patch is
+; DEMOTED TO REFERENCE-ONLY; this module replaces it wholesale) with the two
+; user-ruled deviations:
+;   (a) GENDER RESOLUTION: OActorUtil.HasSchlong + SexLab GetGender (PPLUS
+;       2.18.1 SexLabFramework.psc L1092) -- NEVER AppearsFemale (absent from
+;       the installed PPLUS; the patch's own gender call would not compile
+;       against this runtime).
+;   (b) DOUBLE-FIRE GUARD: if the 0.18 patch esp is ever re-enabled, its
+;       sr_inflateQuest fills ocummale (an OCumMaleScript property that exists
+;       ONLY in the patch quest script; the 2.11 quest has no such property and
+;       its esp leaves it None) -- ocummale != None means the patch owns the
+;       OStim lane and this driver STANDS DOWN (noted once per session, no
+;       per-event spam).
+; Payload (OStim "ostim_actor_orgasm" broadcast): eventName, SceneID:String,
+; ThreadID:Float, OrgasmedActor:Form (the orgasming actor = the cum SOURCE).
+; Resolution chain: OThread.GetActors(ThreadID) -> MaleCount/CreatureCount via
+; HasSchlong / !HasKeyword(ActorTypeNPC) -> orifice indices via
+; OMetadata.FindActionForActor("vaginalsex"/"analsex") +
+; FindActionForTarget("blowjob"/"deepthroat") -> receiver via
+; GetActionTarget/GetActionActor -> pool mask via the quest's
+; VAGINAL/ANAL/ORAL consts -> QueueActor(...) + InflateQueued() on the quest
+; (2.11 Beta signatures, L2041/L2081), then the immediate PollLevels nudge
+; (the sr.inflater.start convention).
+; State: NONE beyond StorageUtil counters (None-keyed session fills +
+; per-actor receipt):
+;   SNBaka.FHU.OStimFills                session fill count (driver liveness)
+;   SNBaka.FHU.OStimActorFills.<formid>  per-actor fill count (cum receiver)
+;   SNBaka.FHU.OStimGuardNoted           double-fire guard session sentinel
+; Armed presence-gated on the motherboard (OStim.esp installed; absent esp =
+; event never sent = listener idle, the 0171 convention).
+Function HandleOStimOrgasm(SkyrimNet_BakaIntegration akHost, String asEventName, String asSceneID, Float afThreadID, Form akSender) Global
+    ; gate 1: master toggles + FHU runtime present (the standing module gate)
+    If !(akHost.bEnabled && akHost.bFHUInflationEnabled && Installed())
+        Return
+    EndIf
+    ; gate 2: resolve the FHU quest (installed form 0x06000D63 = the ACTIVE
+    ; sr_FillHerUp.esp's sr_inflateQuest, whichever variant is enabled -- the
+    ; base hotfix and the 0.18 patch esp share the 0x000D63 record)
+    sr_inflateQuest srq = Game.GetFormFromFile(0x000D63, "sr_FillHerUp.esp") as sr_inflateQuest
+    If !srq
+        Return
+    EndIf
+    ; gate 3 (DOUBLE-FIRE GUARD): the 0.18 patch quest fills ocummale from
+    ; OCum's OCumMaleQuest; the 2.11 quest resolves None. Patch active = patch
+    ; owns the OStim lane = this driver stands down.
+    If srq.ocummale != None
+        If StorageUtil.GetIntValue(None, "SNBaka.FHU.OStimGuardNoted", 0) == 0
+            StorageUtil.SetIntValue(None, "SNBaka.FHU.OStimGuardNoted", 1)
+            akHost._Log("[SNBaka] OStim climax: double-fire guard -- ocummale present on sr_inflateQuest 0x000D63 (the SL FHU Baka OStim 0.18 patch owns the OStim lane); driver stands down")
+        EndIf
+        Return
+    EndIf
+    Actor cummer = akSender as Actor
+    If !cummer
+        Return
+    EndIf
+    Actor[] actors = OThread.GetActors(afThreadID as Int)
+    If !actors || actors.Length == 0
+        akHost._Log("[SNBaka] OStim climax: empty actor list for thread " + (afThreadID as Int) + " -- skip")
+        Return
+    EndIf
+    Int i = actors.Length
+    Int iMaleCount = 0
+    Int iCreatureCount = 0
+    While i > 0
+        i -= 1
+        If OActorUtil.HasSchlong(actors[i])
+            iMaleCount += 1
+        EndIf
+        If !actors[i].HasKeyword(srq.ActorTypeNPC)
+            iCreatureCount += 1
+        EndIf
+    EndWhile
+    If iMaleCount < 1 && iCreatureCount < 1
+        akHost._Log("[SNBaka] OStim climax: no schlong/creature source in scene " + asSceneID + " -- skip")
+        Return
+    EndIf
+    Int iCummerIndex = actors.Find(cummer)
+    If iCummerIndex < 0
+        Return
+    EndIf
+    ; orifice resolution (the 0.18 chain, verbatim metadata calls)
+    Int iVagIndex = OMetadata.FindActionForActor(asSceneID, iCummerIndex, "vaginalsex")
+    Int iAnalIndex = OMetadata.FindActionForActor(asSceneID, iCummerIndex, "analsex")
+    Int iOralIndex = OMetadata.FindActionForTarget(asSceneID, iCummerIndex, "blowjob")
+    If iOralIndex == -1
+        iOralIndex = OMetadata.FindActionForTarget(asSceneID, iCummerIndex, "deepthroat")
+    EndIf
+    Int iPool = 0
+    Int iCummedIndex = -1
+    If iVagIndex != -1
+        iPool = Math.LogicalOr(iPool, srq.VAGINAL)
+        iCummedIndex = OMetadata.GetActionTarget(asSceneID, iVagIndex)
+    EndIf
+    If iAnalIndex != -1
+        iPool = Math.LogicalOr(iPool, srq.ANAL)
+        iCummedIndex = OMetadata.GetActionTarget(asSceneID, iAnalIndex)
+    EndIf
+    If iOralIndex != -1
+        iPool = Math.LogicalOr(iPool, srq.ORAL)
+        iCummedIndex = OMetadata.GetActionActor(asSceneID, iOralIndex)
+    EndIf
+    If iCummedIndex < 0 || iCummedIndex >= actors.Length || iPool == 0
+        Return
+    EndIf
+    Actor cummed = actors[iCummedIndex]
+    ; gender gate (user ruling (a): HasSchlong + GetGender, never AppearsFemale)
+    Bool bSchlong = OActorUtil.HasSchlong(cummed)
+    Int iGender = srq.sexlab.GetGender(cummed)
+    Bool bEligible = False
+    If !bSchlong || iGender == 1
+        bEligible = srq.config.femaleEnabled
+    ElseIf bSchlong && iGender == 0
+        bEligible = srq.config.maleEnabled
+    EndIf
+    If !bEligible
+        akHost._Log("[SNBaka] OStim climax: receiver " + cummed.GetLeveledActorBase().GetName() + " fails the gender/config gate (schlong=" + bSchlong + ", gender=" + iGender + ") -- skip")
+        Return
+    EndIf
+    Actor[] cumSource = New Actor[1]
+    cumSource[0] = cummer
+    akHost._Log("[SNBaka] OStim climax: lane engaged for " + cummed.GetLeveledActorBase().GetName() + " (scene " + asSceneID + ", pool " + iPool + ")")
+    Int iThread = srq.QueueActor(cummed, True, iPool, srq.GetCumAmountForActor(cummed, cumSource), 3.0)
+    If iThread < 0
+        akHost._Log("[SNBaka] OStim climax: inflation slots full, skipping " + cummed.GetLeveledActorBase().GetName())
+    Else
+        akHost._Log("[SNBaka] OStim climax: queued " + cummed.GetLeveledActorBase().GetName() + " to thread " + iThread)
+        StorageUtil.SetFloatValue(None, "SNBaka.FHU.OStimFills", StorageUtil.GetFloatValue(None, "SNBaka.FHU.OStimFills", 0.0) + 1.0)
+        StorageUtil.SetFloatValue(cummed, "SNBaka.FHU.OStimActorFills." + cummed.GetFormID(), StorageUtil.GetFloatValue(cummed, "SNBaka.FHU.OStimActorFills." + cummed.GetFormID(), 0.0) + 1.0)
+    EndIf
+    ; queue drain (the 0.18 order: unconditionally after the queue attempt) +
+    ; the immediate poll nudge (the sr.inflater.start convention)
+    srq.InflateQueued()
+    PollLevels(akHost)
+EndFunction
+;   SNBaka.FHU.OStimActorFills.<formid>  per-actor fill count (cum receiver)
+;   SNBaka.FHU.OStimGuardNoted           double-fire guard session sentinel
+; Armed presence-gated on the motherboard (OStim.esp installed; absent esp =
+; event never sent = listener idle, the 0171 convention).
