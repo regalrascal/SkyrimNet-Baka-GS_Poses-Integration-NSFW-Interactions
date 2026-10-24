@@ -308,6 +308,7 @@ Add actions for the application of adult themed tattoos implemented by the mod S
 
 - 2026-10-08 REV-88: v1 + reaction layer shipped (INDEX row 4; slavetats.md); v2/v3 parked per Option C sequencing.
 - 2026-10-08 REV-88: "Male applicable tattoos" (HIMBO/physics-body investigation) mapped to the slavetats v2 row (slavetats.md; INDEX master checklist) — research-class, unstarted.
+- 2026-10-24 REV-156: the exposure-trigger pass (visibility-gated ambient reaction cues on the daemon tick — this section's triggers/exposure rows) + the dialogue-application and NPC-on-player rows BUILT (CommandTattoo + MarkPlayer actions, the dominant-relationship and ownership/humiliation lanes). Status + full record: slavetats.md REV-156 + INDEX row 4 + PROJECT_STATE sec.178; wording drafts at the user's pen (register entry 35). Bio-updates (B9) + fading remain deferred.
 
 # Improved Dirty Talk
 

@@ -294,6 +294,11 @@ Int _stPickOID
 Int _stDefaultColorOID
 Int _stRemoveOnReleaseOID
 Int _stObserveOID
+; REV-156 — ambient exposure pass surfaces (the daemon-tick consumer of
+; ResolveVisibility; the REV-74 Observe toggle is FOLDED to it as master
+; gate). Register entry 35 DRAFTs (labels/tooltips at the user's pen).
+Int _stAmbientPctOID     ; "Ambient Exposure Chance" (SNBaka.ST.AmbientPct, default 35)
+Int _stAmbientNarrOID    ; "Tattoo Ambient Narration" (SNBaka.ST.AmbientNarr, DEFAULT OFF)
 ; REV-85 Phase B — GS Poses top-level page: the gender policy mode selector
 ; (GSAnim.GenderPolicy StorageUtil int on None; 0 = female-only default).
 Int _gsGenderPolicyOID = -1
@@ -882,6 +887,8 @@ Event OnPageReset(String page)
             _stDefaultColorOID   = AddTextOption("Default Mark Color",     _ST_ColorLabel(StorageUtil.GetIntValue(_stP, "SNBaka.ST.DefaultColor", 0)))
             _stRemoveOnReleaseOID = AddToggleOption("Remove Marks On Release", StorageUtil.GetIntValue(_stP, "SNBaka.ST.RemoveOnRelease", 1) == 1)
             _stObserveOID         = AddToggleOption("Ambient Observation Cues", StorageUtil.GetIntValue(_stP, "SNBaka.ST.Observe", 1) == 1)
+            _stAmbientPctOID      = AddSliderOption("Ambient Exposure Chance", StorageUtil.GetIntValue(_stP, "SNBaka.ST.AmbientPct", 35) as Float, "{0}%")
+            _stAmbientNarrOID     = AddToggleOption("Tattoo Ambient Narration", StorageUtil.GetIntValue(_stP, "SNBaka.ST.AmbientNarr", 0) == 1)
         Else
             _stEnabledOID = AddToggleOption("Module Enabled (not installed)", False, OPTION_FLAG_DISABLED)
             _stSpankOID   = -1
@@ -893,6 +900,8 @@ Event OnPageReset(String page)
             _stDefaultColorOID    = -1
             _stRemoveOnReleaseOID = -1
             _stObserveOID         = -1
+            _stAmbientPctOID      = -1
+            _stAmbientNarrOID     = -1
         EndIf
     ElseIf page == "GS Poses"
         ; REV-85 Phase B: the gender policy home (posing-gender.md §2b). One menu
@@ -1075,6 +1084,8 @@ Event OnOptionSelect(Int option)
         _ST_Toggle("SNBaka.ST.RemoveOnRelease", _stRemoveOnReleaseOID, 1)
     ElseIf option == _stObserveOID
         _ST_Toggle("SNBaka.ST.Observe", _stObserveOID, 1)
+    ElseIf option == _stAmbientNarrOID
+        _ST_Toggle("SNBaka.ST.AmbientNarr", _stAmbientNarrOID, 0)
     ElseIf option == _animatedTearsOID
         Main.bAnimatedTearsEnabled = !Main.bAnimatedTearsEnabled
         SetToggleOptionValue(_animatedTearsOID, Main.bAnimatedTearsEnabled)
@@ -1578,6 +1589,13 @@ Event OnOptionSliderOpen(Int option)
         SetSliderDialogDefaultValue(30.0)
         SetSliderDialogRange(0.0, 120.0)
         SetSliderDialogInterval(5.0)
+    ElseIf option == _stAmbientPctOID
+        ; REV-156: user-ruled default 35 -- the chance each daemon-tick
+        ; ambient exposure pass fires a visible-tattoo reaction cue.
+        SetSliderDialogStartValue(StorageUtil.GetIntValue(Game.GetPlayer(), "SNBaka.ST.AmbientPct", 35) as Float)
+        SetSliderDialogDefaultValue(35.0)
+        SetSliderDialogRange(0.0, 100.0)
+        SetSliderDialogInterval(5.0)
     ElseIf option == _fhuNoticeOID
         ; REV-154: planner default 30 -- the percent-of-max floor for ambient
         ; bystander reactions (curious stares / suggestive comments).
@@ -1723,6 +1741,10 @@ Event OnOptionSliderAccept(Int option, Float value)
         ; REV-154: read live at every poll tick -- no re-arm needed.
         Main.iFHUAmbientNoticeBand = value as Int
         SetSliderOptionValue(_fhuNoticeOID, value, "{0}%")
+    ElseIf option == _stAmbientPctOID
+        ; REV-156: read live at every daemon tick -- no re-arm needed.
+        StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.ST.AmbientPct", value as Int)
+        SetSliderOptionValue(_stAmbientPctOID, value, "{0}%")
     ElseIf option == _fhuHeavyOID
         Main.iFHUAmbientHeavyBand = value as Int
         SetSliderOptionValue(_fhuHeavyOID, value, "{0}%")
@@ -1958,7 +1980,17 @@ Event OnOptionHighlight(Int option)
     ElseIf option == _stRemoveOnReleaseOID
         SetInfoText("Strip the module's degradation marks when a captive is genuinely released (the Release action). Only marks THIS module applied - Baka's own spank heat marks are untouched. Default ON.")
     ElseIf option == _stObserveOID
-        SetInfoText("Periodic ambient cue (~every 4 game hours) that a marked actor still wears their degradation marks, so nearby personas can notice and react without polling. Only fires when module-applied marks exist. Default ON.")
+        ; REV-156: re-pointed to the daemon-tick ambient exposure pass (the
+        ; v1 ~4h heartbeat pass is retired). Register entry 35 DRAFT.
+        SetInfoText("Master gate for ambient tattoo reaction cues: while a Baka daemon mode is on, every daemon tick rolls a chance for nearby personas to notice any VISIBLE tattoo - covered marks are not reacted to, marks applied by any means are. Default ON.")
+    ElseIf option == _stAmbientPctOID
+        ; REV-156. Register entry 35 DRAFT.
+        SetInfoText("Chance each daemon-tick ambient pass fires a visible-tattoo reaction cue when someone nearby has an exposed mark (default 35%). Failing rolls are silent.")
+    ElseIf option == _stAmbientNarrOID
+        ; REV-156: the Follow-up Prompt pattern (134f/153/154) applied to the
+        ; tattoo ambient cue - the gated second surface. DEFAULT OFF. Register
+        ; entry 35 DRAFT.
+        SetInfoText("Additional direct narration for ambient tattoo reaction cues (a second prompt surface on top of the mandatory cue). Default OFF.")
     ElseIf option == _qteKeysOID
         ; REV-109 length audit (class (b) split): the WASD / d-pad detail moved
         ; here from the (over-length) value string.

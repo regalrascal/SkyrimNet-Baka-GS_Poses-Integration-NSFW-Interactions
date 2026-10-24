@@ -28,6 +28,16 @@ Scriptname SNBaka_SlaveTatsModule
 ;     positionally, absent fields default (mode=event, area="", timestamp=0 ->
 ;     freshness band "unknown"); _DropAppliedEntry is field-count agnostic
 ;     (prefix match), so old and new entries remove identically.
+;   SNBaka.ST.Observe       Int   REV-156: master gate of the AMBIENT
+;     EXPOSURE PASS (folded from the retired v1 ObservationPass; default 1)
+;   SNBaka.ST.AmbientPct    Int   fire chance per daemon tick, percent
+;     (default 35; MCM slider "Ambient Exposure Chance")
+;   SNBaka.ST.AmbientFloor  Float per-actor exposure cooldown, real-time
+;     seconds (default 600.0; surfaced at the gate report)
+;   SNBaka.ST.AmbientLast   Float (actor-keyed) last ambient exposure
+;     fire stamp, real-time seconds (the muse-floor pattern)
+;   SNBaka.ST.AmbientNarr   Int   optional direct-narration second surface
+;     for the ambient cue (default 0 = OFF; MCM "Tattoo Ambient Narration")
 ; ------------------------------------------------------------------
 
 Bool Function Installed() Global
@@ -769,62 +779,202 @@ Function Arm() Global
 EndFunction
 
 ; ------------------------------------------------------------------
-; REV-74 rider 3 — AMBIENT OBSERVATION PASS
+; REV-156 — AMBIENT EXPOSURE PASS (daemon-tick consumer)
 ; ------------------------------------------------------------------
-; Called from the motherboard heartbeat (its ~0.5-game-hour ground floor); throttled
-; HERE to the module's own cadence (SNBaka.ST.ObserveHours, default 4 game hours) via a
-; game-time stamp, so the heartbeat caller needs no state of its own. Idempotent,
-; recordless-safe (Global call, player-keyed stamp only).
+; *** RETIREMENT BANNER (REV-156, 2026-10-24): the v1 ObservationPass
+; (REV-74 rider 3 — player-only, ~4 game-hour cadence via
+; SNBaka.ST.ObserveHours, heartbeat-dispatched from the motherboard's
+; OnUpdateGameTime) is RETIRED. Superseded by THIS pass: visibility-gated
+; (the REV-150 cascade's layer-1 truth), any nearby actor, any visible
+; mark (foreign marks included — the 3.3 verdict), daemon-tick cadence
+; in both modes (the motherboard hook is _DaemonTick). History lives in
+; git; the shipped tree carries exactly one ambient observation pass.
+; The MCM "Ambient Observation Cues" toggle (SNBaka.ST.Observe) is
+; FOLDED to this pass as its master gate. Records: slavetats.md REV-156 +
+; PROJECT_STATE section 178.
 ;
-; v1 surface (recorded scope decision): the module has no global actor registry (the
-; applied list is actor-keyed StorageUtil), so v1 observes the PLAYER's own module-
-; applied marks — the one actor the module can always find for free. Firing a generic
-; sdb_tattoo_observed cue lets nearby NPC personas notice the marks without the LLM
-; polling overlays. Extending to arbitrary marked NPCs (an loaded-actor scan) is a v2
-; candidate with its own cost report — noted for the tweak pass.
+; SHAPE (user rulings, REV-156 exchange):
+;   - fires from the DAEMON TICK at ~35% likelihood when a tattoo is
+;     VISIBLE (key SNBaka.ST.AmbientPct, default 35, MCM slider
+;     "Ambient Exposure Chance"); fail = silent-with-sentinel.
+;   - NO tattoos or none visible = skip the prompt entirely (sentinel
+;     trace only — no dead weight).
+;   - per-actor exposure cooldown (the muse-floor pattern, real-time):
+;     key SNBaka.ST.AmbientLast, floor SNBaka.ST.AmbientFloor
+;     (default 600s; surfaced at the gate report).
+;   - ANY visible mark counts (foreign-marks verdict: query_applied_tattoos
+;     reads the framework's own applied bookkeeping, so marks applied by
+;     other means — SlaveTats-direct, other mods — are reacted to too;
+;     recommended + adopted, surfaced for confirmation).
+;   - the cue branches on APPLICATION-SPECIFIC information: LOCATION
+;     (v3 area), the SPECIFIC tattoo name, the wearer, and the wearer's
+;     observable arousal tier (the REV-82 witness-chain clause wording
+;     of record via _ArousalClause, self-keyed standard — the reacting
+;     NPC is unknown at fire time, so the wearer's observable state
+;     carries the register; recorded interpretation, user-correctable).
+;   - sdb_tattoo_observed_narr = the OPTIONAL direct-narration second
+;     surface (MCM "Tattoo Ambient Narration", DEFAULT OFF, key
+;     SNBaka.ST.AmbientNarr; eventType-only yaml
+;     sdb_tattoo_observed_narr — the 134f/153/154 pattern). Cue always;
+;     narration the gated second surface.
+; Receipt standard (4.8): every roll outcome, cooldown skip, fire, and
+; narr fire/gated-skip is sentinel'd; ASCII throughout.
 ; ------------------------------------------------------------------
-Function ObservationPass() Global
+Function AmbientExposurePass() Global
     Actor p = Game.GetPlayer()
-    If !p || StorageUtil.GetIntValue(p, "SNBaka.ST.Enabled", 1) != 1
+    If !p || !Installed()
         Return
     EndIf
-    ; MCM "Ambient Observation Cues" master gate (default ON); ObserveHours is the cadence.
+    If StorageUtil.GetIntValue(p, "SNBaka.ST.Enabled", 1) != 1
+        Return
+    EndIf
     If StorageUtil.GetIntValue(p, "SNBaka.ST.Observe", 1) != 1
+        Debug.Trace("[SNBaka.ST] ambient: master gate off (SNBaka.ST.Observe=0) - skip -- REV-156")
         Return
     EndIf
-    Float now = Utility.GetCurrentGameTime()
-    Float cadence = StorageUtil.GetFloatValue(p, "SNBaka.ST.ObserveHours", 4.0)
-    If cadence <= 0.0
-        Return    ; observation disabled via cadence 0 (belt-and-braces)
+    ; --- the marked-population walk (pool-convention radius 2500, the
+    ; daemon-scan class; children excluded like the pools; the dead and
+    ; the too-far are walk-neutral). Up to 8 wearers recorded; the pick
+    ; rotates by chance (the v1 recorded scope decision, generalized).
+    Actor[] wearers = New Actor[8]
+    Int nW = 0
+    Actor[] all = PO3_SKSEFunctions.GetActorsByProcessingLevel(0)
+    Int i = 0
+    While i < all.Length && nW < 8
+        Actor a = all[i]
+        If a && !a.IsDead() && !a.IsChild() && a.GetDistance(p) <= 2500.0
+            If _FirstVisibleMark(a) != ""
+                wearers[nW] = a
+                nW += 1
+            EndIf
+        EndIf
+        i += 1
+    EndWhile
+    ; PO3's processing-level list does not reliably include the player —
+    ; the player's own visible marks count too (witness reactions key on
+    ; the wearer's state; the wearer may be the player).
+    If nW < 8 && _FirstVisibleMark(p) != ""
+        wearers[nW] = p
+        nW += 1
     EndIf
-    Float last = StorageUtil.GetFloatValue(p, "SNBaka.ST.LastObserve", -999.0)
-    If now - last < cadence && now - last >= 0.0
-        Return    ; not yet due (the >= 0 guard survives game-time resets/new games)
-    EndIf
-    StorageUtil.SetFloatValue(p, "SNBaka.ST.LastObserve", now)
-    ; Observe the player's own module-applied marks (first entry is enough for v1 —
-    ; the cue text names the specific mark, and repeated passes rotate by chance).
-    Int cnt = StorageUtil.StringListCount(p, "SNBaka.ST.Applied")
-    If cnt == 0
+    If nW == 0
+        Debug.Trace("[SNBaka.ST] ambient: no visible marks in radius - skip the prompt entirely (no dead weight) -- REV-156")
         Return
     EndIf
-    Int idx = Utility.RandomInt(0, cnt - 1)
-    String entry = StorageUtil.StringListGet(p, "SNBaka.ST.Applied", idx)
-    String sec = ""
-    String nm = ""
-    Int sep = StringUtil.Find(entry, "|")
-    If sep > 0
-        sec = StringUtil.Substring(entry, 0, sep)
-        String rest = StringUtil.Substring(entry, sep + 1)
-        Int sep2 = StringUtil.Find(rest, "|")
-        nm = StringUtil.Substring(rest, 0, sep2)    ; sep2 < 0 (legacy entry) => whole rest
-    EndIf
-    If sec == "" || nm == ""
+    Actor ak = wearers[Utility.RandomInt(0, nW - 1)]
+    ; per-actor exposure cooldown (muse-floor pattern, real-time seconds)
+    Float now = Utility.GetCurrentRealTime()
+    Float floorS = StorageUtil.GetFloatValue(p, "SNBaka.ST.AmbientFloor", 600.0)
+    If floorS > 0.0 && now - StorageUtil.GetFloatValue(ak, "SNBaka.ST.AmbientLast", -99999.0) < floorS
+        Debug.Trace("[SNBaka.ST] ambient: cooldown skip - " + ak.GetDisplayName() + " was exposed recently (floor=" + floorS + "s) -- REV-156")
         Return
     EndIf
+    Int pct = StorageUtil.GetIntValue(p, "SNBaka.ST.AmbientPct", 35)
+    Int roll = Utility.RandomInt(1, 100)
+    If roll > pct
+        Debug.Trace("[SNBaka.ST] ambient: roll failed (" + roll + " > " + pct + "%) - silent-with-sentinel, no prompt -- REV-156")
+        Return
+    EndIf
+    String[] m = StringUtil.Split(_FirstVisibleMark(ak), "|")
+    String loc = "their exposed skin"
+    If m.Length > 2 && m[2] == "Body"
+        loc = "their exposed torso"
+    ElseIf m.Length > 2 && m[2] == "Face"
+        loc = "their face"
+    ElseIf m.Length > 2 && m[2] == "Hands"
+        loc = "their bare hands"
+    ElseIf m.Length > 2 && m[2] == "Feet"
+        loc = "their bare feet"
+    EndIf
+    StorageUtil.SetFloatValue(ak, "SNBaka.ST.AmbientLast", now)
+    ; Cue (mandatory): branched on location + the specific mark + the
+    ; wearer + the wearer's observable arousal tier. Register entry 35
+    ; DRAFT (branch wordings at the user's pen).
     SkyrimNetApi.RegisterEvent("sdb_tattoo_observed", \
-        p.GetDisplayName() + " still visibly wears the degrading tattoo (" + sec + " / " + nm + "). Anyone around who notices it reacts to the specific mark.", \
-        p, p)
+        ak.GetDisplayName() + " has a tattoo showing on " + loc + ": '" + m[1] + "' (" + m[0] + "). Anyone who notices it reacts to the specific mark." + _ArousalClause(ak), \
+        ak, ak)
+    Debug.Trace("[SNBaka.ST] ambient: FIRED sdb_tattoo_observed - wearer=" + ak.GetDisplayName() + " mark='" + m[1] + "' (" + m[0] + ") area=" + m[2] + " roll=" + roll + "/" + pct + "% -- REV-156")
+    ; Narration (gated second surface, DEFAULT OFF).
+    If StorageUtil.GetIntValue(p, "SNBaka.ST.AmbientNarr", 0) == 1
+        SkyrimNetApi.RegisterEvent("sdb_tattoo_observed_narr", \
+            "A visible tattoo on a nearby character has drawn attention.", \
+            ak, ak)
+        Debug.Trace("[SNBaka.ST] ambient: narr FIRED (sdb_tattoo_observed_narr, MCM Tattoo Ambient Narration ON) -- REV-156")
+    Else
+        Debug.Trace("[SNBaka.ST] ambient: narr GATED-SKIP (MCM Tattoo Ambient Narration OFF, default) -- REV-156")
+    EndIf
+EndFunction
+
+; The first VISIBLE mark on an actor, any source (the 3.3 foreign-marks
+; verdict): "section|name|area", or "" when nothing visible. Layer-1
+; truth only (the coverage-default table; layers 2/3 stay named-gap per
+; the REV-150 3.3 verdict — no re-attempting). query_applied_tattoos
+; reads the FRAMEWORK's own applied bookkeeping (JFormDB), so marks
+; applied by any means are enumerated — module-owned and foreign alike.
+String Function _FirstVisibleMark(Actor akTarget) Global
+    String empty = ""
+    If !akTarget || !Installed()
+        Return empty
+    EndIf
+    ; pool pattern (the installed SlaveTats source's own convention --
+    ; has_applied_tattoos_with_attribute): one pooled query handle per
+    ; call, released wholesale by cleanPool (no per-handle release).
+    Int matches = JValue.addToPool(JArray.object(), "SNBaka-ST-AmbientQuery")
+    String hit = ""
+    Bool qErr = SlaveTats.query_applied_tattoos(akTarget, 0, matches)
+    If qErr
+        Debug.Trace("[SNBaka.ST] _FirstVisibleMark: query_applied_tattoos error on " + akTarget.GetDisplayName() + " -- REV-156")
+    Else
+        Int n = JArray.count(matches)
+        Int i = 0
+        While i < n && hit == ""
+            Int e = JArray.getObj(matches, i)
+            String area = JMap.getStr(e, "area")
+            If area == ""
+                area = "Body"    ; unknown area - body-class default, coarse (the ResolveVisibility convention)
+            EndIf
+            If akTarget.GetWornForm(_AreaSlotMask(area)) == None
+                hit = JMap.getStr(e, "section") + "|" + JMap.getStr(e, "name") + "|" + area
+            EndIf
+            i += 1
+        EndWhile
+    EndIf
+    JValue.cleanPool("SNBaka-ST-AmbientQuery")
+    Return hit
+EndFunction
+
+; REV-156 4.5/4.6: validate an LLM-chosen (section, name) against the
+; live pack cache. Returns "section|name" as a 2-slot array; "" on
+; refuse. Invalid section -> random section; invalid name -> random
+; name from the chosen section (bounded, sentinel'd fallbacks — the LLM
+; guidance points at the cache, the fallback keeps the lane functional
+; on a stray pick). Body-compat is NOT screened here — the ApplyTattoo
+; choke point owns it ([male-not-curated], the REV-150.1 class).
+String[] Function ValidatePick(String asSection, String asName) Global
+    String[] out = Utility.CreateStringArray(2, "")
+    String[] sections = GetSections()
+    If sections.Length == 0
+        Debug.Trace("[SNBaka.ST] ValidatePick: REFUSED [nopacks] - no sections discovered -- REV-156")
+        Return out
+    EndIf
+    String sec = asSection
+    If sections.Find(sec) < 0
+        Debug.Trace("[SNBaka.ST] ValidatePick: section '" + asSection + "' not in cache - random fallback -- REV-156")
+        sec = sections[Utility.RandomInt(0, sections.Length - 1)]
+    EndIf
+    String[] names = GetSetNames(sec)
+    If names.Length == 0
+        Debug.Trace("[SNBaka.ST] ValidatePick: REFUSED [emptyset] - section '" + sec + "' has no entries -- REV-156")
+        Return out
+    EndIf
+    String nm = asName
+    If names.Find(nm) < 0
+        Debug.Trace("[SNBaka.ST] ValidatePick: name '" + asName + "' not in '" + sec + "' - random fallback -- REV-156")
+        nm = names[Utility.RandomInt(0, names.Length - 1)]
+    EndIf
+    out[0] = sec
+    out[1] = nm
+    Return out
 EndFunction
 
 ; ------------------------------------------------------------------

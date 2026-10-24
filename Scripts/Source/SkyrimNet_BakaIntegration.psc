@@ -982,6 +982,11 @@ EndFunction
 ; ungated, the user's deliberate choice is never second-guessed). Otherwise the
 ; central policy is consulted, with a per-site reason code on the §5 sentinel
 ; (unconditional trace on BOTH admit and refuse).
+; Consumers: IsEligible (paired executors), the daemon scan sites
+; (mode.scan / mode.downed), and since REV-156 the NPC-on-player tattoo
+; action lane (site "MarkPlayer", MarkPlayer_Execute — the action-lane
+; consumer per the 3.5 pre-check; the player's own dialogue-commanded
+; application stays ungated per the Execute pattern).
 Bool Function _PlayerTargetAdmitted(Actor akInitiator, Actor akTarget, String asSite)
     If !akTarget || akTarget != PlayerRef
         Return True
@@ -1139,6 +1144,15 @@ Function _DaemonTick()
     Else
         _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 45.0
     EndIf
+    ; REV-156 4.1: TATTOO AMBIENT EXPOSURE ROLL — every tick, BOTH modes,
+    ; independent of the Mephala pending-pair state (a cue is not a
+    ; pending action). Visibility-gated inside the module (any visible
+    ; mark incl. foreign, layer-1 truth), ~35% fire chance (MCM
+    ; "Ambient Exposure Chance"), per-actor exposure cooldown; every
+    ; non-fire leg is silent-with-sentinel (no prompt, no dead weight).
+    ; The module owns all gating + receipts; the v1 heartbeat
+    ; ObservationPass is RETIRED (banner at the heartbeat site).
+    SNBaka_SlaveTatsModule.AmbientExposurePass()
     If iMode == 1 && _bMephalaPending
         _Log("[SNBaka] daemon refuse: busy (Mephala pending) -- one pending action at a time -- REV-145")
         Return
@@ -8652,6 +8666,104 @@ Function RemoveTattoos_Execute(Actor akInitiator, Actor akTarget)
     SNBaka_SlaveTatsModule.RemoveAllFromActor(akTarget, "llm_action")
 EndFunction
 
+; --- [REV-156 4.5] DIALOGUE-INITIATED APPLICATION (planner: "apply a
+; tattoo to an NPC who you have a dominant relationship with... they
+; would need to feel intimidated and/or submissive toward you") ---
+; STANDING-NPC lane (NOT the downed tile — _ForcedTattoo owns downed).
+; Gates, reason-coded (receipt standard 4.8): [null] / [child-boundary]
+; / [downed] / [dialogue-gate-refused] — the 3.4 implementable observable:
+; relationship rank toward the initiator >= 1 ("submissive toward you")
+; OR Confidence AV <= 1 ("intimidated"; 0=cowardly, 1=cautious) — both
+; vanilla-cheap natives (rank precedent L~2996 rank==4; AV precedent
+; L~2916 Aggression read). Body-compat rides the module's ApplyTattoo
+; choke point ([male-not-curated], the REV-150.1 class) — the 3.4-class
+; guard. The LLM picks section/name/color from the target's available
+; set (the pack cache); invalid picks fall back in-cache
+; (ValidatePick, sentinel'd). Player-initiated via dialogue = the player
+; commands it — NOT gated by the player-target policy (the Execute
+; pattern). Cue: sdb_tattoo_applied fires from the module on EVERY
+; application path (the REV-82 design). Mode = "dialogue".
+Function CommandTattoo_Execute(Actor akInitiator, Actor akTarget, String asSection, String asName, String asColor)
+    _Log("[SNBaka] CommandTattoo ENTER: initiator=" + akInitiator + " target=" + akTarget + " pick=" + asSection + "/" + asName + " color=" + asColor + " -- REV-156")
+    If !akInitiator || !akTarget || !SNBaka_SlaveTatsModule.Installed()
+        _Log("[SNBaka] CommandTattoo REFUSE [null]: null actor or SlaveTats absent -- REV-156")
+        Return
+    EndIf
+    If _ChildBoundaryRefused(akInitiator, akTarget, "CommandTattoo")
+        _Log("[SNBaka] CommandTattoo REFUSE [child-boundary] -- REV-156")
+        Return
+    EndIf
+    If _IsDownedAny(akTarget)
+        _Log("[SNBaka] CommandTattoo REFUSE [downed]: " + akTarget.GetDisplayName() + " is downed - the forced lane owns downed targets -- REV-156")
+        Return
+    EndIf
+    Int iRank = akTarget.GetRelationshipRank(akInitiator)
+    Float fConf = akTarget.GetActorValue("Confidence")
+    If iRank < 1 && fConf > 1.0
+        _Log("[SNBaka] CommandTattoo REFUSE [dialogue-gate-refused]: " + akTarget.GetDisplayName() + " is neither submissive toward (rank=" + iRank + ") nor intimidated by (confidence=" + fConf + ") " + akInitiator.GetDisplayName() + " -- REV-156 3.4 gate")
+        Return
+    EndIf
+    String[] pick = SNBaka_SlaveTatsModule.ValidatePick(asSection, asName)
+    If pick.Length < 2 || pick[0] == "" || pick[1] == ""
+        _Log("[SNBaka] CommandTattoo REFUSE [nopacks]: no usable pack entry -- REV-156")
+        Return
+    EndIf
+    Int iColor = -1
+    If asColor != ""
+        iColor = SNBaka_SlaveTatsModule._HexToInt(asColor)
+    EndIf
+    _Log("[SNBaka] CommandTattoo APPLY (lane=dialogue, who picked: LLM pick " + asSection + "/" + asName + " color=" + asColor + " -> resolved '" + pick[1] + "' (" + pick[0] + ") on " + akTarget.GetDisplayName() + ") -- REV-156")
+    SNBaka_SlaveTatsModule.ApplyTattoo(akTarget, pick[0], pick[1], iColor, True, "dialogue")
+EndFunction
+
+; --- [REV-156 4.6] NPC-ON-PLAYER APPLICATION (the planner ownership/
+; humiliation row: "if the NPC feels like humiliating or marking
+; ownership of the player") ---
+; Target = the PLAYER, always. The central player-target policy IS the
+; gate (blanket MCM, DEFAULT OFF — site "MarkPlayer"; the consumer list
+; extended per the 3.5 pre-check). Child boundary N/A on the player
+; target (kept belt-and-braces on the initiator). Body-compat rides the
+; ApplyTattoo choke point (the 3.4-class guard). The LLM picks
+; location/color/name filtered by ITS arousal/mood/character — the
+; selection guidance rides the action yaml description (register entry
+; 35 DRAFT); the executor validates the pick in-cache. Cue:
+; sdb_tattoo_applied fires ON THE PLAYER from the module (witness
+; reactions already key on the wearer's state). Mode = "ownership".
+Function MarkPlayer_Execute(Actor akInitiator, String asSection, String asName, String asColor)
+    _Log("[SNBaka] MarkPlayer ENTER: initiator=" + akInitiator + " pick=" + asSection + "/" + asName + " color=" + asColor + " -- REV-156")
+    If !akInitiator || !SNBaka_SlaveTatsModule.Installed()
+        _Log("[SNBaka] MarkPlayer REFUSE [null]: null initiator or SlaveTats absent -- REV-156")
+        Return
+    EndIf
+    If !PlayerRef
+        _Log("[SNBaka] MarkPlayer REFUSE [null]: PlayerRef unset -- REV-156")
+        Return
+    EndIf
+    If _ChildBoundaryRefused(akInitiator, PlayerRef, "MarkPlayer")
+        _Log("[SNBaka] MarkPlayer REFUSE [child-boundary] -- REV-156")
+        Return
+    EndIf
+    If !_TargetSexAllowed(PlayerRef)
+        _Log("[SNBaka] MarkPlayer REFUSE [target-sex-refused] (level L" + _TargetSexLevel() + ") -- REV-156")
+        Return
+    EndIf
+    If !_PlayerTargetAdmitted(akInitiator, PlayerRef, "MarkPlayer")
+        _Log("[SNBaka] MarkPlayer REFUSE [policy-refused]: central player-target policy OFF (the L~1452 daemon precedent class) -- REV-156")
+        Return
+    EndIf
+    String[] pick = SNBaka_SlaveTatsModule.ValidatePick(asSection, asName)
+    If pick.Length < 2 || pick[0] == "" || pick[1] == ""
+        _Log("[SNBaka] MarkPlayer REFUSE [nopacks]: no usable pack entry -- REV-156")
+        Return
+    EndIf
+    Int iColor = -1
+    If asColor != ""
+        iColor = SNBaka_SlaveTatsModule._HexToInt(asColor)
+    EndIf
+    _Log("[SNBaka] MarkPlayer APPLY (lane=ownership, who picked: NPC LLM pick " + asSection + "/" + asName + " color=" + asColor + " -> resolved '" + pick[1] + "' (" + pick[0] + ") on the player) -- REV-156")
+    SNBaka_SlaveTatsModule.ApplyTattoo(PlayerRef, pick[0], pick[1], iColor, True, "ownership")
+EndFunction
+
 ; --- Downed-victim menu dispatch ---
 ; [REV-144 Strip] ============================================================
 ; The Strip action (baka-module.md REV-134e spec; rulings (i)(a) own-inventory,
@@ -10878,12 +10990,13 @@ Event OnUpdateGameTime()
     ; listeners above (handshakes re-log; EnsureAlive is a no-op when the bridge is
     ; already ticking).
     _ArmModules()
-    ; REV-74 rider 3 — SlaveTats ambient observation pass, dispatched from this heartbeat
-    ; (the cadence ruling: ride the existing ~0.5-game-hour ground floor rather than arm a
-    ; second self-renewing update chain — the §91 audit already flagged this file's update
-    ; chains once). Throttled inside the module to its own slower observation cadence;
-    ; idempotent; recordless-safe (a Global call — no alias, no registration).
-    SNBaka_SlaveTatsModule.ObservationPass()
+    ; REV-156 RETIREMENT BANNER: the v1 SlaveTats ambient observation
+    ; pass (REV-74 rider 3 — ObservationPass, heartbeat-dispatched,
+    ; player-only ~4h cadence) is RETIRED. Superseded by the daemon-tick
+    ; AMBIENT EXPOSURE PASS (SNBaka_SlaveTatsModule.AmbientExposurePass,
+    ; hooked in _DaemonTick, both modes; visibility-gated; the MCM
+    ; "Ambient Observation Cues" toggle folded to it). Records:
+    ; slavetats.md REV-156 + PROJECT_STATE section 178.
     ; REV-65: FHU poll self-healing arming. REV-64 defect of record: the poll
     ; armed ONLY from Setup(), whose MCM OnGameReload chain never executed at
     ; save-load (stale save-bound SKI config instance) -- the poll was dead

@@ -123,4 +123,21 @@ Pending text:
     Notification: "Ambient Narration enabled: ambient bystander cues also produce a direct narration line." / "Ambient Narration disabled."
 ***
 
-*Register state after the REV-154 build session (2026-10-24): NEW entry 34 STAGED (the FHU ambient bystander cues — the band x source cue wordings, the sdb_fhu_ambient_narr guidance text, and the Fill Her Up MCM Ambient Narration/band-slider labels/tooltips, DRAFTs at the user's pen). Open entries 26, 30 (30b only), 32, 33, 34. Fork copy lockstep.
+***
+Entry 35
+
+Subject Tattoo v2 ambient exposure cues + application lanes (branch wordings + narr guidance + two action descriptions + MCM labels/tooltips)
+
+Pending text:
+1. The REV-156 sdb_tattoo_observed branched cue wording (the in-script desc composed by SNBaka_SlaveTatsModule.AmbientExposurePass — branches on application-specific information: location + the SPECIFIC mark + the wearer; the wearer's observable arousal tier rides the REV-82 APPROVED _ArousalClause wording of record verbatim — cited, not re-drafted): "<name> has a tattoo showing on <location>: '<tattoo name>' (<section>). Anyone who notices it reacts to the specific mark." Location branches (v3 area -> observable wording): Body = "their exposed torso" / Face = "their face" / Hands = "their bare hands" / Feet = "their bare feet" / unknown = "their exposed skin". Full text: SNBaka_SlaveTatsModule.psc AmbientExposurePass (the RegisterEvent call).
+2. The REV-156 sdb_tattoo_observed_narr trigger's response guidance — the Follow-up Prompt pattern (134f/153/154 precedent) applied to the tattoo AMBIENT cue (the gated second surface, DEFAULT OFF; the mandatory cue is the sdb_tattoo_observed event text itself, cue-only, no yaml of its own — the 134d anatomy). No template variables per the D8/sec.137 binding rule; ASCII. Shipped DRAFT-flagged (header cites this entry) in the fork tree SKSE\Plugins\SkyrimNet\external\regalrascal.baka-gs-integration\triggers\sdb_tattoo_observed_narr.yaml (response.content):
+    A nearby character has a visible tattoo showing on their skin, and it has just been noticed. Characters who see it are prompted to react to the specific mark the cue described -- a comment, a look, a step closer or away, amusement, scandal, or interest, as each personality and their own state dictate. One line or one action each.
+
+    Do not invent details about the tattoo beyond what the cue described, and never name any framework or source -- react only to the visible mark.
+3. The two new LLM action descriptions (DRAFTs; the planner's dominant-relationship dialogue row and ownership/humiliation NPC-on-player row as the wording basis; full text: fork tree SKSE\Plugins\SkyrimNet\external\regalrascal.baka-gs-integration\actions\CommandTattoo.yaml and MarkPlayer.yaml description blocks — CommandTattoo: "The initiator commands a tattoo onto a standing character who accepts their dominance..."; MarkPlayer: "An NPC who wants to humiliate the player, or mark ownership of them, applies a tattoo to the player's skin. The NPC decides where the mark goes, which specific tattoo it is, and its color, based on their own arousal, mood, and character...").
+4. The SlaveTats MCM ambient surfaces (labels + tooltips, DRAFTs; "Tattoo Ambient Narration" DEFAULT OFF — the Follow-up Prompt precedent; "Ambient Exposure Chance" default 35 per the user's ~35% ruling; the "Ambient Observation Cues" tooltip RE-POINTED to the daemon-tick pass):
+    Labels: "Ambient Exposure Chance" / "Tattoo Ambient Narration"
+    Tooltips: "Chance each daemon-tick ambient pass fires a visible-tattoo reaction cue when someone nearby has an exposed mark (default 35%). Failing rolls are silent." / "Additional direct narration for ambient tattoo reaction cues (a second prompt surface on top of the mandatory cue). Default OFF." / "Master gate for ambient tattoo reaction cues: while a Baka daemon mode is on, every daemon tick rolls a chance for nearby personas to notice any VISIBLE tattoo - covered marks are not reacted to, marks applied by any means are. Default ON."
+***
+
+*Register state after the REV-156 build session (2026-10-24): NEW entry 35 STAGED (the tattoo v2 ambient exposure cue branch wordings, the sdb_tattoo_observed_narr guidance text, the CommandTattoo/MarkPlayer action descriptions, and the SlaveTats MCM ambient labels/tooltips, DRAFTs at the user's pen). Open entries 26, 30 (30b only), 32, 33, 34, 35. Fork copy lockstep.
