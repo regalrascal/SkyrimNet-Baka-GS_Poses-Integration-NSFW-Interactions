@@ -145,6 +145,20 @@ drafts + NEW entry 31 (cue-descriptor workshop). Open: 15, 16, 26, 29, 30, 31.
 
 ## Description
 
+Register: entry 29
+drafts + NEW entry 31 (cue-descriptor workshop). Open: 15, 16, 26, 29, 30, 31.
+2026-10-23 REV-147 (the DLL session, batch): Feature A - no-target panel
+(power with nobody on the crosshair opens the panel: actions greyed +
+"no target selected" overlay [user text, register-cited, 17b]; mode buttons
+live; the REV-61 null path routed + reason-coded refusal sentinel). Feature
+B - mode-button live ON/OFF highlight (new SetModeStates native, the
+payload-push pattern; 900/901 keep-open bridge intercept; push at panel
+open + per toggle). All three DLLs rebuilt clean, dumpbin 3/3; SKSE 2.3.1
+headers UNFETCHABLE (Nexus-only, no silverlock archive) - platform Phase 1
+rebuild-vs-headers leg BLOCKED, surfaced. Compile 12/12 0/0 + effect ad-hoc
+rebuild 0/0; NO dist. Full record: gs repo PROJECT_STATE 168 + INDEX rows
+3/12. Status pointer only.
+# Cum Effects
 Enhanced NPC and player reaction to cum effects and overlays that are placed at the end of adult animations.
 
 ## Connected Mods
@@ -546,5 +560,11 @@ A compilation of issues, bugs, and requirements not connected to any specific mo
 
 
 
+## Working note (REV-149, 2026-10-23)
+
+- FHU v2 SESSION 1 BUILT (batch mode: compile gates only, no dist). All five REV-136 rulings implemented: HookAnimationStart/End capture bracket (entry arousal tier via _DaemonArousalTier + consent context via VictimRef/IsAggressive, capture-only, never drives FHU); _FireChange rewritten orifice-aware (dominant cum.* delta, womb/bowels/stomach, consent primary + captured arousal secondary); per-orifice deflate split sdb_fhu_deflate_vaginal/_anal/_oral with the generic type RETIRED; creature-cum ambient one-shot-per-episode (injector→race→editorID, canned class map + generic fallback, human/unsupported sentinel skips). OStim capture lane STOPPED-and-reported (bridge disabled in Ultra; enabled FHU 2.11 Beta has zero OStim registrations) — SL-scenes-only with context-agnostic fallback when no stash. Compile 12/12 0/0; stub-parity PASS; denylist CLEAN; modlist assertion CLEAN pre+post. Cues + canned map = Register Entry 32 (DRAFT; creature template fixed fields user-quoted = register-cite only). Status pointers of record: fhu-inflation.md REV-149, INDEX row 6, PROJECT_STATE §170. Named gaps: pretty-name pass for {{creature}}; the ~38 no-effect-list creature classes share the generic canned line.
+
 ## Working note (REV-137f, 2026-10-22)
+
+
 

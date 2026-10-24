@@ -1,0 +1,23 @@
+name: "sdb_fhu_deflate_anal"
+description: "An inflated actor can no longer hold the load in (DRAFT - rev-149, sec.7 approval pending)"
+
+eventCriteria:
+  eventType: "sdb_fhu_deflate_anal"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ originator }} can no longer hold it in -- they clench and helplessly
+    let it out of their backside. Generate one short beat of the moment:
+    relief, mortification, defiance, or a steadying breath. Match their
+    personality exactly.
+
+    Never explain what caused the swelling or where it went, and never name
+    any framework or source -- react only to the visible change.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 1
+cooldownSeconds: 30
+priority: 7

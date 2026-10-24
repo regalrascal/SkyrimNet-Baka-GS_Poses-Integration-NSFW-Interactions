@@ -1,0 +1,23 @@
+name: "sdb_fhu_deflate_oral"
+description: "An inflated actor brings the load back up in front of everyone (DRAFT - rev-149, sec.7 approval pending)"
+
+eventCriteria:
+  eventType: "sdb_fhu_deflate_oral"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ originator }} doubles over and brings up what was forced down their
+    throat, eyes watering. Generate one short beat of the moment: gagging
+    embarrassment, dazed misery, dark humor, or someone nearby reacting.
+    Match their personality exactly.
+
+    Never explain what caused the swelling or where it went, and never name
+    any framework or source -- react only to the visible change.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 1
+cooldownSeconds: 30
+priority: 7

@@ -1,0 +1,24 @@
+name: "sdb_fhu_deflate_vaginal"
+description: "An inflated actor's womb lets its load go at last (DRAFT - rev-149, sec.7 approval pending)"
+
+eventCriteria:
+  eventType: "sdb_fhu_deflate_vaginal"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ originator }} is suddenly hit by an undeniable need to evacuate --
+    with legs squeezed together, the pressure pours out of them, and their
+    womb is lighter for it. Generate one short beat of the moment: relief,
+    exhaustion, embarrassment, or a shaky remark. Match their personality
+    exactly.
+
+    Never explain what caused the swelling or where it went, and never name
+    any framework or source -- react only to the visible change.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 1
+cooldownSeconds: 30
+priority: 7

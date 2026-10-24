@@ -10526,6 +10526,12 @@ Function _RegisterModEvents()
     RegisterForModEvent("ocum_applied_cum_npc_scene", "OnOCumAppliedNPCScene")
     RegisterForModEvent("HookStageEnd",               "OnSLStageEnd")
     ; REV-133c: HookAnimationEnd arm RETIRED (aftermath rider 2.5b).
+    ; REV-149: HookAnimationStart + HookAnimationEnd RE-ARMED for the FHU v2
+    ; entry-capture bracket (capture at AnimationStart, stash clear at
+    ; AnimationEnd -- user-ruled mid-REV-149; distinct purpose from the retired
+    ; aftermath arm, whose handler name is NOT reused).
+    RegisterForModEvent("HookAnimationStart",         "OnSLAnimationStart")
+    RegisterForModEvent("HookAnimationEnd",           "OnSLAnimationEnd")
     RegisterForModEvent("sr.inflater.start",          "OnFHUStartSignal")
     ; REV-117 cum-v2: the P+ push-time location signal (SexLabApplyCumFX,
     ; 3-push ModEvent: TargetRef, SourceRef, aiType) and the DLL's ambient
@@ -10541,7 +10547,7 @@ Function _RegisterModEvents()
     If Game.IsPluginInstalled("SLACS_2_Plus_SCO.esp")
         RegisterForModEvent("DnB_CleanActorDirt", "OnDnBCleanActorDirt")
     EndIf
-    _Log("[SNBaka] _RegisterModEvents: REV-65 detection triggers armed (OCum x2 [5-arg + 6-arg npc_scene], SL HookStageEnd [2-arg], FHU start [0-arg]) + REV-117 cum-v2 (P+ ApplyCumFX [3-arg], ambient due [4-slot])")
+    _Log("[SNBaka] _RegisterModEvents: REV-65 detection triggers armed (OCum x2 [5-arg + 6-arg npc_scene], SL HookStageEnd [2-arg], FHU start [0-arg]) + REV-117 cum-v2 (P+ ApplyCumFX [3-arg], ambient due [4-slot]) + REV-149 FHU entry-capture (AnimationStart/End [2-arg])")
     ; REV-116 instrumentation (report-only; PROJECT_STATE 125 open item): the
     ; arm-time gate ECHO -- what the detection gates are RIGHT NOW, so MCM
     ; user-values vs ModEvent-delivery becomes distinguishable from logs.
@@ -11703,6 +11709,21 @@ EndEvent
 Event OnSLStageEnd(Int aiThreadID, Bool abHasPlayer)
     ; REV-96 Task 2: body MOVED VERBATIM to SNBaka_CumDetectionModule.HandleSLStageEnd.
     SNBaka_CumDetectionModule.HandleSLStageEnd(Self, aiThreadID, abHasPlayer)
+EndEvent
+
+; ---- REV-149: FHU v2 ENTRY-AROUSAL CAPTURE bracket (user rulings a/b + the
+; mid-REV-149 hook-choice ruling) ----
+; HookAnimationStart / HookAnimationEnd: SexLab non-blocking hook ModEvents
+; (SexLabFramework.psc doc block L163-164, PPLUS V2.18.1), same 2-push payload
+; as the proven HookStageEnd binding (sslThreadModel SetupThreadEvent:
+; PushInt(thread_id), PushBool(HasPlayer)). CAPTURE-ONLY: these handlers never
+; drive FHU inflation (the OStim parity ruling -- capture-only, no fill-driving).
+Event OnSLAnimationStart(Int aiThreadID, Bool abHasPlayer)
+    SNBaka_FHUInflationModule.HandleSceneStartSL(Self, aiThreadID)
+EndEvent
+
+Event OnSLAnimationEnd(Int aiThreadID, Bool abHasPlayer)
+    SNBaka_FHUInflationModule.HandleSceneEndSL(Self, aiThreadID)
 EndEvent
 
 ; ---- REV-129: get_ded_arousal DECORATOR (FRAMEWORK-CLASS, motherboard-owned; ----

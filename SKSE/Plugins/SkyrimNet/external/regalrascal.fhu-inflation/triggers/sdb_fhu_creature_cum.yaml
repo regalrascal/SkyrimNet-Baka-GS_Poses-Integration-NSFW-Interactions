@@ -1,0 +1,23 @@
+name: "sdb_fhu_creature_cum"
+description: "An inflated actor feels a creature's cum sloshing inside them (DRAFT - rev-149, sec.7 approval pending; template fixed fields user-quoted REV-136 ruling d)"
+
+eventCriteria:
+  eventType: "sdb_fhu_creature_cum"
+
+response:
+  type: "direct_narration"
+  content: |
+    {{ originator }} feels the creature cum sloshing around inside them,
+    heavy and strange. Generate one short beat of the moment: discomfort,
+    shame, dazed resignation, a wince with every step, or a steadying
+    breath. Match their personality exactly.
+
+    Never name any framework, mod, or source -- describe only what they
+    feel right now.
+
+audience: "nearby_npcs"
+
+enabled: true
+probability: 1
+cooldownSeconds: 300
+priority: 6
