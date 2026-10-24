@@ -42,6 +42,20 @@
       min-width: 380px;
       max-width: 460px;
       width: 420px;
+      /* REV-150 3.1 (panel-width fix, JS/CSS only): the panel is WIDTH-fixed
+         but its height was content-unbounded -- with the REV-147 no-target
+         overlay row added on top of the greyed tab/action grid, the panel
+         (scaled by `zoom`, base 1.5, user 0.6-2.0) can exceed the PrismaUI
+         viewport, and body{overflow:hidden} then clips the FOOTER buttons
+         off-screen (the dogfood finding: no-target panel "does not fit its
+         buttons"). Fix = auto-height per content, viewport-capped: the cap
+         divides by the live zoom factor so the SCALED panel never exceeds
+         100vh; --sn-zoom is kept in sync with panel.style.zoom by
+         snbakaApplyScale(). Targeted mode is unchanged (the cap only binds
+         when content alone would overflow). */
+      max-height: calc(100vh / var(--sn-zoom, 1.5));
+      display: flex;
+      flex-direction: column;
       background:
         linear-gradient(160deg,
           rgba(10, 8, 5, 0.97) 0%,
@@ -181,6 +195,7 @@
     /* Action grid — right column: rectangular buttons, 2 per row */
     .action-list {
       flex: 1;
+      min-height: 0;
       padding: 8px;
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -318,6 +333,33 @@
     /* ── REV-147 Feature A: no-target session ("no target selected" overlay) ── */
     /* User ruling: power with no target opens the panel; all target-actions
        greyed + the overlay; the two ambient-mode buttons stay live. */
+    /* REV-150 3.1: the interact row must be able to SHRINK (flex chain with
+       min-height:0) so the panel cap converts an oversized action grid into
+       an internal scroll instead of overflowing the footer. */
+    .interact-row {
+      display: flex;
+      min-height: 0;
+      flex: 1;
+      overflow: hidden;
+    }
+    #mode-interact {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      overflow: hidden;
+    }
+    /* REV-150 3.1 no-target compaction: a no-target session renders the FULL
+       greyed grid plus the overlay; compact the greyed rows so the ambient
+       footer buttons sit inside the viewport without scrolling. Targeted
+       sessions never match this selector - unchanged rendering. */
+    #panel.no-target .action-item {
+      min-height: 0;
+      padding: 6px 8px;
+      font-size: 11px;
+    }
+    #panel.no-target .tab {
+      padding: 6px 15px 6px 18px;
+    }
     #no-target-overlay {
       margin: 10px 18px 4px;
       padding: 7px 10px;
@@ -416,9 +458,11 @@
     <div id="mode-interact" class="hidden">
       <!-- REV-147 Feature A: no-target overlay ("no target selected", user-ruled,
            register-cited, 17b precedent). Hidden unless the panel is in a no-target
-           session; the tabs/actions below it grey out via #panel.no-target CSS. -->
+           session; the tabs/actions below it grey out via #panel.no-target CSS.
+           REV-150 3.1: the row uses the .interact-row class (was an inline
+           display:flex) so the viewport-capped panel can shrink + scroll it. -->
       <div id="no-target-overlay" class="hidden">no target selected</div>
-      <div style="display:flex;">
+      <div class="interact-row">
         <div class="tab-list" id="tab-list"></div>
         <div class="action-list" id="action-list"></div>
       </div>
@@ -526,6 +570,15 @@ const DOWNED_ACTIONS = [
   // sit below the +100 regular-pick offset).
   { id: 10, label: 'Strip'         },
   { id: 11, label: 'Allow to dress' },
+  // REV-150 4.3 - the forced-tattoo action (slavetats.md REV-134e spec 6.3 +
+  // register entry 28 wording of record for the cue; built this rev). id 12
+  // force-applies the configured degradation set to the downed victim
+  // (player-clicked, UNGATED per the Execute pattern; the AI-aggressor daemon
+  // lane is gated by the Execute-gate 3-level consent class). Same
+  // unconditional-affordance contract as 8/9 (ruling 2B): the button list is
+  // host surface; Papyrus handles empty-state refusals reason-coded. The
+  // DLL's numeric pipe is untouched (id 12 sits below the +100 offset).
+  { id: 12, label: 'Force Tattoo'  },
 ];
 
 // In-combat "Grapple" menu — shown instead of the normal interact menu when the target is hostile
@@ -965,7 +1018,12 @@ function snbakaGetScale() {
 function snbakaApplyScale() {
   const s = snbakaGetScale();
   const panel = document.getElementById('panel');
-  if (panel) panel.style.zoom = (SNBAKA_BASE_ZOOM * s).toFixed(3);
+  if (panel) {
+    panel.style.zoom = (SNBAKA_BASE_ZOOM * s).toFixed(3);
+    // REV-150 3.1: keep the panel's viewport cap in step with the live zoom
+    // (the cap divides 100vh by this factor; see the #panel CSS comment).
+    panel.style.setProperty('--sn-zoom', (SNBAKA_BASE_ZOOM * s).toFixed(3));
+  }
   const val = document.getElementById('ui-scale-val');
   if (val) val.textContent = Math.round(s * 100) + '%';
 }

@@ -59,31 +59,6 @@ Pending text:
     (No wording pending; pointer of record.)
 ***
 
-***
-Entry 29
-
-Subject Pose narration workshop — user template + three MCM toggle titles/tooltips + per-pose variants
-
-Pending text:
-1. The user's template of record for pose-narration event descs, to be workshop-resolved into per-family desc variants drafted from the R.4 census. Names ride in the EVENT TEXT, never template vars (the D8/§137 lesson); the player is named when the player performs.
-    "{{name}} performed a {{category}}, they did a {{specific pose}}"
-    Registered route drafts: vibe routes "<NPC> strikes <label>, holding it in place."; crosshair route "<NPC> strikes a pose -- <desc> at <Player>'s direction."; player route "<Player> strikes ... holding it for show."
-2. Three toggle titles + draft tooltips (DeD_MCM GS Poses page; GetVersion bump with the build):
-    1. "Sanguine Pose Narration" — "Show a cue line in the event log when Sanguine Mode makes someone pose."
-    2. "Emergent Pose Narration" — "Show a cue line in the event log when someone strikes a pose on their own."
-    3. "Player Initiated Pose Narration" — "Show a cue line in the event log when you pose someone or yourself."
-3. Per-pose phrasing variants (REV-146a amendment — the 10-23 dogfood findings: "a slow trail of her own fingers" read nonsensical; "victim" a strong word for a sexy dance):
-    dance_sexy: "<NPC> performs a slow, provocative dance - a show with one clear audience in mind." (the "victim"->"audience" class, user suggestion verbatim)
-    dance (playful): "<NPC> dances a little - light on the feet, feet answering the music."
-    selftouch: "<NPC> trails a slow line along their own skin - provocative and sensual."
-    ground_sexy: "<NPC> stretches out along the ground in a wanton and obscene display of arousal."
-    present: "<NPC> holds a presenting pose - deliberately trying to entice."
-    aroused: "<NPC> shifts their weight, restless - arousal worn openly."
-    Crosshair + player routes carry the same variants with their existing route prefixes. USER'S PEN per variant.
-Full entry: historical copy, lines 906-935 (REV-137f) + 999-1016 (REV-146a amendment).
-
-***User note: Edits applied to entry 29 text.***
-***
 
 ***
 Entry 30
@@ -91,41 +66,15 @@ Entry 30
 Subject Player-target policy MCM control (30a) + baka consideration prompt (30b)
 
 Pending text:
-1. The SNBaka.PlayerTargetPolicy control wording (30a), BUILT on the live DeD_MCM v13 "Baka Interactions" page using the draft label verbatim; install/wording ruling still the user's.
+1. [CLOSED 2026-10-24 at the REV-150 build — entry 30a.] The user's edit pass REMOVED the saves-migration sentence from the tooltip; the remaining text applied to the live DeD_MCM surface (the sentence stripped from DeD_MCM.psc L1701 area, byte-proven ABSENT from the pex). Wording of record: baka-module.md REV-150.
     Title: "NPCs May Target You"
     Tooltip: "When on, NPCs and creatures may choose you as the target of their autonomous actions (the Baka module's single central gate; your own initiations are never blocked). When off, nothing targets you unless you start it." 2. The baka daemon's candidate-selection prompt (30b), STAGED draft in-tree; the Mephala selection lane REQUIRES it (absent = the attempt refuses NAMED, prompt-absent); Molag-Bal needs no prompt. The user's install ruling = their 30b voice/wording ruling. The prompt receives the candidate pool, current mode, target-sex level, and player-target policy state; returns ONE pick or a refuse+reason.
     Filepath of record: fork tree `external\regalrascal.baka-gs-integration\prompts\snbaka_muse_consideration.prompt` (DRAFT-flagged header, this register cited).
     Full entry + REV-145/REV-146 riders: historical copy, lines 937-985.
 
-***User note: Entry 30 tooltip text edited.***
+***User note: Entry 30 tooltip text edited (the 2026-10-24 pen = the ruling; 30a CLOSED at the REV-150 build; 30b remains OPEN at the user's pen for the daemon build).***
 ***
 
-***
-Entry 31
 
-Subject Baka cue-descriptor workshop — per-action personality drafts
-
-Pending text:
-1. baka_forced — one desc per forced-family action, personality-matched like flirt/embrace (provenance: the user's 10-23 dogfood finding — "the forced/overpowered variants don't have the same individual personality"):
-    ForcedKiss: "{A} pressed their lips to {B}'s mouth mid-word - the kiss taken, not offered."
-    BackHugMolest: "{A} wrapped {B} from behind and helped themselves - roaming hands, no invitation offered."
-    ChokeHug: "{A} caught {B} in a choke-held embrace - possessively holing them much too tightly for comfort."
-    WombHit: "{A} drove a low, punishing blow into {B}'s lower belly - they double over in pain."
-    PinHelpless: "{A} pinned {B} flat and kept them there - not allowing them to rise."
-    Subdue: "{A} put {B} down hard and made staying down the easy choice."
-    Struggle: "{A} grappled {B} into a struggle - the stronger will decides the terms."
-2. baka_intimate — family variants keyed by action, the flirt/embrace personality class:
-    Flirt: "{A} lingered on {B} with their eyes and let it show."
-    TouchBreasts: "{A} reached for {B}'s chest - bold, warm, and unrepentant."
-    SuckBreasts: "{A} bent to {B}'s chest, licking and suck at their breasts."
-    FondlePussy: "{A}'s hand reached between {B}'s legs, fondling their privates."
-    OralOnTarget: "{A} dropped to their knees for {B} - sucking at their privates."
-    USER'S PEN per line; nothing ships unruled; ASCII-only once ruled.
-
-***User edits applied.***
-
-Full entry + the Molag-Bal/Sheogorath KEEP rulings + polish-pool notes: historical copy, lines 987-1044 (REV-146a section).
-***
-
-*Register restaged 2026-10-23 (user ruling): open entries 15, 16, 26, 29, 30 (30a/30b), 31. Entry 32 (REV-149 FHU cues) CLOSED-APPROVED 2026-10-24 per the user's ruling note "All text approved" — closure appended to the historical copy; wording of record: fhu-inflation.md REV-149. Entries 29/30/31 carry the USER'S 2026-10-24 EDIT PASS (provenance notes in-entry; edited text = pending text of record; application + closure ride their owning builds). Closed entries removed — historical copy holds all closures (pointer at top). Fork copy lockstep.*
+*Register state after the REV-150 build session (2026-10-24): open entries 15, 16, 26, 30 (30b only — 30a CLOSED at the build). Entries 29 and 31 CLOSED at the REV-150 build per the user's 2026-10-24 edit pass (the pen = the ruling): entry 29's reworded selftouch/ground_sexy/present variants applied to the vibe-route event text (wording of record: gs-poses.md REV-150; entry remainder staged as wording-of-record for the pose-narration build); entry 31's reworded 6 forced + 3 intimate cue-descriptor lines applied to the baka cue surfaces verbatim (wording of record: baka-module.md REV-150). Entry 30a's sentence-removal applied to the live DeD_MCM tooltip (wording of record: baka-module.md REV-150). Closures appended to the historical copy. Closed entries removed — historical copy holds all closures (pointer at top). Fork copy lockstep.*
 

@@ -1696,9 +1696,13 @@ Event OnOptionHighlight(Int option)
     ElseIf option == _animatedTearsOID
         SetInfoText("Apply animated 3D tears to female victims during aggressive scenes. Requires Emotional Tears Effect SE (EmoTears4NPCs.esp). Has no effect if that mod is not installed.")
     ElseIf option == _playerTargetOID
-        ; REV-145: entry-30a DRAFT tooltip, register-cited (pending-approvals
-        ; L949-953 verbatim); ships as the staged draft while the entry is open.
-        SetInfoText("When on, NPCs and creatures may choose you as the target of their autonomous actions (the Baka module's single central gate; your own initiations are never blocked). When off, nothing targets you unless you start it. Existing saves started with their old spank-target setting.")
+        ; REV-150 4.4 (register entry 30a CLOSED at this build): the user's
+        ; 2026-10-24 edit pass REMOVED the saves-migration sentence ("Existing
+        ; saves started with their old spank-target setting." - Cline's draft,
+        ; never the user's; shipped at REV-145 while the entry was open). The
+        ; remaining tooltip text is the WORDING OF RECORD (PROJECT_STATE
+        ; 170.1 correction; this line is the 30a source-debt payment).
+        SetInfoText("When on, NPCs and creatures may choose you as the target of their autonomous actions (the Baka module's single central gate; your own initiations are never blocked). When off, nothing targets you unless you start it.")
     ElseIf option == _ambientSexOID
         SetInfoText("The three-level target-sex policy for NPC-initiated actions and the ambient modes: only female targets; male and female targets with male aggressors; or anything goes. Anatomically-specific actions always require female bodies regardless. Existing saves started from their old Target Sex setting.")
     ; REV-146a: the _mephalaOID/_molagBalOID info texts REMOVED with their

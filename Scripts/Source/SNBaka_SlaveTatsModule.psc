@@ -18,7 +18,16 @@ Scriptname SNBaka_SlaveTatsModule
 ;   SNBaka.ST.RefreshCount  Int   times RefreshPacks was invoked (diagnostic counter)
 ;   SNBaka.ST.SectionCount  Int   sections found in the last discovery pass (diagnostic)
 ;   SNBaka.ST.DiscoveredAt  Float game-time stamp of the last discovery pass
-;   SNBaka.ST.Applied       StringList (actor-keyed) "section|name" entries this module applied
+;   SNBaka.ST.Applied       StringList (actor-keyed) applied entries this module owns
+;   REV-150 v3 entry format: "section|name|color|mode|area|timestamp"
+;     (timestamp = real-time seconds, Utility.GetCurrentRealTime(); mode = the
+;     application origin - spank/defeat/escalation/picker/llm_action/downedmenu/
+;     event/forced; area = the SlaveTats area the mark lives on, resolved from
+;     the cache at apply time - Body/Face/Hands/Feet). REV-72 "section|name" and
+;     REV-74 "section|name|color" entries remain readable: fields parse
+;     positionally, absent fields default (mode=event, area="", timestamp=0 ->
+;     freshness band "unknown"); _DropAppliedEntry is field-count agnostic
+;     (prefix match), so old and new entries remove identically.
 ; ------------------------------------------------------------------
 
 Bool Function Installed() Global
@@ -106,7 +115,10 @@ Bool Function ApplyTattoo(Actor akTarget, String asSection, String asName, Int a
     EndIf
     Bool ok = SlaveTats.simple_add_tattoo(akTarget, asSection, asName, aiColor, True, abSilent, 1.0)
     If ok
-        StorageUtil.StringListAdd(akTarget, "SNBaka.ST.Applied", sectionColorEntry(asSection, asName, aiColor), True)
+        ; REV-150 4.2: the v3 entry carries mode + area (cache-resolved) + the
+        ; real-time apply stamp (the cum 0175 freshness-band precedent).
+        StorageUtil.StringListAdd(akTarget, "SNBaka.ST.Applied", \
+            asSection + "|" + asName + "|" + aiColor + "|" + asMode + "|" + _ResolveAreaFor(asSection, asName) + "|" + Utility.GetCurrentRealTime(), True)
         Debug.Trace("[SNBaka.ST] ApplyTattoo: applied '" + asName + "' (" + asSection + ") color=0x" + _IntToHex(aiColor) + " mode=" + asMode + " to " + akTarget.GetDisplayName())
         _FireEvent(True, akTarget, asSection, asName, aiColor, asMode)
     Else
@@ -356,6 +368,228 @@ EndFunction
 ; Rationale: the spank marks' own fade (FadeActorTats) is already NG-blind remove/re-add;
 ; a second fade path in v1 doubles the surface needing dogfood.
 ; ------------------------------------------------------------------
+
+; ------------------------------------------------------------------
+; REV-150 (2026-10-24) - TATTOO v2 SESSION 1: APPLIED-STATE MODEL (4.2)
+; + VISIBILITY CASCADE (4.1) + FORCED-TATTOO SERVICE (4.3)
+; Spec of record: slavetats.md REV-134e 6.1-6.3 + the planner's Tattoo
+; Application section. Batch mode: pure Papyrus + content; NO DLL/esp.
+; ------------------------------------------------------------------
+
+; 4.2 helper: resolve the SlaveTats AREA (Body/Face/Hands/Feet) a section/name
+; pair lives on, by walking the NG/SE cache (same shape-tolerant walk as
+; GetSetNames). Returns "" when not found (entry stores area "" -> layer-1
+; reads it as Body-class torso coverage by default, honestly coarse).
+String Function _ResolveAreaFor(String asSection, String asName) Global
+    String result = ""
+    If !Installed() || asSection == "" || asName == ""
+        Return result
+    EndIf
+    Int cache = SlaveTats.acquire_cache()
+    If cache == 0
+        Return result
+    EndIf
+    Int dom = JMap.getObj(cache, "default")
+    If dom != 0
+        String[] areas = JMap.allKeysPArray(dom)
+        Int a = 0
+        While a < areas.Length && result == ""
+            Int area = JMap.getObj(dom, areas[a])
+            If area != 0
+                Int sec = JMap.getObj(area, asSection)
+                If sec != 0
+                    If JValue.isArray(sec)
+                        Int c = JArray.count(sec)
+                        Int n = 0
+                        While n < c && result == ""
+                            If JMap.getStr(JArray.getObj(sec, n, 0), "name") == asName
+                                result = areas[a]
+                            EndIf
+                            n += 1
+                        EndWhile
+                    Else
+                        String[] names = JMap.allKeysPArray(sec)
+                        Int n = 0
+                        While n < names.Length && result == ""
+                            If names[n] == asName
+                                result = areas[a]
+                            EndIf
+                            n += 1
+                        EndWhile
+                    EndIf
+                EndIf
+            EndIf
+            a += 1
+        EndWhile
+    EndIf
+    SlaveTats.release_cache()
+    Return result
+EndFunction
+
+; 4.2: freshness band for an apply timestamp (real-time seconds). Bands per
+; the cum fragment precedent (0175: <600 fresh / <3600 drying / else faded);
+; timestamp 0 = legacy entry (pre-REV-150) -> "unknown".
+String Function FreshnessBand(Float afStamp, Float afNow = -1.0) Global
+    If afStamp <= 0.0
+        Return "unknown"
+    EndIf
+    If afNow < 0.0
+        afNow = Utility.GetCurrentRealTime()
+    EndIf
+    Float age = afNow - afStamp
+    If age < 0.0
+        age = 0.0    ; clock reset / new session - never band-negative
+    EndIf
+    If age < 600.0
+        Return "fresh"
+    ElseIf age < 3600.0
+        Return "drying"
+    EndIf
+    Return "faded"
+EndFunction
+
+; 4.2: parse an applied entry into its parts (positional; absent trailing
+; fields default). [0]=section [1]=name [2]=color(-1 class) [3]=mode
+; [4]=area [5]=timestamp.
+String[] Function _EntryParts(String asEntry) Global
+    String[] p = Utility.CreateStringArray(6, "")
+    p[2] = "-1"
+    If asEntry == ""
+        Return p
+    EndIf
+    String[] f = StringUtil.Split(asEntry, "|")
+    Int i = 0
+    While i < f.Length && i < 6
+        p[i] = f[i]
+        i += 1
+    EndWhile
+    Return p
+EndFunction
+
+; 4.1 LAYER 1 - the coverage-default table (vanilla, always available).
+; Maps a SlaveTats area to the armor slot whose worn form covers it:
+;   Body -> slot 32 (body/cuirass)   Hands -> slot 33 (gloves)
+;   Feet  -> slot 37 (boots)        Face  -> slot 30 (head/hair)
+; Honest coarseness: the pack "Body" area spans torso/back/legs skin; a
+; cuirass is the vanilla coverage proxy for the class. slot N = bit N-30.
+Int Function _AreaSlotMask(String asArea) Global
+    If asArea == "Hands"
+        Return Math.LeftShift(1, 33 - 30)
+    ElseIf asArea == "Feet"
+        Return Math.LeftShift(1, 37 - 30)
+    ElseIf asArea == "Face"
+        Return Math.LeftShift(1, 30 - 30)
+    EndIf
+    Return Math.LeftShift(1, 32 - 30)    ; Body (and ""/unknown) -> body slot
+EndFunction
+
+; 4.1 LAYER 2 - revealing-armor keyword exceptions. REV-150 3.3 VERDICT:
+; NOT BUILT - the installed packs' json metadata carries ONLY
+; name/section/texture/area/credit (probed read-only, anal.json + Femboy.json
+; cited); the "revealing" keyword class lives in the ARMOR mods' esps, and no
+; source-resolvable keyword IDs exist in any readable tree. Per the spec'd
+; fallback order the cascade runs layer 1 + layer 3; this stub keeps the
+; layer-2 extension point named + sentinel'd, never silently true.
+Bool Function _RevealingKeywordException(Actor akTarget, Int aiSlotMask) Global
+    Return False
+EndFunction
+
+; 4.1 LAYER 3 - DD occlusion, presence-gated. REV-150 3.3/6.2 VERDICT: DD IS
+; installed (DeviousDevices.dll, SexLab - Devious Devices NG folder cited)
+; but the zad_ keyword FORM IDS are NOT source-resolvable (Devious Devices -
+; BRRF.esp is fully compressed - zero plain-text zad_ strings; the SE patch
+; esp carries zad_ strings in non-KEYM contexts only), so an occlusion read
+; cannot be built pure-Papyrus this session. Presence is reported (probe
+; pattern = NGDetected); occlusion stays not-blocking, sentinel'd - the gap
+; is surfaced, not papered over. Needs DD form IDs (a source probe) or a DD
+; script-surface bridge decision at a later session.
+Bool Function _DDPresent() Global
+    Return SKSE.GetPluginVersion("DeviousDevices") > 0
+EndFunction
+
+; 4.1: per-actor VISIBILITY resolution - which applied tattoos are
+; observable. Read-only query surface (the LLM/cue consumers of later
+; passes); ASCII sentinel per resolve. Returns one line per applied entry:
+;   "section|name|area|band|0-or-1|reason"
+; reason strings: layer1-covered / layer1-exposed /
+; layer1-exposed-dd-occlusion-unresolved.
+String[] Function ResolveVisibility(Actor akTarget) Global
+    String[] noLines = Utility.CreateStringArray(0)
+    If !akTarget
+        Return noLines
+    EndIf
+    Int cnt = StorageUtil.StringListCount(akTarget, "SNBaka.ST.Applied")
+    If cnt == 0
+        Return noLines
+    EndIf
+    Bool dd = _DDPresent()
+    Int exposed = 0
+    String[] out = Utility.CreateStringArray(0)
+    Int i = 0
+    While i < cnt
+        String[] p = _EntryParts(StorageUtil.StringListGet(akTarget, "SNBaka.ST.Applied", i))
+        String area = p[4]
+        If area == ""
+            area = "Body"    ; unknown area (legacy entry) - body-class default, coarse
+        EndIf
+        Int mask = _AreaSlotMask(area)
+        Bool covered = akTarget.GetWornForm(mask) != None
+        If _RevealingKeywordException(akTarget, mask)
+            covered = False    ; unreachable this session (layer-2 stub) - kept for the extension point
+        EndIf
+        Bool obs = !covered
+        String reason = "layer1-covered"
+        If obs
+            reason = "layer1-exposed"
+            If dd
+                reason = "layer1-exposed-dd-occlusion-unresolved"    ; named gap: DD may occlude, unreadable this session
+            EndIf
+            exposed += 1
+        EndIf
+        out = PapyrusUtil.PushString(out, p[0] + "|" + p[1] + "|" + area + "|" + FreshnessBand(p[5] as Float) + "|" + (obs as Int) + "|" + reason)
+        i += 1
+    EndWhile
+    Debug.Trace("[SNBaka.ST] ResolveVisibility: " + akTarget.GetDisplayName() + " entries=" + cnt + " exposed=" + exposed + " dd-present=" + dd + " (layer2=skip: no source-resolvable keyword IDs, REV-150 3.3 verdict)")
+    Return out
+EndFunction
+
+; 4.3: the forced-tattoo SERVICE (the motherboard executor owns the gates,
+; the downed-menu cue, and the body-compatibility verdict; this picks the set
+; and applies). Set pick: the DEFEAT set first (the downed context), the
+; spank set as fallback. Composes with Strip naturally (post-strip skin is
+; the exposed canvas). Refusals are reason-coded traces (empty-state
+; refusals per the ruling-2B service contract).
+Bool Function ForcedTattoo(Actor akAggressor, Actor akVictim) Global
+    If !akAggressor || !akVictim
+        Debug.Trace("[SNBaka.ST] ForcedTattoo: REFUSED [null] - null actor leg")
+        Return False
+    EndIf
+    If !Installed()
+        Debug.Trace("[SNBaka.ST] ForcedTattoo: REFUSED [absent] - SlaveTats not installed")
+        Return False
+    EndIf
+    Actor p = Game.GetPlayer()
+    If StorageUtil.GetIntValue(p, "SNBaka.ST.Enabled", 1) != 1
+        Debug.Trace("[SNBaka.ST] ForcedTattoo: REFUSED [disabled] - module master gate off")
+        Return False
+    EndIf
+    String section = StorageUtil.GetStringValue(p, "SNBaka.ST.DefeatSetSection", "")
+    String name = StorageUtil.GetStringValue(p, "SNBaka.ST.DefeatSetName", "")
+    Int color = StorageUtil.GetIntValue(p, "SNBaka.ST.DefeatSetColor", -1)
+    If section == "" || name == ""
+        section = StorageUtil.GetStringValue(p, "SNBaka.ST.SpankSetSection", "")
+        name = StorageUtil.GetStringValue(p, "SNBaka.ST.SpankSetName", "")
+        color = StorageUtil.GetIntValue(p, "SNBaka.ST.SpankSetColor", -1)
+        If section != "" && name != ""
+            Debug.Trace("[SNBaka.ST] ForcedTattoo: defeat set unconfigured - spank set fallback")
+        EndIf
+    EndIf
+    If section == "" || name == ""
+        Debug.Trace("[SNBaka.ST] ForcedTattoo: REFUSED [noset] - no defeat or spank set configured (MCM / SlaveTats set menu)")
+        Return False
+    EndIf
+    Return ApplyTattoo(akVictim, section, name, color, True, "forced")
+EndFunction
 
 ; ------------------------------------------------------------------
 ; LIFECYCLE (presence nudge from the motherboard, BakaSL pattern)

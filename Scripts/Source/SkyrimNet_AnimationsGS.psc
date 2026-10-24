@@ -1035,7 +1035,7 @@ Bool Function _PoseVibe(Actor ak, String vibe, String label)
     StorageUtil.SetStringValue(ak,  "GSAnim.Vibe",   label)   ; Phase 4 rider: named-pose stop wording
     StorageUtil.SetFloatValue(None, "GSAnim.LastPoseFire", Utility.GetCurrentRealTime())  ; observability only since REV-137f (silence-floor reader retired)
     SkyrimNetApi.RegisterEvent("gsanim_npc_pose", \
-        ak.GetDisplayName() + " strikes " + label + ".", ak, None)
+        ak.GetDisplayName() + _PoseVibeDesc(vibe, label), ak, None)
     ; REV-137d 4.1 (user ruling 2026-10-22, USER-AUTHORED per this ruling -- 17b
     ; precedent, register-cited in gs-poses.md REV-137d + posing-gender.md): every
     ; genuine Sheogorath/T3 fire carries an on-screen receipt mirroring the Sanguine
@@ -1836,6 +1836,25 @@ String Function _MuseFireVibe(String sPose)
         Return "drool"
     EndIf
     Return ""
+EndFunction
+
+; REV-150 4.4 (register entry 29, user's 2026-10-24 edit pass - pending text of
+; record): the three REWORDED per-pose variants ship as FULL-SENTENCE event
+; descs on the vibe route (the registered texts carry "<NPC>" inline - they
+; are desc lines, not slot-in labels, so the "strikes <label>." frame does
+; not fit them; every other vibe keeps the REV-146a Task 3.1 frame). The
+; noun-phrase labels stay in GSAnim.Vibe / _MuseFireLabel so the shared
+; STOP wording ("relaxes out of <label>.") stays grammatical - the variant
+; replaces only the gsanim_npc_pose EVENT TEXT on this route.
+String Function _PoseVibeDesc(String sVibe, String sLabel)
+    If sVibe == "selftouch"
+        Return " trails a slow line along their own skin - provocative and sensual."
+    ElseIf sVibe == "ground_sexy"
+        Return " stretches out along the ground in a wanton and obscene display of arousal."
+    ElseIf sVibe == "present"
+        Return " holds a presenting pose - deliberately trying to entice."
+    EndIf
+    Return " strikes " + sLabel + "."
 EndFunction
 
 ; REV-20: event/stop-wording label for a direct-fired pose. The three GS-vibe picks reuse

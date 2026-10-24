@@ -1780,6 +1780,19 @@ Function _DaemonDispatchAction(Actor akInitiator, Actor akTarget, String sAction
         CapturedInspect_Execute(akInitiator, akTarget)
     ElseIf sAction == "Strip"
         _Strip_Execute(akInitiator, akTarget)
+    ElseIf sAction == "ForcedTattoo"
+        ; REV-150 4.3: forced-tattoo joins the daemon dispatch (downed-family
+        ; subset). The AI-AGGRESSOR lane is gated by the Execute-gate 3-level
+        ; consent class (SNBaka.ForcedTattooGateLevel, default 0 = Unlimited;
+        ; the player's own downed-menu tile choice 12 is NEVER gated - the
+        ; Execute pattern). The "ask" tier of the class is refuse/deferred this
+        ; session: the popup needs a DLL confirm-mode surface (JS/CSS-only stop
+        ; condition) - surfaced gap, queued to a DLL session.
+        If !_ForcedTattooGateCheck(akInitiator, akTarget)
+            Return
+        EndIf
+        _Log("[SNBaka] daemon fire: ForcedTattoo (downed-family subset) -- " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + " -- REV-150")
+        _ForcedTattoo_Execute(akInitiator, akTarget)
     ElseIf sAction == "ApplyTattoo"
         ; REV-146a Task 8: tattoo executor class joins the daemon dispatch
         ; (downed-family subset; the executor is presence-gated on SlaveTats).
@@ -5824,8 +5837,9 @@ Function BackHugMolest_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "BackHugMolest", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "BackHugMolest", akInitiator.GetDisplayName())
+    ; REV-150 4.4: register entry 31 reworded line of record (user's 2026-10-24 pen)
     _CueOngoing("baka_forced", \
-        akInitiator.GetDisplayName() + " gropes " + akTarget.GetDisplayName() + " from behind; " + akTarget.GetDisplayName() + " struggles.", \
+        akInitiator.GetDisplayName() + " wrapped " + akTarget.GetDisplayName() + " from behind and helped themselves - roaming hands, no invitation offered.", \
         akInitiator, akTarget)
     PlayPanicSound(akTarget)
     _StartTears(akTarget)
@@ -5971,8 +5985,9 @@ Function ForcedKiss_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "ForcedKiss", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "ForcedKiss", akInitiator.GetDisplayName())
+    ; REV-150 4.4: register entry 31 reworded line of record (user's 2026-10-24 pen)
     _CueOngoing("baka_forced", \
-        akInitiator.GetDisplayName() + " forces a kiss on " + akTarget.GetDisplayName() + "; " + akTarget.GetDisplayName() + " struggles.", \
+        akInitiator.GetDisplayName() + " pressed their lips to " + akTarget.GetDisplayName() + "'s mouth mid-word - the kiss taken, not offered.", \
         akInitiator, akTarget)
     PlayPanicSound(akTarget)
     _StartTears(akTarget)
@@ -6050,8 +6065,9 @@ Function SuckBreasts_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "SuckBreasts", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "SuckBreasts", akInitiator.GetDisplayName())
+    ; REV-150 4.4: register entry 31 reworded line of record (user's 2026-10-24 pen)
     _CueOngoing("baka_forced", \
-        akInitiator.GetDisplayName() + " forces their mouth to " + akTarget.GetDisplayName() + "'s breasts; " + akTarget.GetDisplayName() + " struggles.", \
+        akInitiator.GetDisplayName() + " bent to " + akTarget.GetDisplayName() + "'s chest, licking and suck at their breasts.", \
         akInitiator, akTarget)
 
     _StartTears(akTarget)
@@ -6148,8 +6164,9 @@ Function OralOnTarget_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "OralOnTarget", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "OralOnTarget", akInitiator.GetDisplayName())
+    ; REV-150 4.4: register entry 31 reworded line of record (user's 2026-10-24 pen)
     _CueOngoing("baka_forced", \
-        akInitiator.GetDisplayName() + " forces oral on " + akTarget.GetDisplayName() + "; " + akTarget.GetDisplayName() + " struggles.", \
+        akInitiator.GetDisplayName() + " dropped to their knees for " + akTarget.GetDisplayName() + " - sucking at their privates.", \
         akInitiator, akTarget)
 
     _StartTears(akTarget)
@@ -6220,8 +6237,9 @@ Function WombHit_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "WombHit", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "WombHit", akInitiator.GetDisplayName())
+    ; REV-150 4.4: register entry 31 reworded line of record (user's 2026-10-24 pen)
     _CueOngoing("baka_forced", \
-        akInitiator.GetDisplayName() + " punches " + akTarget.GetDisplayName() + " in the gut, dropping them.", \
+        akInitiator.GetDisplayName() + " drove a low, punishing blow into " + akTarget.GetDisplayName() + "'s lower belly - they double over in pain.", \
         akInitiator, akTarget)
     _StartTears(akTarget)
     ; _bQTEDefeated=True so _CleanupPair (inside PlayPairedLoopAnim) skips standing the victim
@@ -6477,8 +6495,9 @@ Function Subdue_Execute(Actor akInitiator, Actor akTarget, Bool abFromHit = Fals
     EndIf
     RecordAnimation(akInitiator, "Subdue", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "Subdue", akInitiator.GetDisplayName())
+    ; REV-150 4.4: register entry 31 reworded line of record (user's 2026-10-24 pen)
     _CueOngoing("baka_forced", \
-        akInitiator.GetDisplayName() + " forces " + akTarget.GetDisplayName() + " to the ground, pinning them down; " + akTarget.GetDisplayName() + " fights to break free.", \
+        akInitiator.GetDisplayName() + " pinned " + akTarget.GetDisplayName() + " flat and kept them there - not allowing them to rise.", \
         akInitiator, akTarget)
     _StartTears(akTarget)
     If bExpressionsEnabled
@@ -6564,8 +6583,9 @@ Function Struggle_Execute(Actor akInitiator, Actor akTarget, Bool abFromHit = Fa
     EndIf
     RecordAnimation(akInitiator, "Struggle", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "Struggle", akInitiator.GetDisplayName())
+    ; REV-150 4.4: register entry 31 reworded line of record (user's 2026-10-24 pen)
     _CueOngoing("baka_forced", \
-        akInitiator.GetDisplayName() + " grapples " + akTarget.GetDisplayName() + " to overpower them; " + akTarget.GetDisplayName() + " fights back.", \
+        akInitiator.GetDisplayName() + " grappled " + akTarget.GetDisplayName() + " into a struggle - the stronger will decides the terms.", \
         akInitiator, akTarget)
     _StartTears(akTarget)
     If bExpressionsEnabled
@@ -6655,8 +6675,9 @@ Function ChokeHug_Execute(Actor akInitiator, Actor akTarget, Bool abFromHit = Fa
     EndIf
     RecordAnimation(akInitiator, "ChokeHug", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "ChokeHug", akInitiator.GetDisplayName())
+    ; REV-150 4.4: register entry 31 reworded line of record (user's 2026-10-24 pen)
     _CueOngoing("baka_forced", \
-        akInitiator.GetDisplayName() + " chokes " + akTarget.GetDisplayName() + " from behind; " + akTarget.GetDisplayName() + " fights back.", \
+        akInitiator.GetDisplayName() + " caught " + akTarget.GetDisplayName() + " in a choke-held embrace - possessively holing them much too tightly for comfort.", \
         akInitiator, akTarget)
     PlayPanicSound(akTarget)
     _StartTears(akTarget)
@@ -6871,8 +6892,9 @@ Function FondlePussy_Execute(Actor akInitiator, Actor akTarget)
     EndIf
     RecordAnimation(akInitiator, "FondlePussy", akTarget.GetDisplayName())
     RecordAnimation(akTarget,    "FondlePussy", akInitiator.GetDisplayName())
+    ; REV-150 4.4: register entry 31 reworded line of record (user's 2026-10-24 pen)
     _CueOngoing("baka_forced", \
-        akInitiator.GetDisplayName() + " fondles " + akTarget.GetDisplayName() + " between the legs; " + akTarget.GetDisplayName() + " struggles.", \
+        akInitiator.GetDisplayName() + "'s hand reached between " + akTarget.GetDisplayName() + "'s legs, fondling their privates.", \
         akInitiator, akTarget)
     _StartTears(akTarget)
 
@@ -8625,6 +8647,85 @@ EndFunction
 ; gate in _DispatchDownedAction is the only day-one gate.
 ; ============================================================================
 
+; --- [REV-150 4.3] Forced-tattoo action (slavetats.md REV-134e 6.3) ---------
+; Downed-menu tile (choice 12, beside Strip 10 / Allow to Dress 11) + the
+; gated AI-aggressor daemon lane. The cue is CUE-ONLY (the REV-134d anatomy:
+; RegisterEvent desc only, NO response.content YAML) with register entry
+; 28's USER-APPROVED wording of record, actor names interpolated at fire
+; time (the D8/137 lesson). Body-compatibility gate = the 3.4 verdict: the
+; shipped female-textured asset-guard class (HasFemaleBody) is the only
+; source-true gate (pack sections carry NO body/race metadata - probed
+; read-only, anal.json + Femboy.json field sets cited); the male-applicable
+; curated set (Femboy-class) is a v2 surface, NOT papered over here.
+; Composes with Strip: post-strip skin is the exposed canvas.
+
+Function _ForcedTattoo_Execute(Actor akCaster, Actor akVictim)
+    _Log("[SNBaka] ForcedTattoo: caster=" + akCaster + " victim=" + akVictim)
+    If !akCaster || !akVictim
+        _Log("[SNBaka] ForcedTattoo REFUSE [null]: null actor leg")
+        Return
+    EndIf
+    ; Child boundary (the REV-146a Task 2 class - gates every module action).
+    If _ChildBoundaryRefused(akCaster, akVictim, "ForcedTattoo")
+        Return
+    EndIf
+    ; Body-compatibility gate (REV-150 3.4 verdict, the spank-mark precedent
+    ; class): degradation pack textures are female-textured; a male victim
+    ; refuses reason-coded. The Femboy-pack curated male set is a v2 item.
+    If !HasFemaleBody(akVictim)
+        _Log("[SNBaka] ForcedTattoo REFUSE [malebody]: " + akVictim.GetDisplayName() + " has no female body - degradation packs are female-textured (3.4 verdict)")
+        _Notify("The chosen degradation set only fits female bodies.")
+        Return
+    EndIf
+    ; Downed re-check: the daemon lane arrives here WITHOUT the dispatch's
+    ; downed gate, so the executor enforces its own (the Execute recheck
+    ; precedent); the player tile already passed the dispatch's gate.
+    If !_IsDownedAny(akVictim)
+        _Log("[SNBaka] ForcedTattoo REFUSE [notdowned]: " + akVictim.GetDisplayName() + " is not downed (executor recheck)")
+        Return
+    EndIf
+    If SNBaka_SlaveTatsModule.ForcedTattoo(akCaster, akVictim)
+        ; Register entry 28 wording of record (USER-APPROVED 2026-10-22,
+        ; REV-136 instruction set 4.4; registered REV-134e; slavetats.md
+        ; REV-136 subsection holds the verbatim text), names interpolated:
+        SkyrimNetApi.RegisterEvent("sdb_forced_tattoo", \
+            akCaster.GetDisplayName() + " forces a tattoo onto the downed " + akVictim.GetDisplayName() + ", marking their skin where everyone can see.", \
+            akCaster, akVictim)
+        _Log("[SNBaka] ForcedTattoo: APPLIED -> sdb_forced_tattoo cue fired (entry-28 wording of record)")
+    Else
+        _Log("[SNBaka] ForcedTattoo: service refused (reason-coded trace above)")
+    EndIf
+EndFunction
+
+; [REV-150 4.3] The Execute-gate 3-level MCM consent class as the ruling
+; template for AI-AGGRESSOR forced-inking (SNBaka.ForcedTattooGateLevel,
+; player-keyed, default 0):
+;   0 = Unlimited - every daemon fire proceeds.
+;   1 = Companions-only (the "Companions ask" class): non-companion fires
+;       refused; companion fires PROCEED without the popup (the ask-tier
+;       needs a DLL confirm-mode - the JS/CSS-only stop condition; interim
+;       lenient reading FLAGGED here + at the gate report).
+;   2 = Always-refuse (the "Always ask" class): ALL daemon fires refused.
+; The player's own downed-menu tile NEVER passes through this gate.
+; Refusals are §5 trace sentinels only - refusal NARRATION would be new
+; section-7 text (STOP condition: new cue wording = register draft).
+Bool Function _ForcedTattooGateCheck(Actor akInitiator, Actor akTarget)
+    Int level = StorageUtil.GetIntValue(PlayerRef, "SNBaka.ForcedTattooGateLevel", 0)
+    If level <= 0
+        Return True
+    EndIf
+    If level >= 2
+        _Log("[SNBaka] ForcedTattoo gate REFUSE [alwayson]: level 2 - AI forced-inking refused (" + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + ")")
+        Return False
+    EndIf
+    If !_ExecuteIsCompanion(akInitiator)
+        _Log("[SNBaka] ForcedTattoo gate REFUSE [noncompanion]: level 1 - non-companion AI fire refused (" + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + ")")
+        Return False
+    EndIf
+    _Log("[SNBaka] ForcedTattoo gate: level 1 companion fire PROCEEDS without popup (ask-tier = DLL surface, surfaced gap - REV-150)")
+    Return True
+EndFunction
+
 Function _Strip_Execute(Actor akCaster, Actor akVictim)
     _Log("[SNBaka] Strip: caster=" + akCaster + " victim=" + akVictim)
     If !akCaster || !akVictim
@@ -8899,6 +9000,15 @@ Function _DispatchDownedAction(Int choice, Actor akCaster, Actor akVictim)
         ; [REV-144 Strip] "All to Dress" restore tile (ruling (ii)(b): restore is OFF by default
         ; after a strip; only this tile activates it; restores ONLY our tracked queue).
         _StripRestore_Execute(akCaster, akVictim)
+        Return
+    ElseIf choice == 12
+        ; [REV-150 4.3] "Force Tattoo" tile (slavetats.md REV-134e 6.3 + register
+        ; entry 28 wording of record for the cue). PLAYER-CLICKED, UNGATED (the
+        ; Execute pattern: the downed gate above is the only day-one gate; the
+        ; AI-aggressor daemon lane is the gated lane, via _ForcedTattooGateCheck).
+        ; Pure service delegation: the module owns set pick + apply; gates +
+        ; cue fire live in the executor below. Composes with Strip (10).
+        _ForcedTattoo_Execute(akCaster, akVictim)
         Return
     ElseIf choice == 3 && StorageUtil.GetIntValue(akVictim, "SNBaka.Tied", 0) == 1
         ; Stand Back must not quietly free a TIED prisoner — the bindings are the point.
