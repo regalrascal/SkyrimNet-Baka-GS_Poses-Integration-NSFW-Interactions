@@ -252,6 +252,7 @@ Introduce NPC and player reactions to inflation events and mechanics introduced 
 — Project working notes —
 
 - 2026-10-22 REV-136: RULINGS OF RECORD (user, this exchange; nothing built) — (a) instant-inflate arousal = CAPTURED-AT-SCENE-ENTRY (per-actor stash at scene start); (b) CONSENT-CONTEXT is the primary frame (arousal secondary); (c) deflate/ambient keep the current post-collapse "sated" read; (d) NEW creature-cum ambient cue lane — user template quoted verbatim in-doc, FHU per-race cum-effect FormLists discovery pre-check deferred to the v2 build, canned descriptions are section-7 (register at build); (e) NEW per-orifice deflation as DISTINCT ambient trigger types — discriminator = which sr.inflater.cum.* float dropped, design home = this section's expel-triggers bullets. Full record: gs repo fhu-inflation.md REV-136 section + INDEX row 6.
+- 2026-10-24 REV-157: the cum-v2 prompt-layer mold (0175/132b class) applied to FHU — get_ded_inflation (self/other facts, band, freshness, windowed prompt_show) + get_ded_inflation_any decorators; 0176 bio + 0521 disposition fragments (first enabled render IS the probe); the ambient cue desc slimmed to nudge-class. Status + full record: fhu-inflation.md REV-157 + INDEX row 6 + PROJECT_STATE sec.179; wording drafts at the user's pen (register entry 36).
 
 # Tattoo Application
 
@@ -309,6 +310,7 @@ Add actions for the application of adult themed tattoos implemented by the mod S
 - 2026-10-08 REV-88: v1 + reaction layer shipped (INDEX row 4; slavetats.md); v2/v3 parked per Option C sequencing.
 - 2026-10-08 REV-88: "Male applicable tattoos" (HIMBO/physics-body investigation) mapped to the slavetats v2 row (slavetats.md; INDEX master checklist) — research-class, unstarted.
 - 2026-10-24 REV-156: the exposure-trigger pass (visibility-gated ambient reaction cues on the daemon tick — this section's triggers/exposure rows) + the dialogue-application and NPC-on-player rows BUILT (CommandTattoo + MarkPlayer actions, the dominant-relationship and ownership/humiliation lanes). Status + full record: slavetats.md REV-156 + INDEX row 4 + PROJECT_STATE sec.178; wording drafts at the user's pen (register entry 35). Bio-updates (B9) + fading remain deferred.
+- 2026-10-24 REV-157: the same cum-v2 prompt-layer mold applied to SlaveTats — get_ded_marks (visible-marks bio facts, self/other) + get_ded_marks_any decorators; 0177 bio + 0522 disposition fragments (witness-keyed arousal tiers, the reverse of the REV-156 wearer-keyed cue clause; first enabled render IS the probe); the ambient cue desc slimmed to nudge-class (directive tail retired). Status + full record: slavetats.md REV-157 + INDEX row 4 + PROJECT_STATE sec.179; wording drafts at the user's pen (register entry 36).
 
 # Improved Dirty Talk
 

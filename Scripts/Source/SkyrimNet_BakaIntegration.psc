@@ -10870,6 +10870,11 @@ Function _ArmModules()
     ; REV-117 cum-v2: state-layer arm (DeDService cum.* family + ambient timer
     ; rule). Self-gating (inert + logged when the DLL is absent); idempotent.
     SNBaka_CumDetectionModule.ArmStateLayer(Self)
+    ; REV-157: the FHU prompt-layer decorators (get_ded_inflation +
+    ; get_ded_inflation_any, the 0175/132b registration class) -- module-
+    ; owned, idempotent every arm pass, host pointer cached so the band
+    ; floors read the MCM sliders.
+    SNBaka_FHUInflationModule.ArmDecorators(Self)
     _Log("[SNBaka] module-arm: arm pass complete")
 EndFunction
 

@@ -1,7 +1,7 @@
 Scriptname SNBaka_FHUInflationModule
 ; REV-96 Task 2: FHU-inflation module (recordless detection class -- module contract
 ; point 3, fomod.md section architecture). Extracted BEHAVIOR-PRESERVING from the
-; REV-63/65 detection-triggers section of SkyrimNet_BakaIntegration.psc (the §64
+; REV-63/65 detection-triggers section of SkyrimNet_BakaIntegration.psc (the ?64
 ; class: signatures and sentinels moved verbatim; only the call shape changed).
 ; The FHU HEARTBEAT SELF-HEAL pattern (REV-65: the poll arms from Setup() AND the
 ; OnUpdateGameTime heartbeat because the MCM reload chain was stale at save-load) is
@@ -564,6 +564,13 @@ Function _AmbientFire(SkyrimNet_BakaIntegration akHost, Actor akActor, Float afC
         Return
     EndIf
     ; Cue composition: band x source (sec.7 DRAFTs, register entry 34).
+    ; REV-157 SLIM (ruling (b), register entry 36): the ambient cue drops to
+    ; NUDGE-CLASS wording -- the standing facts (band, freshness, the
+    ; self/other split) now live in the get_ded_inflation bio fragment
+    ; (0176_ded_fhu.prompt) and the moment-of-impact specifics stay in the
+    ; APPLICATION events (sdb_fhu_inflate/_narr, per ruling (a), untouched).
+    ; Band x source branches kept (the reader still needs the register of
+    ; what kind of exposure this is), the directive phrasing removed.
     Bool bHeavy = afCur >= afHeavyFloor
     String sBand = "noticeable"
     String sSrc = "human"
@@ -574,15 +581,15 @@ Function _AmbientFire(SkyrimNet_BakaIntegration akHost, Actor akActor, Float afC
     If iSource == 2
         sSrc = "creature"
         If bHeavy
-            desc = "Nearby characters cannot help staring at " + akActor.GetDisplayName() + "'s heavily distended belly; scandalized whispers spread that some beast has pumped them full."
+            desc = "Passersby cannot help stealing glances at " + akActor.GetDisplayName() + "'s hugely swollen belly; murmurs follow them."
         Else
-            desc = "Nearby characters notice that " + akActor.GetDisplayName() + "'s belly is noticeably swollen and trade curious stares; a few mutter that some beast has left them stuffed."
+            desc = "A few passersby glance at " + akActor.GetDisplayName() + "'s swollen belly and trade quiet murmurs."
         EndIf
     Else
         If bHeavy
-            desc = "Nearby characters cannot help staring at " + akActor.GetDisplayName() + "'s heavily distended belly; scandalized whispers follow them wherever they move."
+            desc = "Heads turn as " + akActor.GetDisplayName() + " passes; the hugely swollen belly draws every eye."
         Else
-            desc = "Nearby characters notice that " + akActor.GetDisplayName() + "'s belly is noticeably swollen and trade curious stares; a few dare low, suggestive comments."
+            desc = "A few passersby steal glances at " + akActor.GetDisplayName() + "'s noticeably swollen belly."
         EndIf
     EndIf
     akHost._Log("[SNBaka] FHU ambient expose: firing sdb_fhu_ambient for " + akActor.GetDisplayName() + " (amount " + afCur + ", band " + sBand + ", source " + sSrc + ")")
@@ -762,3 +769,191 @@ EndFunction
 ;   SNBaka.FHU.OStimGuardNoted           double-fire guard session sentinel
 ; Armed presence-gated on the motherboard (OStim.esp installed; absent esp =
 ; event never sent = listener idle, the 0171 convention).
+
+; ------------------------------------------------------------------
+; REV-157 - PROMPT-LAYER EXTENSION (the cum-v2 mold applied to FHU)
+; ------------------------------------------------------------------
+; Two module-owned decorators (registered at arm - the REV-129/132b
+; class; the motherboard calls ArmDecorators every arm pass):
+;   get_ded_inflation(actor)      bio-lane FACTS (the 0175 mold): the
+;                                 self/other split, band (noticeable /
+;                                 heavy), freshness_s, and the 0171-class
+;                                 window flag prompt_show (opens ~60s per
+;                                 600s of banded time; fresh inflation is
+;                                 always inside an open window).
+;   get_ded_inflation_any(actor)  disposition-lane eligibility (the 132b
+;                                 minimal any/nearest class).
+; NULL CONTRACT (the REV-133 discipline): every absent-framework state
+; returns well-formed JSON - FHU absent, quest form unresolved, no
+; inflated actors, nothing in band, or an empty cell all read as
+; {"present": false} / {"any": false}; band floors default 30/60 when the
+; host pointer is unavailable; freshness reads 0; prompt_show reads 1
+; only inside an open window; no read can surface null. Documented
+; in-code per the 3.5 mandate.
+; ------------------------------------------------------------------
+Function ArmDecorators(SkyrimNet_BakaIntegration akHost) Global
+    Int rcFacts = SkyrimNetApi.RegisterDecorator("get_ded_inflation", "SNBaka_FHUInflationModule", "GetDedInflation")
+    Int rcAny = SkyrimNetApi.RegisterDecorator("get_ded_inflation_any", "SNBaka_FHUInflationModule", "GetDedInflationAny")
+    ; host pointer cache (the SNBaka.CumWearer form-pointer precedent) so
+    ; the decorators can read the MCM band sliders without an argument
+    If akHost
+        StorageUtil.SetFormValue(None, "SNBaka.FHU.Host", akHost)
+    EndIf
+    If akHost
+        akHost._Log("[SNBaka] decorator register: get_ded_inflation rc=" + rcFacts + " get_ded_inflation_any rc=" + rcAny + " (REV-157)")
+    Else
+        Debug.Trace("[SNBaka] FHU decorator register: get_ded_inflation rc=" + rcFacts + " get_ded_inflation_any rc=" + rcAny + " (REV-157, no host)")
+    EndIf
+EndFunction
+
+; Band floors as absolute amounts (MCM percent x maxInflation; defaults
+; 30/60 when the host pointer is unavailable - the null contract).
+Float Function _AmbNoticeFloor() Global
+    SkyrimNet_BakaIntegration host = StorageUtil.GetFormValue(None, "SNBaka.FHU.Host", None) as SkyrimNet_BakaIntegration
+    Int pct = 30
+    If host
+        pct = host.iFHUAmbientNoticeBand
+    EndIf
+    Return _FHUMaxInflation() * (pct as Float) / 100.0
+EndFunction
+
+Float Function _AmbHeavyFloor() Global
+    SkyrimNet_BakaIntegration host = StorageUtil.GetFormValue(None, "SNBaka.FHU.Host", None) as SkyrimNet_BakaIntegration
+    Int pct = 60
+    If host
+        pct = host.iFHUAmbientHeavyBand
+    EndIf
+    Return _FHUMaxInflation() * (pct as Float) / 100.0
+EndFunction
+
+; Shared facts-JSON composer. NULL CONTRACT: name falls back to a plain
+; noun; freshness clamps >= 0 (clock-reset safe); prompt_show = 1 when
+; the episode has not anchored yet (the 10s poll anchors within one tick),
+; otherwise the 0171 window - open 60s of every 600s of banded time.
+String Function _InflationFactsJson(Actor akInflated, Bool abSelf, Float afAmount, Float afHeavyFloor, Float afNow) Global
+    String nm = akInflated.GetDisplayName()
+    If nm == ""
+        nm = "the swollen person"
+    EndIf
+    String sBand = "noticeable"
+    If afAmount >= afHeavyFloor
+        sBand = "heavy"
+    EndIf
+    Float startRT = StorageUtil.GetFloatValue(None, "SNBaka.FHU.AmbStart." + akInflated.GetFormID(), 0.0)
+    Int fr = (afNow - startRT) as Int
+    If fr < 0
+        fr = 0
+    EndIf
+    Int show = 1
+    If startRT > 0.0
+        show = 0
+        If (((afNow - startRT) as Int) % 600) < 60
+            show = 1
+        EndIf
+    EndIf
+    String s = "{\"present\": true, \"self\": " + abSelf + ", \"name\": \"" + nm + "\""
+    s += ", \"band\": \"" + sBand + "\", \"freshness_s\": " + fr + ", \"prompt_show\": " + show + "}"
+    Return s
+EndFunction
+
+; get_ded_inflation: bio-lane facts for the subject (self branch when the
+; subject is in band; otherwise the nearest in-band inflated actor in the
+; subject's cell). FHU absent / nothing in band -> {"present": false}.
+String Function GetDedInflation(Actor akActor) Global
+    If !Installed()
+        Return "{\"present\": false}"
+    EndIf
+    Form fhq = Game.GetFormFromFile(0x000D63, "sr_FillHerUp.esp")
+    If !fhq
+        Return "{\"present\": false}"
+    EndIf
+    Float fNotice = _AmbNoticeFloor()
+    Float fHeavy = _AmbHeavyFloor()
+    If fHeavy < fNotice
+        fHeavy = fNotice
+    EndIf
+    Float now = Utility.GetCurrentRealTime()
+    If akActor
+        Float amt = StorageUtil.GetFloatValue(akActor, "sr.inflater.amount", 0.0)
+        If amt >= fNotice
+            Return _InflationFactsJson(akActor, True, amt, fHeavy, now)
+        EndIf
+        If !akActor.GetParentCell()
+            Return "{\"present\": false}"
+        EndIf
+        Int n = StorageUtil.FormListCount(fhq, "sr.inflater.Actors")
+        Int i = 0
+        Actor best = None
+        Float bestDist = -1.0
+        While i < n
+            Actor a = StorageUtil.FormListGet(fhq, "sr.inflater.Actors", i) as Actor
+            If a && a != akActor && a.GetParentCell() == akActor.GetParentCell() && !a.IsDead()
+                Float amtA = StorageUtil.GetFloatValue(a, "sr.inflater.amount", 0.0)
+                If amtA >= fNotice
+                    Float d = a.GetDistance(akActor)
+                    If bestDist < 0.0 || d < bestDist
+                        best = a
+                        bestDist = d
+                    EndIf
+                EndIf
+            EndIf
+            i += 1
+        EndWhile
+        If best
+            Float amtBest = StorageUtil.GetFloatValue(best, "sr.inflater.amount", 0.0)
+            Return _InflationFactsJson(best, False, amtBest, fHeavy, now)
+        EndIf
+    EndIf
+    Return "{\"present\": false}"
+EndFunction
+
+; get_ded_inflation_any: the witness-eligibility read (the 132b minimal
+; class). Any in-band inflated actor in the observer's cell (or the
+; observer themself) -> {"any": true, "nearest": "<name>"}; else
+; {"any": false}. The speaker/target rule is compliant by construction
+; (the observer is always the actor in scope).
+String Function GetDedInflationAny(Actor akObserver) Global
+    If !Installed() || !akObserver
+        Return "{\"any\": false}"
+    EndIf
+    Form fhq = Game.GetFormFromFile(0x000D63, "sr_FillHerUp.esp")
+    If !fhq
+        Return "{\"any\": false}"
+    EndIf
+    Float fNotice = _AmbNoticeFloor()
+    If StorageUtil.GetFloatValue(akObserver, "sr.inflater.amount", 0.0) >= fNotice
+        String selfNm = akObserver.GetDisplayName()
+        If selfNm == ""
+            selfNm = "the swollen person"
+        EndIf
+        Return "{\"any\": true, \"nearest\": \"" + selfNm + "\"}"
+    EndIf
+    If !akObserver.GetParentCell()
+        Return "{\"any\": false}"
+    EndIf
+    Int n = StorageUtil.FormListCount(fhq, "sr.inflater.Actors")
+    Int i = 0
+    Actor best = None
+    Float bestDist = -1.0
+    While i < n
+        Actor a = StorageUtil.FormListGet(fhq, "sr.inflater.Actors", i) as Actor
+        If a && a != akObserver && a.GetParentCell() == akObserver.GetParentCell() && !a.IsDead()
+            If StorageUtil.GetFloatValue(a, "sr.inflater.amount", 0.0) >= fNotice
+                Float d = a.GetDistance(akObserver)
+                If bestDist < 0.0 || d < bestDist
+                    best = a
+                    bestDist = d
+                EndIf
+            EndIf
+        EndIf
+        i += 1
+    EndWhile
+    If !best
+        Return "{\"any\": false}"
+    EndIf
+    String nearest = best.GetDisplayName()
+    If nearest == ""
+        nearest = "the swollen person"
+    EndIf
+    Return "{\"any\": true, \"nearest\": \"" + nearest + "\"}"
+EndFunction
