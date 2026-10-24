@@ -583,6 +583,19 @@ A compilation of issues, bugs, and requirements not connected to any specific mo
 
 
 
+REV-158 working-note pointer (2026-10-24, REV-88 convention): final-batch dist cut.
+
+- The [REV-158] `final-batch-152-157` dist (fork `dist/` root, zip 7,759,258 B,
+  SHA256 9DA7F5936750492D06C90E44766215824FF6FD4A766DC9B10536DAD93F4F19CA)
+  is the FIRST dist cut carrying the REV-152..157 pre-release feature set:
+  pose-picker decision chain (FHU Tattoo + Pose planner sections' deferred
+  builds), FHU inflate narration + ambient bystander cue + OStim climax
+  driver, tattoo reaction/application lanes, and the decorator prompt layer
+  (0176/0177/0521/0522 + desc slims). Register drafts 26/30b/32-36 shipped
+  DRAFT-FLAGGED per the standing precedent. FHU + Tattoo section pointers
+  above remain the build records of reference; PROJECT_STATE GS-repo
+  section 180 is the cut receipt. Full gate set RC=0
+  (`gs-build/rev158_gates_receipt.txt`).
 REV-155 working-note pointer (2026-10-24, REV-88 convention): FHU v2 final
 lane BUILT — self-owned OStim climax->FHU inflation driver
 (SNBaka_FHUInflationModule.HandleOStimOrgasm + motherboard presence-gated
