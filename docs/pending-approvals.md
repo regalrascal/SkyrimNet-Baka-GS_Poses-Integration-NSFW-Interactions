@@ -75,12 +75,14 @@ Pending text:
 3. Per-pose phrasing variants (REV-146a amendment — the 10-23 dogfood findings: "a slow trail of her own fingers" read nonsensical; "victim" a strong word for a sexy dance):
     dance_sexy: "<NPC> performs a slow, provocative dance - a show with one clear audience in mind." (the "victim"->"audience" class, user suggestion verbatim)
     dance (playful): "<NPC> dances a little - light on the feet, feet answering the music."
-    selftouch: "<NPC> trails a slow line along their own skin - nowhere else for the touch to go, and no hurry to send it."
-    ground_sexy: "<NPC> stretches out along the ground, unhurried and inviting about it."
-    present: "<NPC> holds a presenting pose - deliberately on display."
+    selftouch: "<NPC> trails a slow line along their own skin - provocative and sensual."
+    ground_sexy: "<NPC> stretches out along the ground in a wanton and obscene display of arousal."
+    present: "<NPC> holds a presenting pose - deliberately trying to entice."
     aroused: "<NPC> shifts their weight, restless - arousal worn openly."
     Crosshair + player routes carry the same variants with their existing route prefixes. USER'S PEN per variant.
 Full entry: historical copy, lines 906-935 (REV-137f) + 999-1016 (REV-146a amendment).
+
+***User note: Edits applied to entry 29 text.***
 ***
 
 ***
@@ -91,10 +93,11 @@ Subject Player-target policy MCM control (30a) + baka consideration prompt (30b)
 Pending text:
 1. The SNBaka.PlayerTargetPolicy control wording (30a), BUILT on the live DeD_MCM v13 "Baka Interactions" page using the draft label verbatim; install/wording ruling still the user's.
     Title: "NPCs May Target You"
-    Tooltip: "When on, NPCs and creatures may choose you as the target of their autonomous actions (the Baka module's single central gate; your own initiations are never blocked). When off, nothing targets you unless you start it. Existing saves started with their old spank-target setting."
-2. The baka daemon's candidate-selection prompt (30b), STAGED draft in-tree; the Mephala selection lane REQUIRES it (absent = the attempt refuses NAMED, prompt-absent); Molag-Bal needs no prompt. The user's install ruling = their 30b voice/wording ruling. The prompt receives the candidate pool, current mode, target-sex level, and player-target policy state; returns ONE pick or a refuse+reason.
+    Tooltip: "When on, NPCs and creatures may choose you as the target of their autonomous actions (the Baka module's single central gate; your own initiations are never blocked). When off, nothing targets you unless you start it." 2. The baka daemon's candidate-selection prompt (30b), STAGED draft in-tree; the Mephala selection lane REQUIRES it (absent = the attempt refuses NAMED, prompt-absent); Molag-Bal needs no prompt. The user's install ruling = their 30b voice/wording ruling. The prompt receives the candidate pool, current mode, target-sex level, and player-target policy state; returns ONE pick or a refuse+reason.
     Filepath of record: fork tree `external\regalrascal.baka-gs-integration\prompts\snbaka_muse_consideration.prompt` (DRAFT-flagged header, this register cited).
     Full entry + REV-145/REV-146 riders: historical copy, lines 937-985.
+
+***User note: Entry 30 tooltip text edited.***
 ***
 
 ***
@@ -104,49 +107,25 @@ Subject Baka cue-descriptor workshop — per-action personality drafts
 
 Pending text:
 1. baka_forced — one desc per forced-family action, personality-matched like flirt/embrace (provenance: the user's 10-23 dogfood finding — "the forced/overpowered variants don't have the same individual personality"):
-    ForcedKiss: "{A} seized {B}'s mouth mid-word - the kiss taken, not offered."
-    BackHugMolest: "{A} wrapped {B} from behind and helped themselves - roaming hands, no invitation asked."
-    ChokeHug: "{A} caught {B} in a choke-held embrace - control first, everything else after."
-    WombHit: "{A} drove a low, punishing press into {B} - bent and held."
-    PinHelpless: "{A} pinned {B} flat and kept them there - nowhere to go and no one to object."
+    ForcedKiss: "{A} pressed their lips to {B}'s mouth mid-word - the kiss taken, not offered."
+    BackHugMolest: "{A} wrapped {B} from behind and helped themselves - roaming hands, no invitation offered."
+    ChokeHug: "{A} caught {B} in a choke-held embrace - possessively holing them much too tightly for comfort."
+    WombHit: "{A} drove a low, punishing blow into {B}'s lower belly - they double over in pain."
+    PinHelpless: "{A} pinned {B} flat and kept them there - not allowing them to rise."
     Subdue: "{A} put {B} down hard and made staying down the easy choice."
-    Struggle: "{A} grappled {B} into a struggle - the stronger will deciding the terms."
+    Struggle: "{A} grappled {B} into a struggle - the stronger will decides the terms."
 2. baka_intimate — family variants keyed by action, the flirt/embrace personality class:
     Flirt: "{A} lingered on {B} with their eyes and let it show."
     TouchBreasts: "{A} reached for {B}'s chest - bold, warm, and unrepentant."
-    SuckBreasts: "{A} bent to {B}'s chest without a word."
-    FondlePussy: "{A}'s hand found {B}'s heat through the crowd's noise."
-    OralOnTarget: "{A} dropped to their knees for {B} - the whole room suddenly secondary."
+    SuckBreasts: "{A} bent to {B}'s chest, licking and suck at their breasts."
+    FondlePussy: "{A}'s hand reached between {B}'s legs, fondling their privates."
+    OralOnTarget: "{A} dropped to their knees for {B} - sucking at their privates."
     USER'S PEN per line; nothing ships unruled; ASCII-only once ruled.
+
+***User edits applied.***
+
 Full entry + the Molag-Bal/Sheogorath KEEP rulings + polish-pool notes: historical copy, lines 987-1044 (REV-146a section).
 ***
 
-***
-Entry 32
-
-Subject FHU v2 (REV-149) — orifice-aware inflate + per-orifice deflate cues + creature-cum ambient canned lines
-
-Pending text:
-1. Instant-inflate cue, branches composed at fire time (SNBaka_FHUInflationModule.psc _FireChange, fork Scripts\Source ~L219-264; container = womb/bowels/stomach by dominant cum.* delta):
-    agnostic: "{name}'s {container} is noticeably fuller now, swelling with warmth."
-    consensual: "{name}'s {container} is noticeably fuller now, warm and welcome."
-    non-consensual: "{name}'s {container} swells fuller, heavy and unwanted."
-    arousal tier 3 appends: "A flush of heat rides them." / tier 1: "A shiver of unease runs through them." (tier 2 and tier 0 no append)
-2. Per-orifice deflate cues (same function, deflate leg ~L266-309):
-    vaginal: "{name} is suddenly hit by an undeniable need to evacuate -- with legs squeezed together, the pressure pours out of them, leaving their womb lighter."
-    anal: "{name} can no longer hold it in -- they clench and helplessly let it out of their backside, relief and embarrassment mingling."
-    oral: "{name} doubles over and brings up what was forced down their throat, eyes watering."
-3. Creature-cum ambient: frame fixed fields are USER-QUOTED (REV-136 ruling (d)) — register-cited only, no approval loop on them: "{name} feels the {creature} cum sloshing around in their {womb/bowels/stomach}. They feel {canned}." The CANNED lines ({{canned}}, _CreatureClassLine, module psc ~L390-405) are the approval surface:
-    Dragon/Alduin: "a searing, immense heat spread deep inside them"
-    Spider: "a thick, clinging weight shift inside them with every step"
-    Troll: "a heavy, musky fullness that will not settle"
-    Draugr/AshSpawn: "a cold, grave-dank heaviness deep in their core"
-    Chaurus: "a slick, tingling residue that numbs as it sits"
-    Bear: "a dense, animal warmth packed tight inside them"
-    generic fallback (all other creature races): "a strange, foreign warmth shifting inside them"
-    Named gap: the ~38 CREATURERACE_CUM_AMOUNT classes without effect lists share the generic line; {{creature}} ships the raw race EDITOR ID (pretty-name pass = future sec.7 polish).
-4. YAML trigger narration templates: fork external\regalrascal.fhu-inflation\triggers\ sdb_fhu_inflate.yaml, sdb_fhu_deflate_vaginal.yaml, sdb_fhu_deflate_anal.yaml, sdb_fhu_deflate_oral.yaml, sdb_fhu_creature_cum.yaml — all DRAFT rev-149.
-***
-
-*Register restaged 2026-10-23 (user ruling): open entries 15, 16, 26, 29, 30 (30a/30b), 31 — restaged; 32 added REV-149. Closed entries removed — historical copy holds all closures (pointer at top). Fork copy lockstep.*
+*Register restaged 2026-10-23 (user ruling): open entries 15, 16, 26, 29, 30 (30a/30b), 31. Entry 32 (REV-149 FHU cues) CLOSED-APPROVED 2026-10-24 per the user's ruling note "All text approved" — closure appended to the historical copy; wording of record: fhu-inflation.md REV-149. Entries 29/30/31 carry the USER'S 2026-10-24 EDIT PASS (provenance notes in-entry; edited text = pending text of record; application + closure ride their owning builds). Closed entries removed — historical copy holds all closures (pointer at top). Fork copy lockstep.*
 
