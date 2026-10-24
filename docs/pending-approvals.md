@@ -89,4 +89,21 @@ Pending text:
     Full text: fork tree path above (41 lines, ASCII-only).
 ***
 
+***
+Entry 33
+
+Subject FHU inflate narration trigger (guidance text + MCM label/tooltip)
+
+Pending text:
+1. The REV-153 sdb_fhu_inflate_narr trigger's response guidance — the Follow-up Prompt pattern (REV-134f precedent) applied to FHU per the user's 2026-10-24 exchange shape ("a similar format to the cum detection prompt + optional direct narration trigger"). Two-surface distinction per the entry-22 precedent: the cue = WHAT HAPPENED (the entry-32-approved in-script orifice/consent/arousal desc, unchanged); the narration guidance = HOW TO RESPOND. No template variables per the D8/sec.137 binding rule; ASCII. Shipped DRAFT-flagged (header cites this entry) in the fork tree `SKSE\Plugins\SkyrimNet\external\regalrascal.fhu-inflation\triggers\sdb_fhu_inflate_narr.yaml` (response.content):
+    Someone nearby has just had their belly swell noticeably fuller. Characters who notice are prompted to respond to the moment they just witnessed -- a comment, a reaction, a tease, concern, or envy, as each personality dictates. One line or one action each.
+
+    Do not explain what caused the swelling, and never name any framework or source -- respond only to the visible moment just described.
+2. The Fill Her Up MCM "Follow-up Prompt" toggle surfaces (label + tooltip DRAFT per the same exchange shape, the 134f/17b precedent; DEFAULT OFF — the Follow-up Prompt precedent; gated second surface, cue mandatory while the module is active):
+    Label: "Follow-up Prompt"
+    Tooltip: "Additional direct narration for inflation cues"
+***
+
 *Register state after the REV-152 build session (2026-10-24): entries 15 and 16 CLOSED at the user's pen (inline closure notes — the fork-copy notes carried to GS canonical lockstep this session). Open entries 26, 30 (30b only), 32. Entry 32 STAGED at the REV-152 build (the pose-picker decision template, draft at the user's pen). Pre-REV-152 state: open entries 15, 16, 26, 30 (30b only — 30a CLOSED at the build).
+
+*Register state after the REV-153 build session (2026-10-24): NEW entry 33 STAGED (the FHU inflate narration trigger — the sdb_fhu_inflate_narr guidance text + the Fill Her Up MCM Follow-up Prompt label/tooltip, DRAFTs at the user's pen). Open entries 26, 30 (30b only), 32, 33. Fork copy lockstep.

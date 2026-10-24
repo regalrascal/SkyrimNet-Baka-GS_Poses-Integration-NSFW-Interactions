@@ -247,6 +247,14 @@ Bool  Property bCumFollowUpNarration = False Auto
 ; starts at 0/OCum on every save; the old toggle's state is NOT migrated.
 Int   Property iDecalSource        = 0    Auto
 Bool  Property bFHUInflationEnabled = True Auto  ; FHU inflation level awareness (sdb_fhu_inflate/deflate)
+; REV-153 (Follow-up Prompt pattern, REV-134f precedent applied to FHU;
+; user-ruled 2026-10-24): optional direct narration for the inflation cue as a
+; gated second surface via the sdb_fhu_inflate_narr event type
+; (SNBaka_FHUInflationModule._FireChange emits it immediately after the
+; sdb_fhu_inflate cue only when this is ON; the yaml sdb_fhu_inflate_narr.yaml
+; matches that event type ONLY, so cue and narration are fully separable).
+; Default OFF = cue-only, per the 134f anatomy verdict.
+Bool  Property bFHUInflateNarration = False Auto
 ; Per-source vs unified cum-cue shaping (amendment 2b): 0 = unified (framework-neutral,
 ; default -- the proposal awaiting §7 ruling), 1 = per-source wording.
 Int   Property iCumCueMode          = 0    Auto

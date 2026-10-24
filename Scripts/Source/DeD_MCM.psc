@@ -237,6 +237,15 @@ Int _tiedHoursOID = -1
 Int _cumDetectOID = -1
 Int _decalOID = -1     ; REV-134d: Decal Source Selection dropdown (retires the _slProxyOID toggle)
 Int _fhuAwareOID = -1
+; REV-153: Follow-up Prompt on the Fill Her Up page (the REV-134f pattern
+; applied to FHU; label/tooltip DRAFT per the user's exchange shape -- "a
+; similar format to the cum detection prompt + optional direct narration
+; trigger", register-cited, entry 33) -- the MCM gate for the optional
+; inflation-cue direct narration (motherboard property bFHUInflateNarration,
+; default OFF; the gated sdb_fhu_inflate_narr event type + its yaml carry the
+; register entry-33 guidance DRAFT).
+Int _fhuNarrOID = -1
+
 ; REV-134c: More Cum (register 24, ruled at REV-133c but mis-built into the RETIRED
 ; v7 script -- the §148 wrong-script root cause) is finally built HERE, in the live
 ; script. Default OFF (user ruling, REV-134c; motherboard property bMoreCumEnabled
@@ -392,7 +401,14 @@ Int Function GetVersion()
     ; motherboard properties stay declared). Visible body change on existing
     ; pages: every existing save crosses this bump once and rebuilds (the
     ; four-saga rule; v2 lesson standing).
-    Return 14
+    ; REV-153: FOURTEENTH canonical bump (v14 -> v15) - the Follow-up Prompt
+    ; toggle joins the Fill Her Up page (the 134f Follow-up Prompt pattern
+    ; applied to FHU; label + tooltip are register entry-33 DRAFTs at the
+    ; user's pen). New option on an existing page + visible body change:
+    ; every existing save crosses this bump once and rebuilds (the four-saga
+    ; rule; v2 lesson standing). No data migration (motherboard property
+    ; only, default OFF).
+    Return 15
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -449,8 +465,11 @@ Event OnVersionUpdate(Int aVersion)
     ; Bal MCM toggles are REMOVED (user ruling: Prisma panel ONLY); the target-
     ; sex dropdown + NPCs May Target You stay (settings, not mode controls).
     StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v14", 1)
+    ; REV-153 v15 (FHU Follow-up Prompt): canary marker - pages rebuilt FIRST
+    ; (the v2 lesson, standing). Marker SNBaka.MCMDeD.v15.
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v15", 1)
     _BuildPages()
-    Debug.Trace("[SNBaka] MCM canary: v14 OnVersionUpdate (REV-146a: Mephala/Molag Bal toggles removed - Prisma panel is the only mode surface; Ambient Target Policy + NPCs May Target You stay; pages: " + Pages.Length + ", Main=" + Main + ")")
+    Debug.Trace("[SNBaka] MCM canary: v15 OnVersionUpdate (REV-153: Follow-up Prompt toggle joins the Fill Her Up page; pages: " + Pages.Length + ", Main=" + Main + ")")
 EndEvent
 
 ; ============================================================================
@@ -756,9 +775,19 @@ Event OnPageReset(String page)
             AddTextOption("Watches the Fill Her Up inflation level after creampies", "", OPTION_FLAG_DISABLED)
             AddTextOption("and reports it to SkyrimNet, so the player and NPCs can", "", OPTION_FLAG_DISABLED)
             AddTextOption("notice and react to how full someone is.", "", OPTION_FLAG_DISABLED)
+            ; REV-153: Follow-up Prompt -- same gating posture as the Cum
+            ; Effects page's 134f toggle (greyed when the cue module is off;
+            ; label DRAFT per the exchange shape, tooltip on highlight).
+            If Main.bFHUInflationEnabled
+                _fhuNarrOID = AddToggleOption("Follow-up Prompt", Main.bFHUInflateNarration)
+            Else
+                _fhuNarrOID = AddToggleOption("Follow-up Prompt", Main.bFHUInflateNarration, OPTION_FLAG_DISABLED)
+            EndIf
         Else
             _fhuAwareOID = AddToggleOption("Inflation Level Cues (not installed)", False, OPTION_FLAG_DISABLED)
+            _fhuNarrOID = -1
         EndIf
+
     ElseIf page == "Acheron"
         ; REV-79 restructure: the Downed State bridge promoted from a Plugins section to
         ; its own page (one integration, one page). Absent state is page-level: every
@@ -900,7 +929,23 @@ Event OnOptionSelect(Int option)
     ElseIf option == _fhuAwareOID
         Main.bFHUInflationEnabled = !Main.bFHUInflationEnabled
         SetToggleOptionValue(_fhuAwareOID, Main.bFHUInflationEnabled)
+        ; REV-153: keep the Follow-up Prompt toggle's flag in step with the
+        ; cue module toggle (the 134f SetOptionFlags posture).
+        SetOptionFlags(_fhuNarrOID, OPTION_FLAG_DISABLED * ((!Main.bFHUInflationEnabled) as Int))
         Main.Setup()   ; re-arms or disarms the level poll right now
+    ElseIf option == _fhuNarrOID
+        ; REV-153 (user-ruled 2026-10-24, the 134f Follow-up Prompt pattern
+        ; applied to FHU): optional direct narration for the inflation cue.
+        ; Read live at every inflate fire -- no re-arm needed; OFF removes the
+        ; narration event entirely (the cue stays, per the 134f cue-only
+        ; anatomy verdict which is this property's default).
+        Main.bFHUInflateNarration = !Main.bFHUInflateNarration
+        SetToggleOptionValue(_fhuNarrOID, Main.bFHUInflateNarration)
+        If Main.bFHUInflateNarration
+            Debug.Notification("Follow-up Prompt enabled: inflation cues also produce a direct narration line.")
+        Else
+            Debug.Notification("Follow-up Prompt disabled.")
+        EndIf
     ElseIf option == _achEnabledOID
         ; REV-68 bridge master switch — same SNAcheron.Enabled key the bridge MCM wrote; the
         ; bridge quest re-reads it on its next tick. Nudges the motherboard lifecycle surface
@@ -1691,6 +1736,11 @@ Event OnOptionHighlight(Int option)
     ElseIf option == _cumFollowUpOID
         ; REV-134f: the user's tooltip text, verbatim.
         SetInfoText("Additional direct narration for cum application events")
+    ElseIf option == _fhuNarrOID
+        ; REV-153: tooltip DRAFT per the user's exchange shape ("a similar
+        ; format to the cum detection prompt + optional direct narration
+        ; trigger") -- register entry 33, the user's pen.
+        SetInfoText("Additional direct narration for inflation cues")
     ElseIf option == _enabledOID
         SetInfoText("Master switch for all Baka motion interactions.")
     ElseIf option == _animatedTearsOID

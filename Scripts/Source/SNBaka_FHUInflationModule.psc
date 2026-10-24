@@ -262,6 +262,20 @@ Function _FireChange(SkyrimNet_BakaIntegration akHost, Actor akActor, Float afLa
         EndIf
         akHost._Log("[SNBaka] _FireFHUChange: " + akActor.GetDisplayName() + " amount " + afLast + " -> " + afCur + " -> sdb_fhu_inflate orifice " + sOrifice + " context " + sCtx + " arousal tier " + tier)
         SkyrimNetApi.RegisterEvent("sdb_fhu_inflate", desc, akActor, None)
+        ; REV-153 (Follow-up Prompt pattern, the REV-134f shape): the direct
+        ; narration is a SEPARATE, MCM-gated surface. The narration yaml
+        ; (sdb_fhu_inflate_narr.yaml, sec.7 DRAFT = register entry 33) matches
+        ; the sdb_fhu_inflate_narr event type ONLY, so the cue (mandatory,
+        ; above) and the narration (optional, Fill Her Up MCM "Follow-up
+        ; Prompt") are fully separable. Default OFF = cue-only. The follow-up
+        ; event's own desc is a plain marker (the rendered text lives in the
+        ; yaml); no template variables per the D8/sec.137 binding rule.
+        If akHost.bFHUInflateNarration
+            akHost._Log("[SNBaka] FHU inflate: follow-up prompt ON -- narration event fired (REV-153)")
+            SkyrimNetApi.RegisterEvent("sdb_fhu_inflate_narr", "[sdb_fhu_inflate_narr] Follow-up narration moment for the inflation cue.", akActor, None)
+        Else
+            akHost._Log("[SNBaka] FHU inflate: follow-up prompt OFF -- narration skipped (REV-153)")
+        EndIf
     Else
         ; ---- DEFLATE: per-orifice split (which cum.* float dropped) ----
         Float dropV = afLastV - afCurV

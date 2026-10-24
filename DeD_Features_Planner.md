@@ -562,6 +562,11 @@ A compilation of issues, bugs, and requirements not connected to any specific mo
 
 
 
+## Working note (REV-153, 2026-10-24)
+
+- FHU INFLATE NARRATION TRIGGER BUILT (batch mode: compile gates only, no dist) — the REV-134f Follow-up Prompt pattern applied to the inflate cue: new sdb_fhu_inflate_narr trigger (eventType-only match, direct_narration; guidance text = sec.7 DRAFT, register entry 33, the user's pen; no template variables per D8/sec.137; ASCII) fired immediately after the sdb_fhu_inflate cue ONLY when the new bFHUInflateNarration motherboard toggle (Fill Her Up MCM "Follow-up Prompt", label/tooltip = entry-33 DRAFTs, DEFAULT OFF) is ON; sentinels on every fire + every gated skip; cue mandatory / narration gated per the 134f anatomy; DeD_MCM GetVersion v14 -> v15 + canary. Task-2 confirmation receipt on record: the REV-149 orifice branches are IN-SCRIPT desc dispatch — one sdb_fhu_inflate yaml is the complete trigger-layer surface. Compile 12/12 0/0; rev153_gates.ps1 RC=0; modlist writes NONE. Status pointers of record: fhu-inflation.md REV-153, INDEX row 6, PROJECT_STATE §174.
+
+
 ## Working note (REV-149, 2026-10-23)
 
 - FHU v2 SESSION 1 BUILT (batch mode: compile gates only, no dist). All five REV-136 rulings implemented: HookAnimationStart/End capture bracket (entry arousal tier via _DaemonArousalTier + consent context via VictimRef/IsAggressive, capture-only, never drives FHU); _FireChange rewritten orifice-aware (dominant cum.* delta, womb/bowels/stomach, consent primary + captured arousal secondary); per-orifice deflate split sdb_fhu_deflate_vaginal/_anal/_oral with the generic type RETIRED; creature-cum ambient one-shot-per-episode (injector→race→editorID, canned class map + generic fallback, human/unsupported sentinel skips). OStim capture lane STOPPED-and-reported (bridge disabled in Ultra; enabled FHU 2.11 Beta has zero OStim registrations) — SL-scenes-only with context-agnostic fallback when no stash. Compile 12/12 0/0; stub-parity PASS; denylist CLEAN; modlist assertion CLEAN pre+post. Cues + canned map = Register Entry 32 (DRAFT; creature template fixed fields user-quoted = register-cite only). Status pointers of record: fhu-inflation.md REV-149, INDEX row 6, PROJECT_STATE §170. Named gaps: pretty-name pass for {{creature}}; the ~38 no-effect-list creature classes share the generic canned line.
