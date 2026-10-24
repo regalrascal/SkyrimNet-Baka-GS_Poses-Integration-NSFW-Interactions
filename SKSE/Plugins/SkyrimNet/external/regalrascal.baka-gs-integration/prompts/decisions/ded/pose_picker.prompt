@@ -1,0 +1,40 @@
+{# ============================================================================
+   DRAFT - PENDING-APPROVALS ENTRY 32, USER'S PEN - REV-152 STAGED DRAFT.
+   The pose-picker decision template (pose-picker.md REV-134e spec + the
+   REV-136 consumer-model rulings): the decision model picks the pose WITHIN
+   the already-selected category that best fits the scene context. Called from
+   SkyrimNet_AnimationsGS.psc OnMuseConsideration's fire branch via
+   SkyrimNetApi.SendCustomDecisionToLLM("ded/pose_picker", ...) after
+   Sanguine's consideration call resolved the CATEGORY; the callback
+   OnPosePicked fires the chosen event key through the existing hardened
+   executor. This is NOT chat content: a decision template renders as a typed
+   decision request (decisions LLM variant), not an NPC utterance.
+   Options are DYNAMIC per call: the script passes the selected category's
+   pose list (event key + per-pose description, poses.js = catalog of record)
+   as the poseOptions array; each criteria line is "KEY: description", and
+   the answer is the chosen event key alone. Wording ships draft-flagged per
+   the standing register precedent (entries 15/16/26).
+   ============================================================================ #}
+
+[ state npc ]
+{{ npcName }}, a {{ npcSex }}.
+[ end state ]
+
+[ state moment ]
+Location: {{ location }}. Arousal: {{ arousal }}.
+Pose policy this scene: {{ posePolicy }}.
+Current pose state: {{ poseState }}.
+[ end state ]
+
+[ question pose choice ]
+`npc` describes the NPC about to strike a pose. `moment` is the scene around
+them right now. Choose the single pose from the options below that this NPC
+would most plausibly perform at this exact moment -- the option whose
+description best fits their arousal, the place, and what is going on. Answer
+with one option key only.
+[ criteria ]
+{% for opt in poseOptions %}
+{{ opt }}
+{% endfor %}
+[ end criteria ]
+[ end question ]

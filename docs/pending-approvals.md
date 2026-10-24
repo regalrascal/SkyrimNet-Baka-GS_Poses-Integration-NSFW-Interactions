@@ -33,8 +33,10 @@ Subject README arousal-framework line (15a) + FOMOD wizard-render test (15b)
 Pending text:
 1. The draft arousal-framework line shipped in the public-staging README's "Soft (strongly recommended)" section (pick ONE framework: OSL Aroused Reborn or SL Aroused NG; runtime chain Reborn -> SL Aroused -> neutral), from the REV-108b C4-supersession ruling. It rides the public-staging README, user-reviewable at the pre-push section-7 review (REV-111 rider); the wording ruling is the user's edits to that draft line.
     Full entry detail + REV-111 rider: historical copy, lines 232-259.
+***User: Readme updated directly. Item closed.***
 2. The MO2 wizard-render test against dist [REV-108b] (checkbox must be CLICKABLE and STICK with GS Poses deselected; GS files ABSENT post-install; then a full install for the 11-page MCM parity). MO2's wizard cannot be headless-simulated — this is a user leg, not a text ruling.
     (Test procedure; no wording pending.)
+***User: The wizard is rendering with tooltip descriptions intact. All items are selectable/de-selectable. Item closed.***
 ***
 
 ***
@@ -45,7 +47,7 @@ Subject REV-109 MCM restructure bulk reword set (16a-16d)
 Pending text:
 1. The REV-109 display-length audit reword set, shipped as first drafts in `Scripts/Source/DeD_MCM.psc`: (16a) three class-(b) splits moving long text from the label/value surface into the InfoText (QTE Keys; SlaveTats intro; GS Poses intro); (16b) six absent-state "(not installed)" tail shortenings; (16c) the SlaveTats status refresh value ("N sections"); (16d) the new Settings-page headers "Framework"/"Maintenance" + the moved title "Delectatio et Dominium" and tagline "Bedroom drama for SkyrimNet". All ASCII; user wording rulings pending per the entry-14 user-editable-baseline precedent.
     Full OLD -> NEW set quoted verbatim: historical copy, lines 261-330 (includes the REV-109b/109c riders — the strings ship on the six stacked "Baka Interactions" section surfaces).
-***
+***User: MCM line splits and restructure landed successfully. The only edits I would make at this time would be to capitalize all the top level menu names (Baka, GS, Tattoos, Cum Effects, etc.).***
 
 ***
 Entry 26
@@ -76,5 +78,15 @@ Pending text:
 ***
 
 
-*Register state after the REV-150 build session (2026-10-24): open entries 15, 16, 26, 30 (30b only — 30a CLOSED at the build). Entries 29 and 31 CLOSED at the REV-150 build per the user's 2026-10-24 edit pass (the pen = the ruling): entry 29's reworded selftouch/ground_sexy/present variants applied to the vibe-route event text (wording of record: gs-poses.md REV-150; entry remainder staged as wording-of-record for the pose-narration build); entry 31's reworded 6 forced + 3 intimate cue-descriptor lines applied to the baka cue surfaces verbatim (wording of record: baka-module.md REV-150). Entry 30a's sentence-removal applied to the live DeD_MCM tooltip (wording of record: baka-module.md REV-150). Closures appended to the historical copy. Closed entries removed — historical copy holds all closures (pointer at top). Fork copy lockstep.*
 
+***
+Entry 32
+
+Subject Pose-picker decision template (ded/pose_picker.prompt)
+
+Pending text:
+1. The REV-152 pose-picker decision template, shipped draft-flagged (header cites this entry) at fork tree `SKSE\Plugins\SkyrimNet\external\regalrascal.baka-gs-integration\prompts\decisions\ded\pose_picker.prompt`. User-facing LLM prompt content: the npc/moment state blocks (name, sex, location, arousal, pose policy, current pose state) + the 'pose choice' question ('Choose the single pose from the options below that this NPC would most plausibly perform at this exact moment ... Answer with one option key only') + the criteria loop rendering the dynamic poseOptions array (one 'EVENTKEY: description' line per pose of the selected category; poses.js = catalog of record). The decision model picks the pose WITHIN the category already resolved by Sanguine's consideration call; the OnPosePicked callback fires the choice through the REV-137-hardened executor (random-in-category fallback on any failure). Options are dynamic per call — only the question/state wording is fixed text. Wording ships draft-flagged at the user's pen (entries 15/16/26 precedent).
+    Full text: fork tree path above (41 lines, ASCII-only).
+***
+
+*Register state after the REV-152 build session (2026-10-24): entries 15 and 16 CLOSED at the user's pen (inline closure notes — the fork-copy notes carried to GS canonical lockstep this session). Open entries 26, 30 (30b only), 32. Entry 32 STAGED at the REV-152 build (the pose-picker decision template, draft at the user's pen). Pre-REV-152 state: open entries 15, 16, 26, 30 (30b only — 30a CLOSED at the build).
