@@ -106,4 +106,21 @@ Pending text:
 
 *Register state after the REV-152 build session (2026-10-24): entries 15 and 16 CLOSED at the user's pen (inline closure notes — the fork-copy notes carried to GS canonical lockstep this session). Open entries 26, 30 (30b only), 32. Entry 32 STAGED at the REV-152 build (the pose-picker decision template, draft at the user's pen). Pre-REV-152 state: open entries 15, 16, 26, 30 (30b only — 30a CLOSED at the build).
 
-*Register state after the REV-153 build session (2026-10-24): NEW entry 33 STAGED (the FHU inflate narration trigger — the sdb_fhu_inflate_narr guidance text + the Fill Her Up MCM Follow-up Prompt label/tooltip, DRAFTs at the user's pen). Open entries 26, 30 (30b only), 32, 33. Fork copy lockstep.
+***
+Entry 34
+
+Subject FHU ambient bystander cues (band wordings + ambient-narration guidance + MCM labels/tooltips)
+
+Pending text:
+1. The REV-154 ambient bystander cue band x source wordings (the in-script descs composed for the sdb_fhu_ambient event — the planner's 30%/60% expose bands applied to FHU, the cum-ambient entry-19 subjectless shape): noticeable band = curious stares / suggestive comments ("Nearby characters notice that <name>'s belly is noticeably swollen and trade curious stares; a few dare low, suggestive comments."); heavy band = scandalized whispers ("Nearby characters cannot help staring at <name>'s heavily distended belly; scandalized whispers follow them wherever they move."); creature-source variants read the creature class ("...a few mutter that some beast has left them stuffed." / "...scandalized whispers spread that some beast has pumped them full."). Full text: SNBaka_FHUInflationModule.psc `_AmbientFire` (four desc branches; indeterminate source skips cleanly).
+2. The REV-154 sdb_fhu_ambient_narr trigger's response guidance — the Follow-up Prompt pattern (153/134f precedent) applied to the AMBIENT bystander cue (the gated second surface; band wordings above are the mandatory cue). No template variables per the D8/sec.137 binding rule; ASCII. Shipped DRAFT-flagged (header cites this entry) in the fork tree `SKSE\Plugins\SkyrimNet\external\regalrascal.fhu-inflation\triggers\sdb_fhu_ambient_narr.yaml` (response.content):
+    A nearby character is visibly inflated, their belly swollen well past what a normal belly looks like. Characters who notice are prompted to react to them -- curious stares, low suggestive comments, scandalized whispers, concern, or embarrassment, as each personality and the visible state dictate. One line or one action each.
+
+    Never explain what caused the swelling, and never name any framework or source -- react only to the visible state and the cue that just described it.
+3. The Fill Her Up MCM ambient surfaces (labels + tooltips + notification, DRAFTs; "Ambient Narration" DEFAULT OFF; band sliders default 30/60 per the C5 ruling — planner values = defaults, the MCM is the user valve):
+    Labels: "Ambient Narration" / "Noticeable Band" / "Heavy Band"
+    Tooltips: "Additional direct narration for ambient bystander cues" / "Bystander reactions start once inflation passes this percent of Fill Her Up's maximum (default 30%)." / "Reactions escalate to scandalized whispers above this percent (default 60%)."
+    Notification: "Ambient Narration enabled: ambient bystander cues also produce a direct narration line." / "Ambient Narration disabled."
+***
+
+*Register state after the REV-154 build session (2026-10-24): NEW entry 34 STAGED (the FHU ambient bystander cues — the band x source cue wordings, the sdb_fhu_ambient_narr guidance text, and the Fill Her Up MCM Ambient Narration/band-slider labels/tooltips, DRAFTs at the user's pen). Open entries 26, 30 (30b only), 32, 33, 34. Fork copy lockstep.

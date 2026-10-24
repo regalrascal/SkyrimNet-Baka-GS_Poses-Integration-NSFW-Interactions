@@ -245,6 +245,17 @@ Int _fhuAwareOID = -1
 ; default OFF; the gated sdb_fhu_inflate_narr event type + its yaml carry the
 ; register entry-33 guidance DRAFT).
 Int _fhuNarrOID = -1
+; REV-154: FHU ambient bystander cues on the Fill Her Up page (the planner's
+; 30%/60% expose bands, the cum-ambient pattern applied to FHU; the 153/134f
+; Follow-up Prompt pattern for the narration second surface): the
+; "Ambient Narration" toggle (motherboard bFHUAmbientNarration, DEFAULT OFF;
+; gated sdb_fhu_ambient_narr event type + its yaml carry the register
+; entry-34 guidance DRAFT) + the two band-floor sliders (percents of FHU
+; maxInflation; planner defaults 30/60; label/tooltip DRAFTs, register
+; entry 34 -- the C5 ruling: planner values = defaults, MCM = the user valve).
+Int _fhuAmbNarrOID = -1
+Int _fhuNoticeOID = -1
+Int _fhuHeavyOID = -1
 
 ; REV-134c: More Cum (register 24, ruled at REV-133c but mis-built into the RETIRED
 ; v7 script -- the §148 wrong-script root cause) is finally built HERE, in the live
@@ -408,7 +419,15 @@ Int Function GetVersion()
     ; every existing save crosses this bump once and rebuilds (the four-saga
     ; rule; v2 lesson standing). No data migration (motherboard property
     ; only, default OFF).
-    Return 15
+    ; REV-154: FIFTEENTH canonical bump (v15 -> v16) - the FHU ambient
+    ; bystander surfaces join the Fill Her Up page (the "Ambient Narration"
+    ; toggle + the Noticeable/Heavy band sliders; labels + tooltips are
+    ; register entry-34 DRAFTs at the user's pen). New options on an existing
+    ; page + visible body change: every existing save crosses this bump once
+    ; and rebuilds (the four-saga rule; v2 lesson standing). No data
+    ; migration (motherboard properties only; narration defaults OFF, bands
+    ; default to the planner values 30/60).
+    Return 16
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -468,8 +487,11 @@ Event OnVersionUpdate(Int aVersion)
     ; REV-153 v15 (FHU Follow-up Prompt): canary marker - pages rebuilt FIRST
     ; (the v2 lesson, standing). Marker SNBaka.MCMDeD.v15.
     StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v15", 1)
+    ; REV-154 v16 (FHU ambient bystander cues): canary marker - pages rebuilt
+    ; FIRST (the v2 lesson, standing). Marker SNBaka.MCMDeD.v16.
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v16", 1)
     _BuildPages()
-    Debug.Trace("[SNBaka] MCM canary: v15 OnVersionUpdate (REV-153: Follow-up Prompt toggle joins the Fill Her Up page; pages: " + Pages.Length + ", Main=" + Main + ")")
+    Debug.Trace("[SNBaka] MCM canary: v16 OnVersionUpdate (REV-154: Ambient Narration toggle + band sliders join the Fill Her Up page; pages: " + Pages.Length + ", Main=" + Main + ")")
 EndEvent
 
 ; ============================================================================
@@ -783,9 +805,19 @@ Event OnPageReset(String page)
             Else
                 _fhuNarrOID = AddToggleOption("Follow-up Prompt", Main.bFHUInflateNarration, OPTION_FLAG_DISABLED)
             EndIf
+            ; REV-154: the ambient bystander surfaces -- same gating posture as
+            ; the Follow-up Prompt toggle (greyed when the cue module is off;
+            ; labels/tooltips = register entry-34 DRAFTs, the user's pen).
+            Int iAmbFlags = OPTION_FLAG_DISABLED * ((!Main.bFHUInflationEnabled) as Int)
+            _fhuAmbNarrOID = AddToggleOption("Ambient Narration", Main.bFHUAmbientNarration, iAmbFlags)
+            _fhuNoticeOID = AddSliderOption("Noticeable Band", Main.iFHUAmbientNoticeBand as Float, "{0}%", iAmbFlags)
+            _fhuHeavyOID = AddSliderOption("Heavy Band", Main.iFHUAmbientHeavyBand as Float, "{0}%", iAmbFlags)
         Else
             _fhuAwareOID = AddToggleOption("Inflation Level Cues (not installed)", False, OPTION_FLAG_DISABLED)
             _fhuNarrOID = -1
+            _fhuAmbNarrOID = -1
+            _fhuNoticeOID = -1
+            _fhuHeavyOID = -1
         EndIf
 
     ElseIf page == "Acheron"
@@ -932,6 +964,13 @@ Event OnOptionSelect(Int option)
         ; REV-153: keep the Follow-up Prompt toggle's flag in step with the
         ; cue module toggle (the 134f SetOptionFlags posture).
         SetOptionFlags(_fhuNarrOID, OPTION_FLAG_DISABLED * ((!Main.bFHUInflationEnabled) as Int))
+        ; REV-154: the ambient surfaces grey in step with the cue module toggle
+        ; (the 134f SetOptionFlags posture, extended to the narr toggle + both
+        ; band sliders).
+        Int iAmbFlags = OPTION_FLAG_DISABLED * ((!Main.bFHUInflationEnabled) as Int)
+        SetOptionFlags(_fhuAmbNarrOID, iAmbFlags)
+        SetOptionFlags(_fhuNoticeOID, iAmbFlags)
+        SetOptionFlags(_fhuHeavyOID, iAmbFlags)
         Main.Setup()   ; re-arms or disarms the level poll right now
     ElseIf option == _fhuNarrOID
         ; REV-153 (user-ruled 2026-10-24, the 134f Follow-up Prompt pattern
@@ -945,6 +984,19 @@ Event OnOptionSelect(Int option)
             Debug.Notification("Follow-up Prompt enabled: inflation cues also produce a direct narration line.")
         Else
             Debug.Notification("Follow-up Prompt disabled.")
+        EndIf
+    ElseIf option == _fhuAmbNarrOID
+        ; REV-154 (the 153/134f pattern, applied to the AMBIENT bystander cue):
+        ; optional direct narration, read live at every ambient fire -- no
+        ; re-arm needed; OFF removes the narration event entirely (the
+        ; ambient cue stays, per the 134d cue-only anatomy verdict which is
+        ; this property's default). Notification text = register entry-34 DRAFT.
+        Main.bFHUAmbientNarration = !Main.bFHUAmbientNarration
+        SetToggleOptionValue(_fhuAmbNarrOID, Main.bFHUAmbientNarration)
+        If Main.bFHUAmbientNarration
+            Debug.Notification("Ambient Narration enabled: ambient bystander cues also produce a direct narration line.")
+        Else
+            Debug.Notification("Ambient Narration disabled.")
         EndIf
     ElseIf option == _achEnabledOID
         ; REV-68 bridge master switch — same SNAcheron.Enabled key the bridge MCM wrote; the
@@ -1526,6 +1578,20 @@ Event OnOptionSliderOpen(Int option)
         SetSliderDialogDefaultValue(30.0)
         SetSliderDialogRange(0.0, 120.0)
         SetSliderDialogInterval(5.0)
+    ElseIf option == _fhuNoticeOID
+        ; REV-154: planner default 30 -- the percent-of-max floor for ambient
+        ; bystander reactions (curious stares / suggestive comments).
+        SetSliderDialogStartValue(Main.iFHUAmbientNoticeBand as Float)
+        SetSliderDialogDefaultValue(30.0)
+        SetSliderDialogRange(5.0, 95.0)
+        SetSliderDialogInterval(5.0)
+    ElseIf option == _fhuHeavyOID
+        ; REV-154: planner default 60 -- the percent-of-max escalation floor
+        ; (scandalized whispers).
+        SetSliderDialogStartValue(Main.iFHUAmbientHeavyBand as Float)
+        SetSliderDialogDefaultValue(60.0)
+        SetSliderDialogRange(10.0, 100.0)
+        SetSliderDialogInterval(5.0)
     ElseIf option == _resistDifficultyOID
         SetSliderDialogStartValue(Main.fResistDifficulty)
         SetSliderDialogDefaultValue(70.0)
@@ -1653,6 +1719,13 @@ Event OnOptionSliderAccept(Int option, Float value)
     ElseIf option == _cooldownOID
         Main.fNPCGlobalCooldown = value
         SetSliderOptionValue(_cooldownOID, value, "{0}s")
+    ElseIf option == _fhuNoticeOID
+        ; REV-154: read live at every poll tick -- no re-arm needed.
+        Main.iFHUAmbientNoticeBand = value as Int
+        SetSliderOptionValue(_fhuNoticeOID, value, "{0}%")
+    ElseIf option == _fhuHeavyOID
+        Main.iFHUAmbientHeavyBand = value as Int
+        SetSliderOptionValue(_fhuHeavyOID, value, "{0}%")
     ElseIf option == _resistDifficultyOID
         Main.fResistDifficulty = value
         SetSliderOptionValue(_resistDifficultyOID, value, "{0}%")
@@ -1741,6 +1814,15 @@ Event OnOptionHighlight(Int option)
         ; format to the cum detection prompt + optional direct narration
         ; trigger") -- register entry 33, the user's pen.
         SetInfoText("Additional direct narration for inflation cues")
+    ElseIf option == _fhuAmbNarrOID
+        ; REV-154: tooltip DRAFT (register entry 34, the user's pen).
+        SetInfoText("Additional direct narration for ambient bystander cues")
+    ElseIf option == _fhuNoticeOID
+        ; REV-154: tooltip DRAFT (register entry 34, the user's pen).
+        SetInfoText("Bystander reactions start once inflation passes this percent of Fill Her Up's maximum (default 30%).")
+    ElseIf option == _fhuHeavyOID
+        ; REV-154: tooltip DRAFT (register entry 34, the user's pen).
+        SetInfoText("Reactions escalate to scandalized whispers above this percent (default 60%).")
     ElseIf option == _enabledOID
         SetInfoText("Master switch for all Baka motion interactions.")
     ElseIf option == _animatedTearsOID

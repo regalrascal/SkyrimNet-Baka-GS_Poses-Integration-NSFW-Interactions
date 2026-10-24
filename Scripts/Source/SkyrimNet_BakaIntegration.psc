@@ -255,6 +255,21 @@ Bool  Property bFHUInflationEnabled = True Auto  ; FHU inflation level awareness
 ; matches that event type ONLY, so cue and narration are fully separable).
 ; Default OFF = cue-only, per the 134f anatomy verdict.
 Bool  Property bFHUInflateNarration = False Auto
+; REV-154 (FHU ambient bystander reaction cue -- the planner's 30%/60% expose
+; bands, the cum-ambient pattern applied to FHU; the user's 2026-10-24 shape):
+; bFHUAmbientNarration = the gated direct-narration second surface for the
+; AMBIENT cue (Fill Her Up MCM "Ambient Narration", DEFAULT OFF; the yaml
+; sdb_fhu_ambient_narr.yaml matches the sdb_fhu_ambient_narr event type ONLY,
+; so ambient cue and narration are fully separable -- the 153/134f pattern).
+; iFHUAmbientNoticeBand / iFHUAmbientHeavyBand = the band floor percents of
+; FHU maxInflation (planner defaults 30/60; the MCM sliders are the user valve
+; per the C5 ruling). The ambient cue itself (sdb_fhu_ambient) rides the
+; 10s level poll with a per-actor 60s cadence, anchored at first band
+; crossing, no catch-up, 7200s-RT lifetime guard (module detail in
+; SNBaka_FHUInflationModule._CheckAmbientExpose).
+Bool  Property bFHUAmbientNarration = False Auto
+Int   Property iFHUAmbientNoticeBand = 30 Auto
+Int   Property iFHUAmbientHeavyBand  = 60 Auto
 ; Per-source vs unified cum-cue shaping (amendment 2b): 0 = unified (framework-neutral,
 ; default -- the proposal awaiting §7 ruling), 1 = per-source wording.
 Int   Property iCumCueMode          = 0    Auto
