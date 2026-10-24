@@ -102,12 +102,119 @@ EndFunction
 ; APPLY / REMOVE (Baka's exact call convention: cf. ApplySpankMark L9143)
 ; ------------------------------------------------------------------
 
+; ------------------------------------------------------------------
+; REV-150.1 (2026-10-24) — MALE-CURATION SCREEN (user ruling of record,
+; slavetats.md REV-150.1). SlaveTats application is gender-agnostic; the
+; REV-150 3.4 [malebody] refuse-all model flips to a WHITELIST:
+;   (1) all "Gay - *" and "Femboy" sections auto-whitelist (the
+;       Slavetats-GayMisc pack class — male-authored by construction);
+;   (2) every other pack passes a female-anatomy keyword denylist
+;       screened on section+name (wording-only screen; the UV-alignment
+;       risk for female-UV packs that pass — SSS especially — is
+;       ACCEPTED, dogfood-and-drop per section, no re-ruling needed).
+; The screen is pack-agnostic (new installs need no code change); the
+; denylist is additive at the user's pen. EVERY module avenue funnels
+; through ApplyTattoo, so gating THERE covers spank/defeat/escalation
+; sets, the picker, LLM actions, and the forced-tattoo service alike.
+; ------------------------------------------------------------------
+
+; ASCII lowercase (Papyrus has no ToLower; SKSE StringUtil AsOrd/AsChar loop).
+String Function _ToLower(String asText) Global
+    Int n = StringUtil.GetLength(asText)
+    String result = ""
+    Int i = 0
+    While i < n
+        Int c = StringUtil.AsOrd(StringUtil.GetNthChar(asText, i))
+        If c >= 65 && c <= 90    ; A-Z
+            c += 32
+        EndIf
+        result += StringUtil.AsChar(c)
+        i += 1
+    EndWhile
+    Return result
+EndFunction
+
+; The female-anatomy keyword denylist (REV-150.1 ruling wording: pussy/
+; vagina/cunt/clit/labia/breast/boob/tit/titty/nipple/womb/cervix/milf).
+; True = hit = refuse the male apply. Additive at the user's pen: new
+; words = one more ElseIf on the lowered text (ruling: wording-only).
+Bool Function _HitsFemaleAnatomyKeywords(String asSection, String asName) Global
+    String t = _ToLower(asSection + " " + asName)
+    If StringUtil.Find(t, "pussy") >= 0
+        Return True
+    ElseIf StringUtil.Find(t, "vagina") >= 0
+        Return True
+    ElseIf StringUtil.Find(t, "cunt") >= 0
+        Return True
+    ElseIf StringUtil.Find(t, "clit") >= 0
+        Return True
+    ElseIf StringUtil.Find(t, "labia") >= 0
+        Return True
+    ElseIf StringUtil.Find(t, "breast") >= 0
+        Return True
+    ElseIf StringUtil.Find(t, "boob") >= 0
+        Return True
+    ElseIf StringUtil.Find(t, "nipple") >= 0
+        Return True
+    ElseIf StringUtil.Find(t, "womb") >= 0
+        Return True
+    ElseIf StringUtil.Find(t, "cervix") >= 0
+        Return True
+    ElseIf StringUtil.Find(t, "milf") >= 0
+        Return True
+    ElseIf StringUtil.Find(t, "titty") >= 0
+        Return True
+    EndIf
+    ; "tit" hits EXCEPT the "tither"-class false positive.
+    Int idx = StringUtil.Find(t, "tit")
+    If idx >= 0 && StringUtil.Substring(t, idx + 3, 3) != "her"
+        Return True
+    EndIf
+    Return False
+EndFunction
+
+; The whitelist verdict for one section/name pair: (1) the GayMisc class
+; auto-whitelists; (2) everything else rides the keyword screen.
+Bool Function MaleMayWear(String asSection, String asName) Global
+    String sec = _ToLower(asSection)
+    If StringUtil.Find(sec, "gay - ") == 0 || sec == "femboy"
+        Return True
+    EndIf
+    Return !_HitsFemaleAnatomyKeywords(asSection, asName)
+EndFunction
+
+; Female-body class test for the module gate. Mirrors the motherboard's
+; HasFemaleBody exactly (LeveledActorBase sex, editor-base fallback,
+; sex 1 = female) so the two layers never disagree on the same actor.
+Bool Function _IsFemaleClass(Actor akTarget) Global
+    If !akTarget
+        Return False
+    EndIf
+    ActorBase bse = akTarget.GetLeveledActorBase()
+    If !bse
+        bse = akTarget.GetActorBase()
+    EndIf
+    If !bse
+        Return False
+    EndIf
+    Return bse.GetSex() == 1
+EndFunction
+
 ; Apply one tattoo entry. Returns true if SlaveTats accepted the call.
 ; REV-74: aiColor < 0 = "not chosen" -> the module-wide default color (SNBaka.ST.DefaultColor,
 ; itself 0 = pack default / no recolor); aiColor 0 = pack default (explicit). The color is a
 ; 0xRRGGBB int; hex strings from the picker are parsed by _HexToInt.
 Bool Function ApplyTattoo(Actor akTarget, String asSection, String asName, Int aiColor = -1, Bool abSilent = True, String asMode = "event") Global
     If !akTarget || !Installed()
+        Return False
+    EndIf
+    ; REV-150.1 male-curation gate — THE choke point for every module avenue
+    ; (spank/defeat/escalation sets, picker, LLM actions, forced service).
+    ; Female-class targets pass ungated; male-class targets must pass the
+    ; whitelist screen (Gay - */Femboy auto-whitelist, else keyword denylist
+    ; on section+name). Refusals are reason-coded, no cue fired.
+    If !_IsFemaleClass(akTarget) && !MaleMayWear(asSection, asName)
+        Debug.Trace("[SNBaka.ST] ApplyTattoo: REFUSED [male-not-curated] - '" + asName + "' (" + asSection + ") fails the REV-150.1 male whitelist on " + akTarget.GetDisplayName())
         Return False
     EndIf
     If aiColor < 0
@@ -588,7 +695,69 @@ Bool Function ForcedTattoo(Actor akAggressor, Actor akVictim) Global
         Debug.Trace("[SNBaka.ST] ForcedTattoo: REFUSED [noset] - no defeat or spank set configured (MCM / SlaveTats set menu)")
         Return False
     EndIf
+    ; REV-150.1: a male-class victim whose configured set is NOT male-curated
+    ; falls back to a random curated pick from the discovered packs (the
+    ; Gay - */Femboy auto-whitelist class, then the keyword screen). No
+    ; curated entry installed at all -> refuse [male-none-curated].
+    If !_IsFemaleClass(akVictim) && !MaleMayWear(section, name)
+        String[] pick = _PickCuratedForMale()
+        If pick.Length < 2 || pick[0] == "" || pick[1] == ""
+            Debug.Trace("[SNBaka.ST] ForcedTattoo: REFUSED [male-none-curated] - configured set '" + name + "' (" + section + ") fails the whitelist and no curated pack entry is installed (Gay - */Femboy or keyword-screen pass)")
+            Return False
+        EndIf
+        Debug.Trace("[SNBaka.ST] ForcedTattoo: configured set not male-curated - curated fallback '" + pick[1] + "' (" + pick[0] + ")")
+        section = pick[0]
+        name = pick[1]
+        color = -1    ; the curated pick rides its pack default
+    EndIf
     Return ApplyTattoo(akVictim, section, name, color, True, "forced")
+EndFunction
+
+; REV-150.1: pick a random male-curated entry from the discovered cache.
+; Pool pass = sections that pass MaleMayWear at section level (the
+; Gay - */Femboy class auto-whitelists whole sections; other sections
+; pass only when their own title text is anatomy-clean), then roll a
+; section and screen its entries by name. Bounded at 8 section rolls —
+; this rides the forced path, not a hot loop.
+String[] Function _PickCuratedForMale() Global
+    String[] empty = Utility.CreateStringArray(2, "")
+    If !Installed()
+        Return empty
+    EndIf
+    String[] sections = GetSections()
+    If sections.Length == 0
+        Return empty
+    EndIf
+    String[] secPool = Utility.CreateStringArray(sections.Length, "")
+    Int poolN = 0
+    Int i = 0
+    While i < sections.Length
+        If MaleMayWear(sections[i], "")
+            secPool[poolN] = sections[i]
+            poolN += 1
+        EndIf
+        i += 1
+    EndWhile
+    If poolN == 0
+        Return empty
+    EndIf
+    Int attempts = 0
+    While attempts < 8
+        String sec = secPool[Utility.RandomInt(0, poolN - 1)]
+        String[] names = GetSetNames(sec)
+        Int j = 0
+        While j < names.Length
+            If MaleMayWear(sec, names[j])
+                String[] hit = Utility.CreateStringArray(2, "")
+                hit[0] = sec
+                hit[1] = names[j]
+                Return hit
+            EndIf
+            j += 1
+        EndWhile
+        attempts += 1
+    EndWhile
+    Return empty
 EndFunction
 
 ; ------------------------------------------------------------------

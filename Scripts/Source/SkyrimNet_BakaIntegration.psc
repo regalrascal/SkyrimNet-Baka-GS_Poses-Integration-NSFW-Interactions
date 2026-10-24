@@ -8652,11 +8652,12 @@ EndFunction
 ; gated AI-aggressor daemon lane. The cue is CUE-ONLY (the REV-134d anatomy:
 ; RegisterEvent desc only, NO response.content YAML) with register entry
 ; 28's USER-APPROVED wording of record, actor names interpolated at fire
-; time (the D8/137 lesson). Body-compatibility gate = the 3.4 verdict: the
-; shipped female-textured asset-guard class (HasFemaleBody) is the only
-; source-true gate (pack sections carry NO body/race metadata - probed
-; read-only, anal.json + Femboy.json field sets cited); the male-applicable
-; curated set (Femboy-class) is a v2 surface, NOT papered over here.
+; time (the D8/137 lesson). Body-compatibility gate = REV-150.1 FLIP of the
+; 3.4 verdict: male-class victims no longer refuse-all; they ride the
+; module's curation screen (pack sections carry NO body/race metadata -
+; probed read-only, anal.json + Femboy.json field sets cited - so the
+; whitelist is wording-based: Gay - */Femboy sections auto-whitelist,
+; everything else passes the female-anatomy keyword denylist).
 ; Composes with Strip: post-strip skin is the exposed canvas.
 
 Function _ForcedTattoo_Execute(Actor akCaster, Actor akVictim)
@@ -8669,13 +8670,15 @@ Function _ForcedTattoo_Execute(Actor akCaster, Actor akVictim)
     If _ChildBoundaryRefused(akCaster, akVictim, "ForcedTattoo")
         Return
     EndIf
-    ; Body-compatibility gate (REV-150 3.4 verdict, the spank-mark precedent
-    ; class): degradation pack textures are female-textured; a male victim
-    ; refuses reason-coded. The Femboy-pack curated male set is a v2 item.
+    ; Body-compatibility gate — REV-150.1 FLIP: the [malebody] refuse-all
+    ; (REV-150 3.4 verdict) is RETIRED. Male-class victims now ride the
+    ; module's curation screen (Gay - */Femboy auto-whitelist + the
+    ; female-anatomy keyword denylist on section+name), applied at the
+    ; ApplyTattoo choke point for EVERY module avenue. The service layer
+    ; falls a non-curated configured set back to a curated pick, and
+    ; refuses [male-none-curated] when nothing curated is installed.
     If !HasFemaleBody(akVictim)
-        _Log("[SNBaka] ForcedTattoo REFUSE [malebody]: " + akVictim.GetDisplayName() + " has no female body - degradation packs are female-textured (3.4 verdict)")
-        _Notify("The chosen degradation set only fits female bodies.")
-        Return
+        _Log("[SNBaka] ForcedTattoo: male-class victim " + akVictim.GetDisplayName() + " - proceeding via the REV-150.1 curated whitelist (module gates/refuses at apply)")
     EndIf
     ; Downed re-check: the daemon lane arrives here WITHOUT the dispatch's
     ; downed gate, so the executor enforces its own (the Execute recheck
