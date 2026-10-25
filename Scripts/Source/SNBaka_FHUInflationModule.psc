@@ -510,6 +510,10 @@ Function _CheckAmbientExpose(SkyrimNet_BakaIntegration akHost, Actor akActor, Fl
         fHeavy = fNotice    ; clamp: the heavy band can never sit below noticeable
     EndIf
     Float now = Utility.GetCurrentRealTime()
+    ; REV-161 4.4: the ambient cadence is MCM-settable (key
+    ; SNBaka.FHUAmbientCadence, DEFAULT 60s = the REV-154 historic cadence,
+    ; read live at every pass -- the 159 slider pattern, no re-arm needed).
+    Float fCad = StorageUtil.GetFloatValue(None, "SNBaka.FHUAmbientCadence", 60.0)
     If afCur < fNotice
         ; Lifecycle end: state cleared below the band (deflate / module clear
         ; paths) -- drop every episode key so the next episode re-anchors fresh.
@@ -530,8 +534,8 @@ Function _CheckAmbientExpose(SkyrimNet_BakaIntegration akHost, Actor akActor, Fl
         ; after state-start -- the instant inflate cue owns the fresh moment,
         ; and a re-crossing never catches up on missed ticks (REV-127 rule).
         StorageUtil.SetFloatValue(None, kStart, now)
-        StorageUtil.SetFloatValue(None, kNext, now + 60.0)
-        akHost._Log("[SNBaka] FHU ambient expose: band entered for " + akActor.GetDisplayName() + " (amount " + afCur + " >= noticeable " + fNotice + ") -- first ambient anchored at +60s (REV-154)")
+        StorageUtil.SetFloatValue(None, kNext, now + fCad)
+        akHost._Log("[SNBaka] FHU ambient expose: band entered for " + akActor.GetDisplayName() + " (amount " + afCur + " >= noticeable " + fNotice + ") -- first ambient anchored at +" + fCad + "s (REV-154; cadence key REV-161)")
         Return
     EndIf
     If now < nextAt
@@ -558,6 +562,8 @@ EndFunction
 Function _AmbientFire(SkyrimNet_BakaIntegration akHost, Actor akActor, Float afCur, Float afHeavyFloor, Float afNow, String asNextKey) Global
     ; Source resolution (the REV-149 creature-ambient resolver, reused):
     ; 0 indeterminate / 1 human / 2 creature. Indeterminate SKIPS cleanly.
+    ; REV-161 4.4: MCM cadence key (read live per fire; default 60s).
+    Float fCad = StorageUtil.GetFloatValue(None, "SNBaka.FHUAmbientCadence", 60.0)
     Int iSource = 0
     Actor inj = None
     Int nInj = StorageUtil.FormListCount(akActor, "sr.inflater.injector")
@@ -583,7 +589,7 @@ Function _AmbientFire(SkyrimNet_BakaIntegration akHost, Actor akActor, Float afC
         EndIf
     EndIf
     If iSource == 0
-        StorageUtil.SetFloatValue(None, asNextKey, afNow + 60.0)
+        StorageUtil.SetFloatValue(None, asNextKey, afNow + fCad)
         Return
     EndIf
     ; Cue composition: band x source (sec.7 DRAFTs, register entry 34).
@@ -617,7 +623,7 @@ Function _AmbientFire(SkyrimNet_BakaIntegration akHost, Actor akActor, Float afC
     EndIf
     akHost._Log("[SNBaka] FHU ambient expose: firing sdb_fhu_ambient for " + akActor.GetDisplayName() + " (amount " + afCur + ", band " + sBand + ", source " + sSrc + ")")
     SkyrimNetApi.RegisterEvent("sdb_fhu_ambient", desc, akActor, None)
-    StorageUtil.SetFloatValue(None, asNextKey, afNow + 60.0)
+    StorageUtil.SetFloatValue(None, asNextKey, afNow + fCad)
     ; REV-154 (the 153/134f Follow-up Prompt pattern): the direct narration is
     ; a SEPARATE, MCM-gated surface -- sdb_fhu_ambient_narr.yaml matches the
     ; sdb_fhu_ambient_narr event type ONLY (guidance = sec.7 DRAFT, register

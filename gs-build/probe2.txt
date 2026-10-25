@@ -1,0 +1,17 @@
+**Status:** OPEN (user confirm pending; rides the 5.1 gate report, not a build
+**Status:** OPEN (the tooltips shipped as drafts in `fomod/ModuleConfig.xml`
+**Rev:** REV-108b — **Status:** OPEN (two user gates).
+**Rev:** REV-109 — **Status:** OPEN (user wording rulings pending; shipped as
+Status: OPEN for the user's ruling/edits (the "aftermath" language the user
+Status: OPEN — the yaml-creation decision + (if created) the guidance
+**Status: OPEN — the user rules the mechanism; the build session cuts from the ruled set (the probe first, the
+**Status: OPEN — the user's pen (edit or approve the draft; the build session cuts from the ruled text).** Reg
+**Status: OPEN — the USER sends (review/edit first); the answer gates the decorated-template stash (stays CLOS
+**Status: OPEN — the user's pen.** Receipts: PROJECT_STATE §145 + cum-prompt-spec.md (as-built note).
+**Status: OPEN — edit or approve; the build session cuts from the ruled text.**
+**Status: OPEN — edit or approve; the build session cuts from the ruled text.**
+**Status: CLOSED-SHIPPED (REV-134f).** Register after this rev: open entries 15, 16,
+## §150 — REV-134c (2026-10-21): BUILT — MORE CUM INTO THE LIVE MCM + OLD-MENU RETIREMENT + CUM-PAGE DESCRIPTIONS
+## §151 — REV-134d (2026-10-21): THE NARRATION ANATOMY VERDICT + TRIGGER GROUPING + THE MCM REDESIGN + THE MORE CUM EXPANSION
+## §152 — REV-134e (2026-10-21): THE BAKA/GS POLISH SCOUT — muse/overdrive design pass + idle-interrupt spec + pose-picker spec + strip spec + FHU/tattoo v2 scouts (report + specs only; NOTHING BUILT)
+## §153 — REV-134f (2026-10-21): BUILT — THE FOLLOW-UP PROMPT (ambient-cue narration as an MCM-gated second surface + the overlay-yaml root cause)

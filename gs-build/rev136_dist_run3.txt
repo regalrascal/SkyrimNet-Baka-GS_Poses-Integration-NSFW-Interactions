@@ -1,0 +1,18 @@
+source entries: 271
+STALE-TREE (build output wins): Scripts/DeD_MCM.pex
+STALE-TREE (build output wins): Scripts/DeDService.pex
+STALE-TREE (build output wins): Scripts/Downed_SkyrimNet.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_AcheronIntegration_MCM.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_AcheronIntegration.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_AnimationsGS.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_BakaIntegration.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_BakaSL.pex
+STALE-TREE (build output wins): Scripts/SNBaka_CumDetectionModule.pex
+STALE-TREE (build output wins): Scripts/SNBaka_FHUInflationModule.pex
+STALE-TREE (build output wins): Scripts/SNBaka_SlaveTatsModule.pex
+STALE-TREE (build output wins): Scripts/SNBakaUI.pex
+build-output entries (priority 1): 12
+assembled entries: 271
+entry-count assertion PASS: 271 == 271
+zip built: D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\dist\[REV-136] Delectatio-et-Dominium idle-service-fixes-mode-renames.zip (327 entries, 7,623,091 B) - size-sanity PASS (7.27 MB within 5..8 MB window)
+zip sha256 sidecar written: D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\dist\[REV-136] Delectatio-et-Dominium idle-service-fixes-mode-renames.zip.sha256 (B6157CCC444B1FF2...)

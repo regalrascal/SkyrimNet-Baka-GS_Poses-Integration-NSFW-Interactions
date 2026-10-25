@@ -114,7 +114,11 @@ namespace {
             "someone of higher status, training, stretching, or simply striking an attitude as you speak  -  "
             "a pose pairs naturally with a line of dialogue. Held until you stop it, combat starts, or it "
             "times out on its own. Skip it entirely in combat, danger, or mid-scene  -  nothing inside is "
-            "available then.",
+            "available then. THIS NAME IS A CATEGORY, NOT A CALLABLE ACTION: never emit SNGS_Pose itself  -  "
+            "always call the specific member action that fits the moment (PoseDanceSexy for dancing, "
+            "twerking or any lewd hip/backside show, PoseSeduce to lure, PosePresent to offer, "
+            "PoseGroundSexy for floor poses, PoseStretch, PoseWorkout, PoseSubmission, PosePlead, and "
+            "the rest as listed). The member's own description says who may use it and when.",
             [](RE::Actor* a) { return a != nullptr; });
 
     }

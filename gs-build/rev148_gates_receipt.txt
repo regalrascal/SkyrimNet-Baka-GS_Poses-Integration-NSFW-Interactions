@@ -1,0 +1,48 @@
+extracted zip -> C:\Users\Tristan\AppData\Local\Temp\rev148_zip_extract
+PASS: v1 fomod\ModuleConfig.xml parses as XML
+PASS: v3 DeD_MCM.psc: Pages = new String[7] (full build)
+PASS: v3 DeD_MCM.psc: GetVersion 14
+PASS: v3 DeD_MCM.psc: "NPCs May Target You" toggle present
+PASS: v3 DeD_MCM.psc: Ambient Modes section header present
+PASS: v3 DeD_MCM.psc: target-sex dropdown (AddMenuOption policy) present
+PASS: v3 DeD_MCM.pex IN-ZIP: canary string present
+PASS: v3 DeD_MCM.pex IN-ZIP: old toggle label "Mephala Mode" ABSENT
+PASS: v3 DeD_MCM.pex IN-ZIP: old toggle label "Molag Bal Mode" ABSENT
+PASS: v4 witness YAMLs unchanged-present: 106 yaml files, 0 changed vs [REV-146] manifest
+PASS: v4 witness execute.yaml present
+PASS: v4 witness baka_opportunity.yaml present
+PASS: v4 witness sdb_cum_ambient_narr.yaml present
+PASS: v6 SkyrimNet_BakaIntegration.dll IN-ZIP SHA256 93A4A6F6 == 93A4A6F6
+PASS: v6 SNAnimGS_UI.dll IN-ZIP SHA256 8F05DC4A == 8F05DC4A
+PASS: v6 DeDService.dll IN-ZIP SHA256 DDB68A66 == DDB68A66
+PASS: v6 DLL bridge payload string "snbakaSetModeStates" present IN-ZIP DLL
+PASS: v6 ST-view (SNBaka_Menu) bridge: snbakaSetModeStates handler present IN-ZIP
+PASS: v6 ST-view bridge: "no target selected" overlay text present IN-ZIP
+PASS: v6 ST-view bridge: gold-highlight .on CSS present IN-ZIP
+PASS: v8 text-surface ASCII (extended scope): NEW non-ASCII surfaces = 0 (em-dash/box-drawing comment classes only; no new class introduced)
+PASS: v8 pex mojibake scan (REV-90 class): no pex grows its C3A2 count vs [REV-146] (growth files: 0; AnimationsGS improved 38->0 this cut)
+v9 yaml/prompt content validation (python): VALIDATED 115 bad 0
+PASS: v9 external layers all content-valid
+PASS: v9 entry-30b consideration prompt: DRAFT-flag state present
+v10 file-set diff vs [REV-146]: new=0 removed=0
+PASS: v10 FOMOD parity: install file SET unchanged vs [REV-146] (wizard 10a NOT triggered - DLL/pex BYTES changed, file set did not)
+PASS: v10 ModuleConfig file refs all present in dist tree (missing: 0)
+PASS: GREP PRESENT 'child-boundary REFUSE' (found in: SkyrimNet_BakaIntegration.pex)
+PASS: GREP PRESENT 'no target selected' (found in: index.html)
+PASS: GREP PRESENT 'Allow to Dress' (found in: SkyrimNet_BakaIntegration.pex)
+PASS: GREP PRESENT 'SetModeStates' (found in: index.html)
+PASS: GREP PRESENT 'snbakaSetModeStates' (found in: index.html)
+PASS: GREP PRESENT 'walk-approach issued' (found in: SkyrimNet_BakaIntegration.pex)
+PASS: GREP PRESENT '45s/60s' (found in: SkyrimNet_BakaIntegration.pex)
+PASS: GREP PRESENT 'downed-pool admit' (found in: SkyrimNet_BakaIntegration.pex)
+PASS: GREP PRESENT 'opportunity audience routed' (found in: SkyrimNet_BakaIntegration.pex)
+PASS: GREP PRESENT 'strip-hold armed' (found in: SkyrimNet_BakaIntegration.pex)
+PASS: GREP PRESENT 'mode states pushed' (found in: SkyrimNet_BakaIntegration.pex)
+PASS: GREP ABSENT 'All to dress' (found in: nowhere)
+PASS: GREP ABSENT ', holding it in place' (found in: nowhere)
+PASS: GREP ABSENT 'Mephala Mode' in DeD_MCM.pex (the MCM toggle surface)
+PASS: GREP ABSENT 'Molag Bal Mode' in DeD_MCM.pex (the MCM toggle surface)
+PASS: GREP ABSENT 'All to dress' (found in: nowhere)
+PASS: GREP ABSENT ', holding it in place' (found in: nowhere)
+NOTE: 'All to Dress' (capital D, the StripRestore action label) intentionally remains - the ABSENT string is exact-case 'All to dress'.
+TOTAL FAILURES: 0

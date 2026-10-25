@@ -1,0 +1,42 @@
+WROTE D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\run_compile_rev136.bat
+WRAPPER EXIT CODE: 0
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling Downed_SkyrimNet.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "Downed_SkyrimNet"...
+Starting assembly of Downed_SkyrimNet
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling DeDService.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "DeDService"...
+Starting assembly of DeDService
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling SkyrimNet_AnimationsGS.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "SkyrimNet_AnimationsGS"...
+Starting assembly of SkyrimNet_AnimationsGS
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+============================================================
+BUILD OK - all targets compiled, .pex files verified in OUT.
+EXITCODE=0
+DENYLIST CLEAN (no retired names in compile output).
+DENYLIST CLEAN (no retired names in compile output).
+MODLIST ASSERTION CLEAN (compile leg).
+COMPILE 12/12 0/0 (canonical island, REV-136 OUT). DENYLIST CLEAN.

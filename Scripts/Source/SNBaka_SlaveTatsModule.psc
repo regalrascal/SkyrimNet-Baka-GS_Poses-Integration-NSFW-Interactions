@@ -905,18 +905,21 @@ Function AmbientExposurePass() Global
     EndIf
     StorageUtil.SetFloatValue(ak, "SNBaka.ST.AmbientLast", now)
     ; Cue (mandatory): branched on location + the specific mark + the
-    ; wearer + the wearer's observable arousal tier. Register entry 35
-    ; DRAFT (branch wordings at the user's pen).
+    ; wearer. Register entry 35 DRAFT (branch wordings at the user's pen).
     ; REV-157 SLIM (ruling (b), register entry 36): the cue drops to
     ; NUDGE-CLASS wording -- the standing facts (visible marks on self /
     ; others, section + name + location) now live in the get_ded_marks
     ; bio fragment (0177_ded_tattoos.prompt) and the application
     ; specifics stay in the APPLICATION events (sdb_tattoo_applied,
-    ; ruling (a), untouched). The event-side tier clause STAYS per
-    ; ruling (c) (moment-of-impact emphasis composes with the standing
-    ; disposition fragments).
+    ; ruling (a), untouched).
+    ; REV-161 3.2 recast (register DRAFT): the observed cue drops the
+    ; wearer's immediate-reaction clause (_ArousalClause -- the wearer's
+    ; in-the-moment reaction is the APPLIED cue's territory only,
+    ; sdb_tattoo_applied); the AMBIENT carries OTHERS noticing the mark,
+    ; with the wearer optionally re-noticing it later (catching the
+    ; looks). Narration-voice standard; others-first framing.
     SkyrimNetApi.RegisterEvent("sdb_tattoo_observed", \
-        ak.GetDisplayName() + " has a tattoo showing on " + loc + ": '" + m[1] + "' (" + m[0] + "). It is plain to see for anyone close enough." + _ArousalClause(ak), \
+        ak.GetDisplayName() + " has a tattoo showing on " + loc + ": '" + m[1] + "' (" + m[0] + "). Anyone close enough sees the mark; those who notice it react in their own way, and the wearer may catch their looks and grow newly aware of it too.", \
         ak, ak)
     Debug.Trace("[SNBaka.ST] ambient: FIRED sdb_tattoo_observed - wearer=" + ak.GetDisplayName() + " mark='" + m[1] + "' (" + m[0] + ") area=" + m[2] + " roll=" + roll + "/" + pct + "% -- REV-156")
     ; Narration (gated second surface, DEFAULT OFF).

@@ -1123,7 +1123,10 @@ function _hide(id) { _el(id).classList.add('hidden'); }
 //  This block is completely inert inside Skyrim/PrismaUI.
 // ════════════════════════════════════════════════════════════
 (function browserPreview() {
-  const inSkyrim = typeof window.snbaka_chose === 'function';
+  const inSkyrim = typeof window.snbaka_chose === 'function'
+    || location.href.indexOf('file:///views/') === 0;   // [REV-161 fix 2.2] in-game PrismaUI
+  // (the bridge injects snbaka_chose after page-load, so the typeof test alone passes
+  // at page-load in-game; PrismaUI serves views from file:///views/ -- gate on that)
   if (inSkyrim) return;
 
   // Cycle through demos on each page load using sessionStorage

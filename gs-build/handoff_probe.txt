@@ -1,0 +1,59 @@
+BASELINE-REFRESHED (snapshot lines only, post-enable-flip state)
+--- PLANNER LOCATIONS ---
+D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\DeD_Features_Planner.md
+--- CONVERSATION_SYSTEM LOCATIONS ---
+--- FORK ROOT (GS repo) TOP LEVEL ---
+dll-source
+docs
+PrismaUI
+release
+Scripts
+SKSE
+tools
+.gitattributes
+.gitignore
+CHANGELOG.md
+README.md
+SkyrimNet_AnimationsGS.esp
+SkyrimNet_AnimationsGS.esp.bak-rev35
+SkyrimNet_AnimationsGS.esp.bak-rev40
+--- DOCS FEATURES ---
+acheron-fold.md
+baka-daemon.md
+baka-module.md
+cum-detection.md
+cum-effects.md
+cum-prompt-spec.md
+cumflation.md
+dirty-talk.md
+fhu-inflation.md
+fomod.md
+gs-poses.md
+INDEX.md
+pose-picker.md
+pose-removal.md
+posing-gender.md
+service-dll.md
+slavetats.md
+unification-era.md
+--- DOCS REFERENCE ---
+cpp-conventions.md
+papyrus-gotchas.md
+sn-api-cheatsheet.md
+--- DOCS TOP ---
+09-13 REV10_SESSION_REPORT.md
+FILE_STRUCTURE.md
+MEMORYGENERATOR_UPSTREAM_NOTE.md
+MUSE_CADENCE_TUNING_SPEC.md
+MUSE_DIRECT_FIRE_DESIGN.md
+MUSE_REDESIGN_DESIGN.md
+pending-approvals.md
+PHASE1_GATE_REPORT.md
+PHASE2_GATE_REPORT.md
+PHASE3_GATE_REPORT.md
+PHASE4_GATE_REPORT.md
+PHASE5_PROJECT_REPORT.md
+PROJECT_STATE.md
+REV-134e-SCOUT-TRACKER.md
+REV18_SESSION_REPORT.md
+STANDING_RULESET.md

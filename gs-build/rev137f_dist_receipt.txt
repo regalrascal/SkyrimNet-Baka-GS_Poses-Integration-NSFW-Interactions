@@ -1,0 +1,19 @@
+source entries: 271
+STALE-TREE (build output wins): Scripts/DeD_MCM.pex
+STALE-TREE (build output wins): Scripts/DeDService.pex
+STALE-TREE (build output wins): Scripts/Downed_SkyrimNet.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_AcheronIntegration_MCM.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_AcheronIntegration.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_AnimationsGS.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_BakaIntegration.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_BakaSL.pex
+STALE-TREE (build output wins): Scripts/SNBaka_CumDetectionModule.pex
+STALE-TREE (build output wins): Scripts/SNBaka_FHUInflationModule.pex
+STALE-TREE (build output wins): Scripts/SNBaka_SlaveTatsModule.pex
+STALE-TREE (build output wins): Scripts/SNBakaUI.pex
+build-output entries (priority 1): 12
+assembled entries: 271
+entry-count assertion PASS: 271 == 271
+manifest written: D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\dist\[REV-143] Delectatio-et-Dominium mode-tuning-notification-anchor\dist-manifest.txt (271 entries)
+zip built: D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\dist\[REV-143] Delectatio-et-Dominium mode-tuning-notification-anchor.zip (328 entries, 7,645,723 B) - size-sanity PASS (7.29 MB within 5..8 MB window)
+zip sha256 sidecar written: D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\dist\[REV-143] Delectatio-et-Dominium mode-tuning-notification-anchor.zip.sha256 (A0147E360136A765...)

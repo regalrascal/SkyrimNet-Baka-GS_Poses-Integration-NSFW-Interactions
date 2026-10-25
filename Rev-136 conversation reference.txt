@@ -1,0 +1,114 @@
+REV-135 gate report: accepted. Compile 12/12 0/0, dist 271 entries, modlist assertion clean twice, commits both repos — and the two self-caught defects are the gates doing their jobs: the delta-gate catching the never-committed sdb_cum_ambient_narr.yaml (a silent feature-drop from 134f, restored byte-identical) and the failure-propagation fix catching the stale retired-MCM target in the bat. Both recovery classes are now closed.
+
+Two of your three edge rulings diverge from what shipped — the built-to defaults in [REV-135] were sneaking-excluded (matches yours), mid-dialogue fully excluded (yours is narrower), and re-grab tolerated-as-skip (yours wants prevention). So a small REV-136 fix session is warranted before the daemon builds on the service:
+
+Mid-dialogue, per your ruling: exclude only when the vanilla dialogue menu is open; SkyrimNet conversation stays interruptible. One honest caveat to surface in that build: Papyrus can't distinguish quest-related vanilla dialogue from ambient vanilla greetings (GetDialogueTarget() sees both). The practical shape — "vanilla dialogue active = exclude, SN dialogue = interruptible" — matches your intent as closely as the engine allows; SN's LLM lines largely don't ride the vanilla menu anyway. Cline builds that approximation and documents it in-file.
+Re-grab, per your ruling — prevention, not graceful failure: the fix is to acquire the AI hold at exit-issue (the proven _PoseDirect/GSAnim LockAI pattern) before the stand-up begins, so the package can't re-grab mid-transition; release at pose end via the existing pose-timeout machinery so the actor returns to their package naturally afterward. The "one re-exit then skip" backstop stays as a last resort, but it should never be the primary path.
+One dogfood watch item while you test [REV-135]: Cline's judgment used PathToReference (pathing toward the player) as the stand-up driver with a 4s bounded poll. Watch for seated NPCs walking toward you when posed — if it reads wrong, the fix rider is the place to swap in a plain stand.
+REV-136 scope (one manageable session): the two service revisions above + the GS mode renames (Muse → Sanguine Mode, Overdrive → Sheogorath Mode — footer buttons, MCM labels, notifications; the GSAnim.Muse/Overdrive StorageUtil keys and technical ids stay per the identity-boundary rule). That session leaves the service daemon-ready. Say the word and I'll draft the paste.
+
+Your muse/overdrive rulings — recorded. And your (a) answer actually resolves (f): by "uncap extremity" I meant exactly the question you answered — whether Molag-Bal runs Mephala's set faster, or admits the extreme subset regardless of arousal. You've ruled all actions available in Molag-Bal. My read of the combined (a)+(f), confirm or correct: Mephala = all actions on the table, extremity scaled by arousal (per the planner), with seeded thoughts; Molag-Bal = all actions, no arousal gating, no thoughts, 15s/30s cadence. Struggle-needing actions chain: the ambient seeds the intention, the actor starts the struggle, the follow-up action rides the struggle outcome — that's a design note for the daemon spec, and it composes with the interrupt service nicely (the aggressor leaves their bar stool to start it).
+
+Ruling (b) — blanket player-target MCM across the whole Baka module including both ambient modes — noted, and it feeds directly into (c)'s investigation leg: the daemon build session needs to audit what the MCM already covers (the existing iTargetSex IsEligible gate and bSpankMaleTargets toggle) before designing your three-level dropdown (female targets only / male+female with male aggressors / anything goes). That's a pre-check in the daemon session, not a blocker now.
+
+The expanded menus you asked for:
+
+3. Pose picker (decision-model picker; the executor already exists post-135):
+
+(a) Which categories offer the LLM-pick: all grid categories (recommended — the template scopes its option list to the picked category, so breadth costs nothing per pick) vs. a curated subset.
+(b) Context sent per pick: recommended minimal set — target name/sex, arousal tier (Reborn/NG chain), gender-policy mode, current pose state, location class. Richer context (relationships, recent events) costs tokens per pick and duplicates what SN already supplies to prompts.
+(c) No-decisions fallback: if the user has no decision route configured, the API returns success = 0. Recommended: pick a random pose in the chosen category and let you re-pick manually. Alternative: do nothing + a notification.
+(d) Dialogue-lane unification: should the same template serve LLM-commanded poses? Recommended NO day-one — the pose YAMLs already carry their own selection descriptions; unifying is a v2 candidate.
+(e) UI shape: recommended — an explicit "LLM picks" affordance per category, alongside the existing per-pose tiles (both paths live; the decision is opt-in). Alternative: replace the drilldown entirely.
+4. Strip equipment:
+
+(i) Where the gear goes: (a) victim's own inventory minus equipped — tracked, recoverable, no theft (SexLab StripActor precedent; recommended); (b) dropped at their feet — visual theater, lootable by anyone; (c) stripper's inventory — theft, the escalation class.
+(ii) Restore: (a) auto-reequip when they stand (SexLab UnstripActor; recommended if (i)(a)); (b) stays off — persistent consequence, pairs with forced-tattoo/devious content. Timing caution on record: undress/restore timing is the neighborhood of the historical redress bug class.
+(iii) Mechanics: SexLab StripActor (tracked re-equip queue, animate flag, worn-slot awareness — recommended); vanilla per-slot unequip as the presence-gated fallback when SexLab is absent (loses restore context); OStim undress is scene-internal and N/A for a downed actor.
+5. FHU arousal-at-apply — the problem in plain terms: SL Aroused NG collapses arousal at orgasm (satisfaction = −(50+enjoyment), female ×0.8, one-game-hour half-life), and FHU applies inflation at orgasm — so our inflate cue branches on an arousal value that has already crashed. A 90-arousal actor can read ≤40 at the exact moment we ask "how do they feel about being filled?"
+
+(a) Captured-at-entry: read and stash each actor's arousal at scene start; the inflate cue branches on the stashed value. Matches your "scene entry conditions" lean; costs one scene-start hook + one stamp per actor. Recommended for the instant inflate reaction.
+(b) Consent-context-primary: branch on consensual/non-consensual first, arousal secondary.
+(c) Accept the mechanic: the post-collapse read is narratively "sated" — cheapest, defensible. Recommended for deflate/ambient (where "sated" is arguably the right read anyway).
+Recommended split: (a) for instant, (c) for deflate/ambient — and GetActorDaysSinceLastOrgasm gives (a) a decay-safe fallback read.
+6. Register cue texts (your pen whenever, quoted as drafted):
+
+Entry 27 — Strip cue: "{Stripper} strips the downed {Victim} of their clothes and armor, leaving them exposed and helpless on the ground."
+Entry 28 — Forced-tattoo cue: "{Aggressor} forces a tattoo onto the downed {Victim}, marking their skin where everyone can see."
+Rule on whichever of these you like — the immediate unblocking sequence is: your go on REV-136 → I draft the paste → Cline builds → daemon session (with the (c) MCM audit pre-check) → picker session. The Lynea-repeats investigation stays queued as a good small slot whenever you want it.
+
+Tristan Euringer
+
+|
+
+Oct 21, 10:35 PM
+
+I can say almost immediately that the pathing toward the player for 4 seconds is not going to work well. I already see NPCs continue on their AI package pathways while they pose (which we may be inadvertently fixing with out changes), so I know the AI would dance/pose toward the player that whole time and it would look bizarre.
+
+Pose picker.
+a) Approved.
+b) Approved.
+c) Approved.
+d) How do you mean?
+e) Could you explain more?
+Strip equipment:
+i) a - Victim's own inventory
+ii) b - Stays off until another tile similar to "remove tattoos" is activated, called "all to dress". Double check how this would interact with Severactions and the SL/Ostim frameworks. It should not override their functions if either of them receive a player initiated dress function through their GUIs.
+iii) This was talked about a little in the point above. I'm not sure I fully understand what you're asking here, but I'll follow your recommendations and we'll test.
+FHU arousal at apply.
+a) capture at entry approved.
+b) consent context primary approved
+c) accept the mechanic approved for deflate and ambient, not instant.
+d) I want an additional ambient cue fired via prompt for the inflated character based on what cum type (creature) they are inflated with, and from where. The covered types should be discoverable in the FHU mod. The cue should go something like this "{{NPC/playername}} feels the {{ceature}} cum sloshing around in their {{stomach/womb/bowels(based on inflation type)}}. They feel {{canned description based on connected magic effect}}. This cue should be skipped if the inflation is from a human or an unsupported creature.
+e) There are different deflation types (anal/vaginal/oral) these should be captured as different trigger types when they trigger ambient cues. The planned features doc explores this idea.
+Register cue texts:
+Entry 27 text approved
+Entry 28 text approved
+zhipu
+GLM 5.3
+
+|
+
+Oct 21, 10:35 PM
+
+|
+
+Cost: $0.2561 · Personal balance
+
+
+Thought for 4m 16s
+
+Pathing confirmed dead — replaced in REV-136 with stand-in-place. And good news on your side observation: the re-grab fix (AI hold acquired at exit, held through the pose) covers the wander-while-posing oddity too — the hold will span the whole pose, not just the stand-up. That's a long-standing weirdness fixed as a side effect.
+
+Your (d) and (e) questions, answered:
+
+(d) When you or an NPC commands a pose in conversation ("Lynea, dance for me"), the LLM today picks from the 27 pose action YAMLs — each carries its own description telling the model when to choose it. That lane already works. Question (d) was: should the new decision-model picker also take over that job (one brain for both menu and dialogue), or leave the dialogue lane as-is? My recommendation stands: leave it as-is day-one; unify later only if the picker proves noticeably better.
+
+(e) Today: open the grid → tap "Dance" → 15 pose tiles appear → you tap one. Question (e) was: after picking a category, does the LLM always choose the pose (tiles replaced), or do the tiles stay with one extra "let the LLM choose" option beside them? Recommendation: the extra option — you keep manual control and gain the LLM pick as a choice.
+
+Rulings recorded: Strip (i)(a) own-inventory; (ii) stays off + a new "All to dress" downed-menu tile (id 11) restoring tracked gear — with a mandatory pre-check that our restore never fights SeverActions' outfit system or SL/OStim's player-initiated dress GUIs (build-session investigation, STOP if no clean shape). FHU: (a)+(b) combined for instant (consent-context primary frame, arousal branch from the captured-at-entry value), (c) for deflate/ambient, plus your two new features — the creature-cum ambient cue (types discoverable in FHU's per-race cum-effect FormLists, the B2 receipts; the canned descriptions are §7, register at build) and per-orifice deflation as distinct trigger types (discriminator = which sr.inflater.cum.* float dropped). Register 27/28 approved → closing as wording of record; 15/16/26 stay open as your polish anchors, per your ruling.
+
+d) The drill down definitely works, and I'm not sure if it would be wise to change it since it is the default action selection model every other action, no? If we could change, I'd be interested in testing, but I feel the base function of the whole mod will improve with time, including actions selection, and I'm happy leaving that in the SkyrimNet dev's hands.
+
+e) There may be small misunderstanding here. I don't want the decision LLM to pick which pose the NPC does when the player is manually picking with the prisma menu. That lane is controlled by the player alone. The picker should only be used for the other lanes, emergent actions picks and Sanguine mode action selections. Sheogorath mode can stay random.
+
+If the instruction set changes because of the above rulings, please update and re-paste.
+
+zhipu
+GLM 5.3
+
+|
+
+Oct 21, 10:47 PM
+
+|
+
+Cost: $0.0876 · Personal balance
+
+
+Thought for 59s
+
+Both recorded — and (e) is a genuinely better shape than my recommendation: the Prisma drilldown stays purely the player's hand (no LLM affordance in it at all), and the decision model becomes the selection brain for the autonomous lanes — emergent/ambient pose picks and Sanguine Mode — while Sheogorath Mode stays random. That voids the picker spec's UI-shape question entirely and re-aims (a)/(b)/(c) at the ambient consumer. One design note to carry into the daemon spec: decision templates return an action pick, not a thought — so under Sanguine Mode the thought-seed becomes a separate GenerateNPCThought call after the pick (the "splits into two calls" tradeoff, now the ruled shape). And your (d) reads as: leave dialogue-commanded poses in SN's native action-selection lane, happy to revisit if the base mod's selection improves — recorded as a deferred watch item, not ours to change.
+
+The instruction set changes only in section 4.3. Updated and re-pasted:
+

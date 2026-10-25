@@ -1,0 +1,2 @@
+TOTAL=28
+DeD_Features_Planner.md, FILE_STRUCTURE.md, MANIFEST-SHA256.txt, pending-approvals.md, PROJECT_STATE.md, REV-134e-SCOUT-TRACKER.md, STANDING_RULESET.md, START-HERE.md, acheron-fold.md, baka-daemon.md, baka-module.md, cum-detection.md, cum-effects.md, cum-prompt-spec.md, cumflation.md, dirty-talk.md, fhu-inflation.md, fomod.md, gs-poses.md, INDEX.md, pose-picker.md, pose-removal.md, posing-gender.md, service-dll.md, slavetats.md, unification-era.md, cpp-conventions.md, papyrus-gotchas.md, sn-api-cheatsheet.md

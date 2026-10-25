@@ -1,0 +1,89 @@
+Dogfood:
+
+Sheogorath mode timing and overlap is working properly. It is finally behaving as envisioned.
+See the events below, captured during Sheogorath mode. Initially I wanted to avoid cues and thoughts for this mode, but now that they are here, I don't really mind them, and want to keep them. However, the generated text is a little awkward, and contains our old special characters bug when non-ansii II characters are present in a papyrus string:
+16193
+From: Vinillian
+10/23/26 08:48
+
+gsanim npc pose
+[gsanim_npc_pose] Vinillian strikes a slow, provocative dance â€” a performance with a single intended victim, holding it in place.
+Silver-Blood Inn, Hold: Markarth
+
+16197
+From: Lynea
+10/23/26 08:48
+
+gsanim npc pose
+[gsanim_npc_pose] Lynea strikes a light, playful dance â€” feet answering the music, holding it in place.
+Silver-Blood Inn, Hold: Markarth
+
+I think the majority of the work is done if we simply remove "holding it in place", though I do think "victim" is a strong word for a sexy dance too, maybe "audience" would be more neutral, but I can provide those rulings in the pending doc. The main thing to be done is remove "holding it in place".
+
+Sanguine mode seems to be functioning well. Thoughts seeded, cues landing. Again, my only gripe is the nonsensical reading of the pose cues. See another example below:
+16206
+From: Muiri
+10/23/26 08:57
+
+gsanim npc pose
+[gsanim_npc_pose] Muiri strikes a slow trail of her own fingers â€” touch with nowhere else to go, holding it in place.
+Silver-Blood Inn, Hold: Markarth
+
+Strikes a slow trail of her own fingers?
+Touch with nowhere else to go?
+
+Even discounting the "holding it in place" line, these don't make much sense.
+
+Mephala and Molag mode toggles both existed in the Baka MCM. I would prefer them to be in the prisma panel only.
+I see that the Mephala and Molag Bal modes do exist in the prisma panel, but the Maphala button executes a back hug animation, as does the Molag Bal button. They also don't color match the reset of the panel, being darker and difficult to see.
+I notice that the baka panel only comes up if a target was in the cross-hairs when the power was pressed. This makes sense for everything but the two ambient modes. If the power is activated with no target, are we able to grey out all the panel actions except the two mode button, and overlay a message saying, no target selected over the greyed out buttons? That way the modes are accessible without a target, but the player would still know immediately why the buttons weren't working.
+When activated from the MCM, Mephala mode worked well. If anything, it may have fired a bit too often, let's reduce the cadence a bit, maybe make it 45 seconds instead of 30. The cues and thoughts were landing nicely. My one grip is that no-one was verbally acknowledging what was happening even though people were feeling each other up all over the place. Also, character were teleporting into the holds. I'd prefer if they walked to where they needed to go. I realize that creates a vulnerability for pathing, and we will need a timeout safety mechanism. Keep the teleport method as a backup.
+Molag Bal mode was working successfully too (when activated from the MCM). No complaints. It should keep it's quick cadence.
+Another small issue with the two modes. I saw several characters downed through actions, but none of them were assaulted afterward, or had any other action done to them while downed. Would this be an option if they were targeted again though a mode tick? It should happen sometimes, and I want to make sure it's on the table.
+Tried the strip action on Vorstag. It worked momentarily, but the clothes almost immediately were reequipped. We'll need to scout the logs to see why. I may suggest seeing how our commonly trusted plugin colleagues keep clothes removed to see what we could do to ensure they stay removed.
+The reequip action should be called "Allow to dress" not "All to dress". If the menu needs to increase in size to accomplish that, so be it.
+We need to create a boundary against using the baka module on NPCs marked child. It goes again the mod intent and also has strange effects on them.
+The spank/slap migration worked.
+I was not targetable with the mod option about no player target enabled. Success.
+The gender based target levels in the Baka MCM are working.
+With continuous narration enabled (SkryimNet setting to keep conversation going), ongoing things were getting referenced a lot more frequently. It might be enough, though I am thinking about having a direct narration, MCM based option similar to that of the cum detection. Could be a later addition.
+I didn't notice any stranded holds. Everything seemed to be working well.
+Drunk struggle was chosen in my tavern setting, good.
+I notice that the baka cues are not very descriptive. It might be nice if they held a little more information about the specific action they executed. Right now they only share very basic information. See examples below:
+16325
+From: Heir-Zish [Priest]
+To: Frabbi
+10/23/26 09:34
+
+baka forced
+[baka_forced] Heir-Zish [Priest] overpowered Frabbi. It is over.
+
+16340
+From: Gwilym
+To: Remiel
+10/23/26 09:39
+
+baka intimate
+[baka_intimate] Gwilym and Remiel shared a close embrace.
+
+16285
+From: J'zargo
+To: Gwilym
+10/23/26 09:27
+
+baka intimate
+[baka_intimate] J'zargo flirted with Gwilym.
+
+The difference between flirt and embrace is good, but I feel that the forced/overpowered variants don't have the same individual personality.
+
+I notice that a baka opportunity event fired, but it was for my character (to take advantage of?). This seems unnecessary, I would just use my lesser power if that's what I wanted to do. The opportunities should be routed to NPCs, no?
+16283
+From: Hadrian
+To: Brundil
+10/23/26 09:27
+
+baka opportunity
+[baka_opportunity] Brundil is still down in front of Hadrian.
+Silver-Blood Inn, Hold: Markarth
+
+I didn't notice any regression since the last tests.

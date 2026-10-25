@@ -2867,7 +2867,12 @@ Bool Function _InDefeatGrace(Actor akVictim)
     If !akVictim || _HasLiveCombatTarget(akVictim)
         Return False
     EndIf
-    Return Utility.GetCurrentRealTime() < StorageUtil.GetFloatValue(akVictim, "SNBaka.DefeatGraceUntilRT", 0.0)
+    ; [REV-161 PR#2 fold (1)] relaunch clamp: a pre-relaunch stamp never expires on its own.
+    Float graceUntil = StorageUtil.GetFloatValue(akVictim, "SNBaka.DefeatGraceUntilRT", 0.0)
+    If _RTStampStale(graceUntil, Utility.GetCurrentRealTime())
+        Return False
+    EndIf
+    Return Utility.GetCurrentRealTime() < graceUntil
 EndFunction
 
 ; Delegate a down to Acheron if it's installed. No plugin probe needed: DefeatActor takes (IsDefeated
@@ -3046,9 +3051,18 @@ Function _PacifyActor(Actor ak, Bool on)
         Return
     EndIf
     If on
-        If StorageUtil.GetIntValue(ak, "SNBaka.Pacified", 0) == 0
+        ; [REV-161 PR#2 fold (2) - Oldcustard credit, by-concept] CLAIM-BEFORE-READ
+        ; + CROSS-TREE ORIGINAL REUSE: check the GS-side flag BEFORE storing an
+        ; original. If the GS tree already holds the pacify, its stored original
+        ; (shared key SNBaka.OrigAggr) is the true pre-pacify aggression --
+        ; storing a fresh one here would capture the already-zeroed value and
+        ; the release would restore 0 (pacify perpetuated). We still track our
+        ; own on/off pairing, but never touch the original while GS holds.
+        If StorageUtil.GetIntValue(ak, "SNBaka.Pacified", 0) == 0 && StorageUtil.GetIntValue(ak, "GSAnim.Pacified", 0) == 0
             StorageUtil.SetFloatValue(ak, "SNBaka.OrigAggr", ak.GetActorValue("Aggression"))
             StorageUtil.SetIntValue(ak, "SNBaka.Pacified", 1)
+        ElseIf StorageUtil.GetIntValue(ak, "SNBaka.Pacified", 0) == 0
+            StorageUtil.SetIntValue(ak, "SNBaka.Pacified", 1)   ; GS owns the original; we ride it
         EndIf
         ak.SetActorValue("Aggression", 0.0)
         ak.StopCombatAlarm()
@@ -3060,7 +3074,12 @@ Function _PacifyActor(Actor ak, Bool on)
         EndIf
         _Log("[SNBaka] _PacifyActor: calmed " + ak.GetDisplayName() + " (aggr->0, StopCombat, Calm cast; wasInCombat now=" + ak.IsInCombat() + ")")
     ElseIf StorageUtil.GetIntValue(ak, "SNBaka.Pacified", 0) == 1
-        ak.SetActorValue("Aggression", StorageUtil.GetFloatValue(ak, "SNBaka.OrigAggr", 1.0))
+        ; [REV-161 PR#2 fold (2)] release only when the LAST pacify owner goes:
+        ; the GS tree still holding means the aggression restore belongs to ITS
+        ; release, not ours.
+        If StorageUtil.GetIntValue(ak, "GSAnim.Pacified", 0) == 0
+            ak.SetActorValue("Aggression", StorageUtil.GetFloatValue(ak, "SNBaka.OrigAggr", 1.0))
+        EndIf
         StorageUtil.SetIntValue(ak, "SNBaka.Pacified", 0)
         ; The Calm EFFECT cast on pacify does NOT end with the aggression restore — with any real
         ; duration it kept "liberated" aggressors becalmed and passive long after the struggle
@@ -3916,7 +3935,14 @@ EndFunction
 ; always free to interject or be interjected upon. Any hit that DOES land despite this (the player,
 ; or anything that slips past) still aborts the struggle/scene as normal -- this only stops OTHER
 ; actors from choosing to start something, it doesn't make the pair invulnerable.
-Function _ProtectNearbyAllies(Actor akCenter, Actor akAggressor, Bool abHold)
+; [REV-161 PR#2 fold (6) - Oldcustard credit, by-concept] THREATS-ONLY MODE:
+; abFull=True (the default, the historic behavior) freezes every bystander in
+; range; abFull=False holds ONLY actors actually hostile to the pair -- the
+; full freeze stopped unrelated NPCs mid-life across the loaded area in
+; NPC-grapples and creature struggles. Threaded threats-only through the
+; struggle/QTE hold sites; release calls are unaffected (releasing a
+; never-held actor is a no-op).
+Function _ProtectNearbyAllies(Actor akCenter, Actor akAggressor, Bool abHold, Bool abFull = True)
     If !akCenter
         Return
     EndIf
@@ -3931,7 +3957,7 @@ Function _ProtectNearbyAllies(Actor akCenter, Actor akAggressor, Bool abHold)
     Int i = 0
     While i < loaded.Length
         Actor a = loaded[i]
-        If a && a != akCenter && a != akAggressor && a != PlayerRef && !a.IsDead() && (!abHold || a.GetDistance(akCenter) <= 3000.0)
+        If a && a != akCenter && a != akAggressor && a != PlayerRef && !a.IsDead() && (!abHold || a.GetDistance(akCenter) <= 3000.0) && (!abHold || abFull || a.IsHostileToActor(akCenter) || a.IsHostileToActor(akAggressor))
             _HoldActorAI(a, abHold)
             ; Deliberately NO calm/pacify on bystanders — a cloak here stopped UNRELATED fights nearby
             ; (correct objection from testing). The victim-side calm in _ProtectVictimTargeting is what
@@ -3972,7 +3998,7 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
     EndIf
     ; Not gated on player involvement — a nearby teammate can be hijacked into attacking whoever's
     ; downed regardless of whether the player is one of the two actors in THIS pairing.
-    _ProtectNearbyAllies(akA2, akA1, True)
+    _ProtectNearbyAllies(akA2, akA1, True, False)
     ; Reset the escape flag unconditionally, not just inside the resistable branch below -- a
     ; NON-resistable sequence used to leave whatever value the PREVIOUS struggle set, and the
     ; post-escape grace at the bottom of this function keys off it.
@@ -4177,6 +4203,15 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
                 _HoldAnim(akA1, akA2, animsA1[i], animsA2[i], fNPCStageTime)
                 i += 1
             EndWhile
+            ; [REV-161 PR#2 fold (7) - Oldcustard credit, by-concept] INTERRUPTED
+            ; STRUGGLE = VICTIM FREED: an abort before the deciding stage used to
+            ; leave BOTH outcome flags unset, and every reader defaulted to
+            ; attacker-win (the interruption miscued as an overpowered defeat).
+            ; An aborted grip means the victim got away.
+            If _ShouldAbort(akA1, akA2)
+                _bAELVictimEscaped = True
+                _Log("[SNBaka] PlayPairedSequence: NPC-resistable struggle aborted mid-sequence -- victim-freed (REV-161 PR#2 fold 7)")
+            EndIf
             If !_ShouldAbort(akA1, akA2)
                 If npcEscaped && animsA1.Length > 1
                     ; Victim wins: skip the victor stage, play the break-free LAST stage directly.
@@ -4439,6 +4474,17 @@ Function _ReassertDownedProtection(Actor ak)
     EndIf
 EndFunction
 
+; [REV-161 PR#2 fold (1) - Oldcustard credit: fix/creature-struggle-bugs, by-concept]
+; RT-STAMP RELAUNCH GUARD: Utility.GetCurrentRealTime() RESETS at every game
+; launch, but StorageUtil stamps persist across sessions -- a backoff/deadline
+; stamp written last session reads as "far future" after relaunch and NEVER
+; expires (the creature backoff + defeat grace went permanent after every
+; game restart). Readers clamp: a stamp that sits in the future of the current
+; session clock is pre-relaunch and counts as long-expired.
+Bool Function _RTStampStale(Float afStamp, Float afNow)
+    Return afStamp > afNow + 1.0
+EndFunction
+
 ; The MERCY window: hold (or re-apply) the victim's ghost for fEscapeGraceDuration seconds at every
 ; exit from the protected interaction pipeline -- a won struggle OR the end of a sex scene -- so
 ; nobody gets spawn-killed the exact frame the protection drops (confirmed from testing: a third
@@ -4459,6 +4505,18 @@ Function _PostEscapeGrace(Actor akWinner)
     _Log("[SNBaka] _PostEscapeGrace: " + akWinner.GetDisplayName() + " untouchable for " + fEscapeGraceDuration + "s of mercy")
     Utility.Wait(fEscapeGraceDuration)
     akWinner.SetGhost(False)
+    ; [REV-161 PR#2 fold (5) - Oldcustard credit, by-concept] FREED-VICTIM
+    ; MOVEMENT PERSISTENCE: _ReassertDownedProtection can re-apply the movement
+    ; trio (SetRestrained/SetDontMove/_HoldActorAI) to an actor Acheron still
+    ; holds; an escape that walks free through here used to lift only the
+    ; ghost + pacify, leaving the freed victim rubber-pinned in place. Lift the
+    ; trio for NPC winners (the player never gets SetDontMove -- camera lock --
+    ; and the 2441 sweep covers its leftovers).
+    If akWinner != PlayerRef
+        akWinner.SetRestrained(False)
+        akWinner.SetDontMove(False)
+        _HoldActorAI(akWinner, False)
+    EndIf
     ; This is the ONE place the struggle/scene-scoped two-way pacify (_SetupPair / the scene paths)
     ; ends for a victim who walks free — after the mercy window, never mid-transition. A victim who is
     ; re-downed instead never comes through here un-defeated, so their pacify carries straight into
@@ -5321,7 +5379,7 @@ Function _EscalationCleanup(Actor akA1, Actor akA2)
     ; Same nearby-teammate protection as PlayPairedSequence's own struggle phase, extended through the
     ; actual sex scene too — a downed/occupied actor is vulnerable to being "executed" by an unrelated
     ; mod's own AI-driven action for this whole window, not just during the preceding struggle.
-    _ProtectNearbyAllies(akA2, akA1, True)
+    _ProtectNearbyAllies(akA2, akA1, True, False)
     ; The VICTIM is untouchable for the scene's whole duration, same rule as the struggle phase
     ; (_SetupPair now ghosts both participants): the aggressor's own faction allies won't kill its
     ; prey — a stray ally hit whiffs instead of staggering the animation or feeding OStim a combat
@@ -9225,6 +9283,15 @@ Function _DispatchDownedAction(Int choice, Actor akCaster, Actor akVictim)
             akCaster, akVictim)
         StorageUtil.SetIntValue(akVictim, "SNAcheron.Held", 0)
         StorageUtil.SetIntValue(akVictim, "SNBaka.OnGround", 0)
+        ; [REV-161 fix 2.1] Post-execution lock release: a downed victim stays
+        ; SNBaka.Locked=1 for the entire ground window (SNBakaInteractEffect
+        ; exception). The kill closes that window for good, but the lock was
+        ; never cleared here -- it lingered on the corpse and, worse, survived
+        ; essential-blocked kills (Actor.Kill refused, victim alive but locked
+        ; with no ground window left to clear it), leaving the downed panel
+        ; dead until the power was re-toggled. Clear it with the rest of the
+        ; window state, unconditionally, dead or alive.
+        StorageUtil.SetIntValue(akVictim, "SNBaka.Locked", 0)
         akVictim.Kill(akCaster)
         Utility.Wait(0.5)
         _Log("[SNBaka] _DispatchDownedAction: post-execute IsDead=" + akVictim.IsDead() + " (False = an essential flag blocked it)")
@@ -9584,7 +9651,7 @@ Bool Function _PlayCreatureStruggleNPC(Actor akCreature, Actor akVictim, String[
         marker1 = akVictim.PlaceAtMe(XMarkerBase, 1, False, False)
         marker2 = akVictim.PlaceAtMe(XMarkerBase, 1, False, False)
     EndIf
-    _ProtectNearbyAllies(akVictim, akCreature, True)
+    _ProtectNearbyAllies(akVictim, akCreature, True, False)
     _SetupPair(akCreature, akVictim, 0.0, 0.0, 0.0, True, marker1, marker2, animsA1[0])
 
     Bool aborted = _HoldAnim(akCreature, akVictim, animsA1[0], animsA2[0], fCreatureStruggleDuration)
@@ -9789,7 +9856,7 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
         ; the scene gate refuse, re-down, re-escalate: the reported infinite loop. Holding every nearby
         ; actor's AI is what actually eliminates combat toward the pair; the scene path re-holds
         ; idempotently, and every exit (scene end, no-scene, refusal) releases.
-        _ProtectNearbyAllies(akVictim, akCreature, True)
+        _ProtectNearbyAllies(akVictim, akCreature, True, False)
         ; Real interactive QTE -- unchanged.
         _bQTEDefeated = False
         ; A dedicated, shorter stage timer here (not fSequenceStageTimer) — that 4.0s default is tuned
@@ -9883,7 +9950,7 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
         ; them WHILE OStim was starting its thread -- OStim is unstable with a player actor entering
         ; combat mid-start. Holding every nearby actor's AI before the prep even begins closes the
         ; window at its source.
-        _ProtectNearbyAllies(akVictim, akCreature, True)
+        _ProtectNearbyAllies(akVictim, akCreature, True, False)
         ; Group size decided HERE, only once we know we actually need a scene -- a struggle that fails
         ; or a combat-not-clear outcome above never wastes this scan. Papyrus array sizes must be
         ; compile-time literals, so build one of exactly three fixed shapes instead of a dynamic size.
@@ -9933,7 +10000,11 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
         ; packs often ship PAIR scenes for a creature type but nothing bigger — confirmed live with
         ; rieklings: the 4-actor pick found nothing, the scene was refused, and the retry pipeline
         ; re-grabbed the same victims every ~20s forever. Shrink until a scene exists.
-        If iCreatureBackend == 2
+        ; [REV-161 PR#2 fold (3) - Oldcustard credit, by-concept] GROUP-FALLBACK
+        ; BACKEND GATE: resolve the backend first -- the raw iCreatureBackend == 2
+        ; test never ran the shrink on the default 0 (auto -> OStim), so the
+        ; 4->3->2 fallback + the permanent-gap backoff were dead code on auto.
+        If _ResolveSexBackend(iCreatureBackend) == 2
             String pickTest = _PickOStimScene(sexActors, "aggressive")
             While pickTest == "" && sexActors.Length > 2
                 Actor droppedComp
@@ -10204,7 +10275,14 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
             akCreature.EvaluatePackage()
             _Log("[SNBaka] CreatureEscalate(" + akVictim.GetDisplayName() + "): " + akCreature.GetDisplayName() + " lost the struggle -- explicit liberation (stagger + AI released, pose reset)")
         EndIf
-        _CueResistOutcome("baka_forced", akCreature, akVictim)
+        ; [REV-161 PR#2 fold (4) - Oldcustard credit, by-concept] ESCAPE NOT
+        ; OVERPOWERED: the overpowered cue used to fire unconditionally after
+        ; the If/Else, so a victim who BROKE FREE also got "X overpowered Y" --
+        ; the escape branch already emits baka_release. Gate the overpowered
+        ; beat on the creature actually winning the struggle.
+        If succeed
+            _CueResistOutcome("baka_forced", akCreature, akVictim)
+        EndIf
     EndIf
     UnlockBoth(akCreature, akVictim)
 EndFunction
@@ -10320,6 +10398,9 @@ Function _TryCreatureEscalateOnDowned(Actor akVictim)
     ; (initial pounce, the "loop" re-check, or this kind of immediate re-trigger) to once per few seconds.
     Float now = Utility.GetCurrentRealTime()
     Float lastAttempt = StorageUtil.GetFloatValue(akVictim, "SNBaka.LastCreatureAttemptRT", 0.0)
+    If _RTStampStale(lastAttempt, now)      ; [REV-161 PR#2 fold (1)] pre-relaunch stamp = expired
+        lastAttempt = 0.0
+    EndIf
     If (now - lastAttempt) < 3.0
         _Log("[SNBaka] creature: skipped — only " + (now - lastAttempt) + "s since last attempt, need 3.0s")
         Return
@@ -10570,6 +10651,9 @@ Event OnCreatureHitFollower(string eventName, string strArg, float numArg, Form 
     ; grabs on the same victim back-to-back.
     Float now = Utility.GetCurrentRealTime()
     Float lastAttempt = StorageUtil.GetFloatValue(victim, "SNBaka.LastCreatureAttemptRT", 0.0)
+    If _RTStampStale(lastAttempt, now)      ; [REV-161 PR#2 fold (1)] pre-relaunch stamp = expired
+        lastAttempt = 0.0
+    EndIf
     If (now - lastAttempt) < 3.0
         _Log("[SNBaka] OnCreatureHitFollower: blocked — only " + (now - lastAttempt) + "s since last attempt on " + victim.GetDisplayName() + ", need 3.0s")
         Return

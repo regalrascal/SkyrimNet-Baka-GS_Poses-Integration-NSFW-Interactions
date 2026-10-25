@@ -1,0 +1,132 @@
+Delectatio-et-Dominium-rev103-pack-split_backup|2026-10-12 21:19:33|265
+== stub_parity.ps1 (REV-79 gate) ==
+  PASS -- 19 stub surfaces checked, zero signature deltas.
+STUB-PARITY GATE PASSED.
+IMPORTS=D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\tools\compile\local;C:\Users\Tristan\.cline\data\workspaces\chat\gs-build\SkyrimNet-Animations-GS\Scripts\Source;D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\Scripts\Source;D:\Modlists\LoreRim\mods\Skyrim Script Extender (SKSE64)\Scripts\Source;D:\Steam\steamapps\common\Skyrim Special Edition\Data\Source\Scripts;D:\Modlists\LoreRim\mods\PapyrusUtil SE - Modders Scripting Utility Functions\Scripts\Source;C:\Users\Tristan\.cline\data\workspaces\chat\gs-build\SkyrimNet-GamePlugin\Source\Scripts;C:\Users\Tristan\.cline\data\workspaces\chat\gs-build\SkyrimNet-GamePlugin\headers;D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\tools\compile\ostim;D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\tools\compile\mfg;D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\tools\compile\spe
+---- compiling SkyrimNet_BakaIntegration.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "SkyrimNet_BakaIntegration"...
+Starting assembly of SkyrimNet_BakaIntegration
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling SkyrimNet_BakaSL.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "SkyrimNet_BakaSL"...
+Starting assembly of SkyrimNet_BakaSL
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling DeD_MCM.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "DeD_MCM"...
+Starting assembly of DeD_MCM
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling SNBaka_SlaveTatsModule.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "SNBaka_SlaveTatsModule"...
+Starting assembly of SNBaka_SlaveTatsModule
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling SNBakaUI.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "SNBakaUI"...
+Starting assembly of SNBakaUI
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling SNBaka_CumDetectionModule.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "SNBaka_CumDetectionModule"...
+Starting assembly of SNBaka_CumDetectionModule
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling SNBaka_FHUInflationModule.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "SNBaka_FHUInflationModule"...
+Starting assembly of SNBaka_FHUInflationModule
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling SkyrimNet_AcheronIntegration.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "SkyrimNet_AcheronIntegration"...
+Starting assembly of SkyrimNet_AcheronIntegration
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling SkyrimNet_AcheronIntegration_MCM.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "SkyrimNet_AcheronIntegration_MCM"...
+Starting assembly of SkyrimNet_AcheronIntegration_MCM
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling Downed_SkyrimNet.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "Downed_SkyrimNet"...
+Starting assembly of Downed_SkyrimNet
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling DeDService.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "DeDService"...
+Starting assembly of DeDService
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+---- compiling SkyrimNet_AnimationsGS.psc ----
+Starting 1 compile threads for 1 files...
+Compiling "SkyrimNet_AnimationsGS"...
+Starting assembly of SkyrimNet_AnimationsGS
+0 error(s), 0 warning(s)
+Assembly succeeded
+
+Compilation succeeded.
+
+Batch compile of 1 files finished. 1 succeeded, 0 failed.
+============================================================
+BUILD OK - all targets compiled, .pex files verified in OUT.
+EXITCODE=0
+DENYLIST CLEAN (no retired names in compile output).
+DENYLIST CLEAN (no retired names in compile output).
+MODLIST ASSERTION CLEAN (compile leg).
+COMPILE 12/12 0/0 (canonical island, REV-136 OUT). DENYLIST CLEAN.

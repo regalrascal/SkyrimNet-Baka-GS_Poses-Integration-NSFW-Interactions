@@ -1,0 +1,71 @@
+ZIP extracted for gate execution: C:\Users\Tristan\AppData\Local\Temp\rev146_zip_8f4da05eec514db19eba3e50600d26f4
+v1 PASS: fomod/ present, 2 entries: info.xml, ModuleConfig.xml
+v1 PASS: ModuleConfig.xml parses as XML
+v3 Pages[] (count 7): Settings | Baka Interactions | Cum Effects | Fill Her Up | Acheron | SlaveTats | GS Poses
+v3 PASS: GetVersion = 13
+v3 PASS present: "Ambient Modes"
+v3 PASS present: "NPCs May Target You"
+v3 PASS present: "Ambient Target Policy"
+v3 PASS present: "Only female targets"
+v3 PASS present: "Male and female targets, male aggressors"
+v3 PASS present: "Anything goes"
+v3 PASS present: MCMDeD.v13
+v4 PASS unchanged: sdb_tattoo_applied.yaml 800CBFB802F1FA0F
+v4 PASS unchanged: sdb_tattoo_removed.yaml 69152E70D5BE6816
+v4 PASS in ST source: _ArousalClause
+v4 PASS in ST source: _FireEvent
+v6 PASS unchanged: SkyrimNet_BakaIntegration.dll SHA256 5B3DA430EE44BAF9327427D83F3ECA8AE647A82DA670F6C0B297049C71386D41
+v6 PASS unchanged: DeDService.dll SHA256 2AE6905FA9A7C9361430463EBEF0132D05244EF7E9BEEA9563E472E4AE006042
+v8 PASS: 0 non-ASCII across all user-facing surfaces (MCM+Baka psc option/notification literals + all PrismaUI views)
+v8 SURFACED (not a failure): new draft prompt file carries 5 em-dash-class glyphs in prompt/comment body - matches the long-shipped gsanim_muse_consideration precedent (14); prompt-file convention class, not a user-facing MCM/notification string
+v9 PASS layer around906.acheron-integration: 2 YAMLs all shape-valid, 0 prompt file(s) with [ system ] blocks
+v9 PASS layer regalrascal.baka-gs-integration: 84 YAMLs all shape-valid, 8 prompt file(s) with [ system ] blocks
+v9 PASS layer regalrascal.fhu-inflation: 2 YAMLs all shape-valid, 0 prompt file(s) with [ system ] blocks
+v9 PASS layer regalrascal.gs-poses: 14 YAMLs all shape-valid, 1 prompt file(s) with [ system ] blocks
+v9 PASS new prompt contains: [DRAFT
+v9 PASS new prompt contains: ENTRY 30b
+v9 PASS new prompt contains: ACTION: <name> | THOUGHT:
+v9 PASS new prompt contains: REFUSE:
+v9 PASS new prompt contains: [ system ]
+v9 PASS new prompt present in zip: snbaka_muse_consideration.prompt (3521 B)
+  v10 NOTE pre-existing unresolved wizard source (equally absent in [REV-143], ModuleConfig byte-identical): SKSE/Plugins/SkyrimNet/external/regalrascal.cum-detection
+v10 PASS: all 25 wizard source references resolve inside the dist tree
+v10 PASS: ModuleConfig.xml byte-identical to [REV-143] -> wizard 10a NOT triggered (zero fomod bytes changed this rev; Scripts/fomod set unchanged)
+--- PRESENT strings ---
+  PRESENT OK: Strip tile 10
+  PRESENT OK: Strip tile 11
+  PRESENT OK: sdb_stripped (psc)
+  PRESENT OK: sdb_stripped (pex)
+  PRESENT OK: dropdown L1 (psc)
+  PRESENT OK: dropdown L2 (psc)
+  PRESENT OK: dropdown L3 (psc)
+  PRESENT OK: dropdown in-pex
+  PRESENT OK: policy label (psc)
+  PRESENT OK: policy label (pex)
+  PRESENT OK: daemon sentinels (psc)
+  PRESENT OK: daemon sentinels (pex)
+  PRESENT OK: site code mephala.scan (psc)
+  PRESENT OK: site code molagbal.scan (psc)
+  PRESENT OK: daemon receipt sentinel (pex)
+  PRESENT OK: daemon receipt sentinel (pex)
+  PRESENT OK: daemon receipt sentinel (pex)
+  PRESENT OK: prompt filename (pex)
+--- RETIRED strings ABSENT (user-facing surfaces) ---
+  ABSENT OK (MCM literals): Player Can Be Spanked
+  ABSENT OK (MCM literals): Allow Male Targets
+  ABSENT OK (MCM literals): Victim Sex Allowed
+  SURFACED prose mention (tooltip/Notification prose, not an option label) L1790: Player Can Be Target -- L1704 = the NEW Ambient Target Policy tooltip deliberate migration prose (names the retired setting for save-migration explanation); L1790 = pre-existing [REV-143] Struggle-rules tooltip prose (byte-present in REV-143); retired NAMES referenced in explanatory prose by design, no resurrected option rows
+  SURFACED prose mention (tooltip/Notification prose, not an option label) L1704: Target Sex -- L1704 = the NEW Ambient Target Policy tooltip deliberate migration prose (names the retired setting for save-migration explanation); L1790 = pre-existing [REV-143] Struggle-rules tooltip prose (byte-present in REV-143); retired NAMES referenced in explanatory prose by design, no resurrected option rows
+  ABSENT OK (html): Muse
+  ABSENT OK (html): Overdrive
+  ABSENT OK (html): Player Can Be Spanked
+  ABSENT OK (html): Allow Male Targets
+  ABSENT OK (html): Victim Sex Allowed
+  ABSENT OK (html): Player Can Be Target
+  ABSENT OK (DeD_MCM.pex): Player Can Be Spanked
+  ABSENT OK (DeD_MCM.pex): Allow Male Targets
+  ABSENT OK (DeD_MCM.pex): Victim Sex Allowed
+  CLASS PASS (DeD_MCM.pex): Player Can Be Target occurs 1x (REV-143: 2x) - the single occurrence is the PRE-EXISTING Struggle-rules tooltip prose (byte-identical L1790, shipped in REV-143); the retired OPTION LABEL (REV-143 2nd occurrence, adjacent to bPlayerCanBeTarget) is GONE
+  SURFACED (Baka pex, internal-only class, NOT user-facing MCM/html surface): MuseAsk || MuseConsideration
+  ABSENT OK (Baka pex): Overdrive
+MODLIST: max mtime 10/22/2026 23:21:35 (D:\Modlists\LoreRim\webcache\nexus_cookies.dat) - predates this session (started 2026-10-23); Modlist writes this session: NONE

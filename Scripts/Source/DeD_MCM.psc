@@ -256,6 +256,9 @@ Int _fhuNarrOID = -1
 Int _fhuAmbNarrOID = -1
 Int _fhuNoticeOID = -1
 Int _fhuHeavyOID = -1
+; REV-161 4.4: the FHU ambient cadence slider (key SNBaka.FHUAmbientCadence,
+; default 60s = the REV-154 historic cadence; label = register DRAFT).
+Int _fhuAmbCadOID = -1
 ; REV-159 5.1/5.2 (user-ruled at the dogfood): the Baka-side mode-narration
 ; toggles + cadence sliders on the Baka Interactions page (Ambient Modes
 ; section). Narration toggles = motherboard properties bMephalaModeNarration
@@ -295,6 +298,9 @@ Int _moreCumOID = -1
 ; (motherboard property bCumFollowUpNarration, default OFF; the gated
 ; sdb_cum_ambient_narr event type + its yaml carry the register entry-22 text).
 Int _cumFollowUpOID = -1
+; REV-161 4.4: the cum ambient cadence slider (key SNBaka.CumAmbientCadence,
+; default 60s = the REV-122 historic cadence; the accept re-arms the rule live).
+Int _cumAmbCadOID = -1
 ; REV-68 "Downed State (Acheron Bridge)" settings (own "Acheron" page since REV-79) — consolidated from the
 ; bridge's own MCM. Settings stay in StorageUtil (player-keyed, same SNAcheron.* keys and
 ; defaults as the bridge MCM — no CK property link, no data migration; the bridge quest
@@ -327,6 +333,7 @@ Int _stObserveOID
 ; gate). Register entry 35 DRAFTs (labels/tooltips at the user's pen).
 Int _stAmbientPctOID     ; "Ambient Exposure Chance" (SNBaka.ST.AmbientPct, default 35)
 Int _stAmbientNarrOID    ; "Tattoo Ambient Narration" (SNBaka.ST.AmbientNarr, DEFAULT OFF)
+Int _stAmbFloorOID       ; REV-161 4.4: "Tattoo Ambient Cue Interval" (SNBaka.ST.AmbientFloor, DEFAULT 600s)
 ; REV-85 Phase B — GS Poses top-level page: the gender policy mode selector
 ; (GSAnim.GenderPolicy StorageUtil int on None; 0 = female-only default).
 Int _gsGenderPolicyOID = -1
@@ -474,7 +481,20 @@ Int Function GetVersion()
     ; standing). No data migration (new keys all default to their historic
     ; behavior; narration toggles default OFF, pose-narration toggles default
     ; ON).
-    Return 17
+    ; REV-161: EIGHTEENTH canonical bump (v17 -> v18) - the ambient cadence
+    ; sliders (one per module page, the 159 slider pattern; labels = register
+    ; DRAFTs at the user's pen; defaults unchanged): Fill Her Up page gains
+    ; the FHU Ambient Cue Interval slider (key SNBaka.FHUAmbientCadence,
+    ; default 60s, read live at every pass -- no re-arm needed); Cum Effects
+    ; page gains the Cum Ambient Cue Interval slider (key
+    ; SNBaka.CumAmbientCadence, default 60s; the accept re-arms the DeDService
+    ; ambient timer rule live); SlaveTats page gains the Tattoo Ambient Cue
+    ; Interval slider (existing key SNBaka.ST.AmbientFloor, default 600s,
+    ; already read live by AmbientExposurePass). Visible body change on three
+    ; existing pages: every existing save crosses this bump once and rebuilds
+    ; (the four-saga rule; v2 lesson standing). No data migration (all keys
+    ; default to their historic behavior).
+    Return 18
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -543,8 +563,11 @@ Event OnVersionUpdate(Int aVersion)
     ; cadence rows; the GS Poses page build-out (narration toggles, cadence
     ; sliders, the three user-authored pose-narration toggles).
     StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v17", 1)
+    ; REV-161 v18 (ambient cadence sliders): canary marker - pages rebuilt FIRST
+    ; (the v2 lesson, standing). Marker SNBaka.MCMDeD.v18.
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v18", 1)
     _BuildPages()
-    Debug.Trace("[SNBaka] MCM canary: v17 OnVersionUpdate (REV-159: FHU awareness retitle + Baka page mode-narration/cadence rows + GS Poses page build-out; pages: " + Pages.Length + ", Main=" + Main + ")")
+    Debug.Trace("[SNBaka] MCM canary: v18 OnVersionUpdate (REV-161: FHU/Cum/Tattoo ambient cadence sliders; pages: " + Pages.Length + ", Main=" + Main + ")")
 EndEvent
 
 ; ============================================================================
@@ -843,15 +866,20 @@ Event OnPageReset(String page)
                 ; (user-ruled name verbatim; tooltip text is the user's verbatim
                 ; ruling, delivered as SetInfoText on highlight per REV-134d R2).
                 _cumFollowUpOID = AddToggleOption("Follow-up Prompt", Main.bCumFollowUpNarration)
+                ; REV-161 4.4: the ambient cadence slider (label = register DRAFT;
+                ; key SNBaka.CumAmbientCadence, default 60s = the historic cadence).
+                _cumAmbCadOID = AddSliderOption("Ambient Cue Interval", StorageUtil.GetFloatValue(None, "SNBaka.CumAmbientCadence", 60.0), "{0}s")
             Else
                 _moreCumOID = AddToggleOption("More Cum", Main.bMoreCumEnabled, OPTION_FLAG_DISABLED)
                 _cumFollowUpOID = AddToggleOption("Follow-up Prompt", Main.bCumFollowUpNarration, OPTION_FLAG_DISABLED)
+                _cumAmbCadOID = AddSliderOption("Ambient Cue Interval", StorageUtil.GetFloatValue(None, "SNBaka.CumAmbientCadence", 60.0), "{0}s", OPTION_FLAG_DISABLED)
             EndIf
         Else
             _cumDetectOID = AddToggleOption("Cum Cues (OCum not installed)", False, OPTION_FLAG_DISABLED)
             _decalOID     = -1
             _moreCumOID   = -1
             _cumFollowUpOID = -1
+            _cumAmbCadOID   = -1
         EndIf
     ElseIf page == "Fill Her Up" && Main
         ; REV-80: promoted from the dissolved Plugins page (one integration,
@@ -882,12 +910,17 @@ Event OnPageReset(String page)
             _fhuAmbNarrOID = AddToggleOption("Ambient Narration", Main.bFHUAmbientNarration, iAmbFlags)
             _fhuNoticeOID = AddSliderOption("Noticeable Band", Main.iFHUAmbientNoticeBand as Float, "{0}%", iAmbFlags)
             _fhuHeavyOID = AddSliderOption("Heavy Band", Main.iFHUAmbientHeavyBand as Float, "{0}%", iAmbFlags)
+            ; REV-161 4.4: the ambient cadence slider (label = register DRAFT;
+            ; key SNBaka.FHUAmbientCadence, default 60s = the REV-154 historic
+            ; cadence, read live at every pass -- no re-arm needed).
+            _fhuAmbCadOID = AddSliderOption("Ambient Cue Interval", StorageUtil.GetFloatValue(None, "SNBaka.FHUAmbientCadence", 60.0), "{0}s", iAmbFlags)
         Else
             _fhuAwareOID = AddToggleOption("Module Toggle - Fill Her Up Awareness (not installed)", False, OPTION_FLAG_DISABLED)
             _fhuNarrOID = -1
             _fhuAmbNarrOID = -1
             _fhuNoticeOID = -1
             _fhuHeavyOID = -1
+            _fhuAmbCadOID = -1
         EndIf
 
     ElseIf page == "Acheron"
@@ -954,6 +987,10 @@ Event OnPageReset(String page)
             _stObserveOID         = AddToggleOption("Ambient Observation Cues", StorageUtil.GetIntValue(_stP, "SNBaka.ST.Observe", 1) == 1)
             _stAmbientPctOID      = AddSliderOption("Ambient Exposure Chance", StorageUtil.GetIntValue(_stP, "SNBaka.ST.AmbientPct", 35) as Float, "{0}%")
             _stAmbientNarrOID     = AddToggleOption("Tattoo Ambient Narration", StorageUtil.GetIntValue(_stP, "SNBaka.ST.AmbientNarr", 0) == 1)
+            ; REV-161 4.4: the ambient interval slider (label = register DRAFT;
+            ; existing key SNBaka.ST.AmbientFloor, default 600s, already read
+            ; live by AmbientExposurePass -- no module change needed).
+            _stAmbFloorOID        = AddSliderOption("Ambient Cue Interval", StorageUtil.GetFloatValue(_stP, "SNBaka.ST.AmbientFloor", 600.0), "{0}s")
         Else
             _stEnabledOID = AddToggleOption("Module Enabled (not installed)", False, OPTION_FLAG_DISABLED)
             _stSpankOID   = -1
@@ -967,6 +1004,7 @@ Event OnPageReset(String page)
             _stObserveOID         = -1
             _stAmbientPctOID      = -1
             _stAmbientNarrOID     = -1
+            _stAmbFloorOID        = -1
         EndIf
     ElseIf page == "GS Poses"
         ; REV-85 Phase B: the gender policy home (posing-gender.md §2b). One menu
@@ -1749,6 +1787,24 @@ Event OnOptionSliderOpen(Int option)
         SetSliderDialogDefaultValue(15.0)
         SetSliderDialogRange(15.0, 240.0)
         SetSliderDialogInterval(5.0)
+    ; REV-161 4.4: the three ambient cadence sliders (15s-240s for the two
+    ; 60s-cadence modules; 60s-1800s for the tattoo observation floor; defaults
+    ; = each module's historic cadence -- defaults unchanged).
+    ElseIf option == _fhuAmbCadOID
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(None, "SNBaka.FHUAmbientCadence", 60.0))
+        SetSliderDialogDefaultValue(60.0)
+        SetSliderDialogRange(15.0, 240.0)
+        SetSliderDialogInterval(5.0)
+    ElseIf option == _cumAmbCadOID
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(None, "SNBaka.CumAmbientCadence", 60.0))
+        SetSliderDialogDefaultValue(60.0)
+        SetSliderDialogRange(15.0, 240.0)
+        SetSliderDialogInterval(5.0)
+    ElseIf option == _stAmbFloorOID
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(Game.GetPlayer(), "SNBaka.ST.AmbientFloor", 600.0))
+        SetSliderDialogDefaultValue(600.0)
+        SetSliderDialogRange(60.0, 1800.0)
+        SetSliderDialogInterval(30.0)
     ElseIf option == _resistDifficultyOID
         SetSliderDialogStartValue(Main.fResistDifficulty)
         SetSliderDialogDefaultValue(70.0)
@@ -1901,6 +1957,25 @@ Event OnOptionSliderAccept(Int option, Float value)
     ElseIf option == _sheoCadOID
         StorageUtil.SetFloatValue(None, "GSAnim.T3Interval", value)
         SetSliderOptionValue(_sheoCadOID, value, "{0}s")
+    ; REV-161 4.4: the three ambient cadence writes. FHU + Tattoo keys are
+    ; read live at every pass (no re-arm needed); the Cum rule is re-armed
+    ; live (RemoveTimerRule + AddTimerRule with the new cadence, the same
+    ; key-deduped idempotent shape the module's own re-arm uses) -- guarded
+    ; so an absent/off module never gets spuriously armed from the MCM.
+    ElseIf option == _fhuAmbCadOID
+        StorageUtil.SetFloatValue(None, "SNBaka.FHUAmbientCadence", value)
+        SetSliderOptionValue(_fhuAmbCadOID, value, "{0}s")
+    ElseIf option == _cumAmbCadOID
+        StorageUtil.SetFloatValue(None, "SNBaka.CumAmbientCadence", value)
+        If Main && Main._OCumInstalled() && Main.bCumDetectionEnabled
+            DeDService.RemoveTimerRule("cum", "ambient")
+            DeDService.AddTimerRule("cum", "ambient", value, 1, None, "cum.present", 600.0, "sdb_cum_ambient_due")
+            Debug.Trace("[SNBaka] MCM: cum ambient rule re-armed at " + value + "s cadence (REV-161 4.4)")
+        EndIf
+        SetSliderOptionValue(_cumAmbCadOID, value, "{0}s")
+    ElseIf option == _stAmbFloorOID
+        StorageUtil.SetFloatValue(Game.GetPlayer(), "SNBaka.ST.AmbientFloor", value)
+        SetSliderOptionValue(_stAmbFloorOID, value, "{0}s")
     ElseIf option == _resistDifficultyOID
         Main.fResistDifficulty = value
         SetSliderOptionValue(_resistDifficultyOID, value, "{0}%")

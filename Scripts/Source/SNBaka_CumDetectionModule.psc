@@ -212,7 +212,10 @@ Function ArmStateLayer(SkyrimNet_BakaIntegration akHost) Global
     ; ambient: cadence 60s (REV-122; was 120s -- first maintenance/expiry tick
     ; lands at 60s), class-1 (STATE_BOOL_TRUE on cum.present),
     ; failsafe 600s, callback sdb_cum_ambient_due (4-slot ModEvent shape).
-    DeDService.AddTimerRule("cum", "ambient", 60.0, 1, None, "cum.present", 600.0, "sdb_cum_ambient_due")
+    ; REV-161 4.4: the cadence is MCM-settable (key SNBaka.CumAmbientCadence,
+    ; DEFAULT 60s = the historic cadence; read at every arm/re-arm -- the MCM
+    ; slider accept re-arms the rule with the new value).
+    DeDService.AddTimerRule("cum", "ambient", StorageUtil.GetFloatValue(None, "SNBaka.CumAmbientCadence", 60.0), 1, None, "cum.present", 600.0, "sdb_cum_ambient_due")
     ; REV-129: get_ded_cum decorator -- MODULE-OWNED per cum-effects.md REV-128
     ; 1.1(a) + the §138 ownership ruling (module-specific state schema = module
     ; logic). Registered at arm so it rides every arm/re-arm pass (idempotent,
@@ -389,7 +392,8 @@ Function _WriteCumState(SkyrimNet_BakaIntegration akHost, Actor akTarget, String
     ; application would otherwise run ambient-dead until the next game reload).
     ; AddTimerRule is key-deduped (Scheduler.cpp L66), so this is a no-op while
     ; the rule lives -- the re-arm only lands after a failsafe disarm.
-    DeDService.AddTimerRule("cum", "ambient", 60.0, 1, None, "cum.present", 600.0, "sdb_cum_ambient_due")
+    ; REV-161 4.4: the re-arm reads the MCM cadence key (default 60s).
+    DeDService.AddTimerRule("cum", "ambient", StorageUtil.GetFloatValue(None, "SNBaka.CumAmbientCadence", 60.0), 1, None, "cum.present", 600.0, "sdb_cum_ambient_due")
 EndFunction
 
 ; ---- CUM DETECTION (OCum / OStim side) ----

@@ -1160,15 +1160,26 @@ Function _PacifyGS(Actor ak, Bool on)
         Return
     EndIf
     If on
-        If StorageUtil.GetIntValue(ak, "GSAnim.Pacified", 0) == 0
-            StorageUtil.SetFloatValue(ak, "GSAnim.OrigAggr", ak.GetActorValue("Aggression"))
+        ; [REV-161 PR#2 fold (2) - Oldcustard credit, by-concept] CLAIM-BEFORE-READ
+        ; + CROSS-TREE ORIGINAL REUSE with the Baka tree: when the Baka side
+        ; already holds the pacify, its stored original (SHARED key
+        ; SNBaka.OrigAggr) is the true pre-pacify aggression -- store nothing of
+        ; our own or the release would restore the already-zeroed value. We
+        ; still track our own on/off pairing.
+        If StorageUtil.GetIntValue(ak, "GSAnim.Pacified", 0) == 0 && StorageUtil.GetIntValue(ak, "SNBaka.Pacified", 0) == 0
+            StorageUtil.SetFloatValue(ak, "SNBaka.OrigAggr", ak.GetActorValue("Aggression"))
             StorageUtil.SetIntValue(ak, "GSAnim.Pacified", 1)
+        ElseIf StorageUtil.GetIntValue(ak, "GSAnim.Pacified", 0) == 0
+            StorageUtil.SetIntValue(ak, "GSAnim.Pacified", 1)   ; Baka owns the original; we ride it
         EndIf
         ak.SetActorValue("Aggression", 0.0)
         ak.StopCombatAlarm()
         ak.StopCombat()
     ElseIf StorageUtil.GetIntValue(ak, "GSAnim.Pacified", 0) == 1
-        ak.SetActorValue("Aggression", StorageUtil.GetFloatValue(ak, "GSAnim.OrigAggr", 1.0))
+        ; [REV-161 PR#2 fold (2)] release only when the LAST pacify owner goes.
+        If StorageUtil.GetIntValue(ak, "SNBaka.Pacified", 0) == 0
+            ak.SetActorValue("Aggression", StorageUtil.GetFloatValue(ak, "SNBaka.OrigAggr", 1.0))
+        EndIf
         StorageUtil.SetIntValue(ak, "GSAnim.Pacified", 0)
     EndIf
 EndFunction
