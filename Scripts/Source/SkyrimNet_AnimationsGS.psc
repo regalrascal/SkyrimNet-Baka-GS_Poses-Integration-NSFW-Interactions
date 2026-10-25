@@ -952,43 +952,53 @@ String Function _VibeEventsFor(Actor ak, String vibe)
 EndFunction
 
 ; ═══════════════════════════════════════════════════════════════════════════
-; REV-152: THE POSE PICKER -- decision-model integration (pose-picker.md
-; REV-134e spec + the REV-136 consumer-model rulings).
+; REV-163: THE POSE PICKER DECOMMISSION (user ruling 2026-10-25, the
+; pose_picker_pipeline_descision.txt extract; supersedes the REV-152 build
+; and the REV-134e spec's decision-model leg).
 ;
-; The consumer model: the decision model takes the SECOND HALF of the pose
-; thread -- AFTER the category is selected (Sanguine's consideration call,
-; whose contract is unchanged), it picks the pose WITHIN the category that
-; best fits the scene context. The prior event (the thought-seed riding the
-; SAME consideration call, GenerateNPCThought) fires almost as normal; only
-; the final pose pick defers to the decision callback (OnPosePicked).
-; Threading verdict (3.2, of record): SendCustomDecisionToLLM exists on the
-; installed beta-28 runtime (public API v12; PublicAPI.h L883-884; the
-; installed runtime SkyrimNetApi.psc L295) and the decision-template
-; convention renders DYNAMIC option lists from context arrays (the shipped
-; evaluate_mood.prompt loops moodsList; dialogue_speaker_selector.prompt
-; loops decision_pairs) -- so the decision-call shape ships directly; the
-; thought-seed-as-second-call fallback for threading-impossible is NOT
-; needed and stays unused. Fallbacks (ruled): no_decisions_route and any
-; callback failure -> random-in-category (preserves the working lane for
-; unconfigured users; the manual crosshair re-pick remains available).
-; Sheogorath (the GSAnim.Overdrive lane, _OdAutoPose) stays RANDOM -- no
-; decision call anywhere on that path. The Prisma drilldown stays
-; PLAYER-ONLY -- zero UI changes, no LLM affordance in the grid.
+; The ruling, verbatim rationale: the picker's thin context pack "robs
+; choice context rather than sharpening the decision" -- arousal and
+; location may hint at the CATEGORY, but not enough to pick between six
+; similar dances, and it is all information the FIRST model already held.
+; A pose choice is a semantic judgment made of exactly the context the
+; consideration LLM is already holding; paying a second (lesser) model to
+; reconstruct that judgment from a stripped pack is cost and latency for
+; worse decisions.
 ;
-; Eligibility: only multi-event GS-CSV vibes with per-pose catalog
-; descriptions (poses.js = catalog of record; _VibePoseOptions) get a
-; decision call. Single-event Babo vibes and the aroused pair
-; (indistinguishable clips, no distinct descriptions) keep today's random
-; draw -- a decision over one indistinguishable option is not a decision.
+; The shape now: the consideration call (gsanim_muse_consideration) picks
+; the category AND the exact move IN ONE PASS -- its context pack gains the
+; itemized pose catalog (warning + description + move list per category,
+; _MusePoseCatalogText below; the same payload the retired picker's options
+; carried, _VibePoseOptions = poses.js catalog of record), and its output
+; contract gains "CLIP: <move key>". The answer's CLIP fires through the
+; REV-152 sForceEvent exact-pick plumbing (kept -- the machinery was proven;
+; only the decision-model call is retired). The ded/pose_picker decision
+; template is DELETED; _PosePickWanted/_PosePickPack/_PosePickFallbackFire/
+; OnPosePicked and the _posePick* members are RETIRED with it.
+;
+; Random selection is now RESTRICTED TO SHEOGORATH MODE (the GSAnim.Overdrive
+; lane, _OdAutoPose -- deliberately random, no LLM anywhere on that path)
+; plus two ruled degenerate cases: single-move categories (random over one
+; event is deterministic) and the aroused pair (near-identical clips -- a
+; choice over indistinguishable options is not a choice). An absent/invalid
+; CLIP in the consideration answer degrades to the pool's random draw,
+; sentinel'd (the launch-one fallback discipline: never lose the fire).
+; The dialogue/emergent lane is unchanged (137f(d) standing): the main LLM
+; picks the member action from its yaml descriptions (the REV-161 4.3
+; pool-move lines are the semantic-selection mechanism there).
 ; ═══════════════════════════════════════════════════════════════════════════
 
-; The SELECTED category's poses as a JSON array of "EVENTKEY: description"
-; strings (per-pose descriptions straight from poses.js, the catalog of
-; record -- the acceptance-case requirement: the options expose
-; DESCRIPTIONS, not bare event keys, so "twerk for me" resolves to the
-; twerk-bearing dance_sexy/ground_sexy poses). Returns "" for vibes with no
-; catalog descriptions (the Babo single-event vibes, the aroused pair) --
-; those keep the random draw. Sets are the _VibeCSV pools verbatim.
+; A category's poses as a JSON array of "EVENTKEY: description" strings
+; (per-pose descriptions straight from poses.js, the catalog of record --
+; descriptions, not bare event keys, so "twerk for me" resolves to the
+; twerk-bearing dance_sexy/ground_sexy moves). REV-163: with the picker's
+; decision-model leg retired, this is the CATALOG SOURCE for the muse
+; consideration prompt (via _MuseCatalogOptions/_MusePoseCatalogLine ->
+; _MusePackContext's poseCatalog field) -- the same payload the retired
+; picker carried, now surfaced to the model that already holds the scene
+; context. Returns "" for vibes with no catalog descriptions (the Babo
+; single-event vibes, the aroused pair). Sets are the _VibeCSV pools
+; verbatim.
 String Function _VibePoseOptions(String vibe)
     If vibe == "seduce"
         Return "[\"GS1: seducing\",\"GS2: seducing forward\",\"GS3: seducing, looking back\",\"GS17: flirting suggestively\",\"GS25: seducing, moving butt (subtle)\",\"GS26: seducing, moving butt (subtle)\",\"GS31: hip heart, showing\",\"GS36: butt-showing, seductive\",\"GS56: shy provoking, seducing\",\"GS62: looking back suggestively\",\"GS63: moving body slowly down\",\"GS66: horny, side to side\",\"GS70: shy, biting thumb\",\"GS80: slow hip, shy seducing\",\"GS84: boob-carrying, seducing\",\"GS189: tying hair provocatively\",\"GS198: slow, looking forward\"]"
@@ -1019,72 +1029,96 @@ String Function _VibePoseOptions(String vibe)
     Return ""
 EndFunction
 
-; Is a decision call warranted for this vibe? (eligibility rule, block header)
-Bool Function _PosePickWanted(String vibe)
-    Return _VibePoseOptions(vibe) != ""
+; REV-163: _VibePoseOptions' JSON array flattened to plain prompt prose for
+; the consideration catalog: "GS9 twerking, looking back; GS10 sensual,
+; semi-shy; ..." -- the CLIP key stays first (it is what the answer names
+; back), the description rides after it. Returns "" for catalog-less vibes.
+String Function _MuseCatalogOptions(String vibe)
+    String sJson = _VibePoseOptions(vibe)
+    If sJson == ""
+        Return ""
+    EndIf
+    Int len = StringUtil.GetLength(sJson)
+    If len < 4
+        Return ""
+    EndIf
+    String sBody = StringUtil.Substring(sJson, 2, len - 4)
+    String[] items = StringUtil.Split(sBody, "\",\"")
+    String sOut = ""
+    Int i = 0
+    While i < items.Length
+        String sItem = items[i]
+        Int iColon = StringUtil.Find(sItem, ": ")
+        If iColon > 0
+            sItem = StringUtil.Substring(sItem, 0, iColon) + " " \
+                + StringUtil.Substring(sItem, iColon + 2, StringUtil.GetLength(sItem) - iColon - 2)
+        EndIf
+        If i > 0
+            sOut = sOut + "; "
+        EndIf
+        sOut = sOut + sItem
+        i += 1
+    EndWhile
+    Return sOut
 EndFunction
 
-
-; The minimal context pack (the REV-136-ruled set): target name/sex, arousal
-; tier via the proven chain (the muse's _sMuseArous -- set at ask time in
-; _MusePackContext for THIS candidate, single-in-flight), gender-policy mode,
-; current pose state, location class, plus the SELECTED category's options.
-String Function _PosePickPack(Actor ak, String vibe)
-    String sSex = "woman"
-    If _SexOf(ak) == 0
-        sSex = "man"
+; REV-163: ONE library entry for the consideration prompt's pose catalog --
+; the user-ruled shape: (a) the category warning (a category of similar
+; moves, not one fixed pose), (b) the short content description (the
+; approved _MuseFireLabel one-liner register, reused verbatim), (c) the
+; itemized move list (the CLIP keys the answer names back). Catalog-less
+; members say so in plain text (one fixed move / near-identical variants --
+; no CLIP needed; their draw is the ruled degenerate random).
+String Function _MusePoseCatalogLine(String sPose)
+    String sVibe = _MuseFireVibe(sPose)
+    If sVibe == ""
+        Return ""
     EndIf
-    String sName = ak.GetDisplayName()
-    If sName == ""
-        sName = "a " + sSex + " nearby"   ; the REV-19 fallback class, compact form
+    String sDesc = _MuseFireLabel(sPose)
+    String sOpts = _MuseCatalogOptions(sVibe)
+    If sOpts == ""
+        If sVibe == "aroused"
+            Return sPose + " - " + sDesc + " (two near-identical variants - no CLIP needed)"
+        EndIf
+        Return sPose + " - " + sDesc + " (one fixed move - no CLIP needed)"
     EndIf
-    String sLoc = ""
-    If ak.GetParentCell()
-        sLoc = ak.GetParentCell().GetName()
-    EndIf
-    If sLoc == ""
-        sLoc = "the wilds"
-    EndIf
-    String sPoseState = StorageUtil.GetStringValue(ak, "GSAnim.Pose", "")
-    If sPoseState == ""
-        sPoseState = "none (standing free)"
-    EndIf
-    String sPolicy = "female-only"
-    If _GenderPolicy() == 1
-        sPolicy = "curated"
-    ElseIf _GenderPolicy() == 2
-        sPolicy = "all-poses"
-    EndIf
-    String sArous = _sMuseArous
-    If sArous == ""
-        sArous = "unknown"
-    EndIf
-    Return "{\"npcName\":\"" + sName + "\",\"npcSex\":\"" + sSex \
-        + "\",\"arousal\":\"" + sArous \
-        + "\",\"posePolicy\":\"" + sPolicy \
-        + "\",\"poseState\":\"" + sPoseState \
-        + "\",\"location\":\"" + sLoc \
-        + "\",\"poseOptions\":" + _VibePoseOptions(vibe) + "}"
+    Return sPose + " - " + sDesc + " [a CATEGORY of similar moves, not one fixed pose - you also pick the exact move]: " + sOpts
 EndFunction
 
-; The ruled fallback: random-in-category (today's exact fire path) whenever
-; the decision lane is unavailable -- no_decisions_route, send failure, or a
-; callback answer that fails pool validation. Receipt per the launch-one
-; standard: the fallback + its reason are always traced.
-Bool Function _PosePickFallbackFire(Actor ak, String vibe, String sPose, String sReason)
-    Debug.Trace("[SNAnimGS] pose-picker FALLBACK (random-in-category, reason: " + sReason + "): " + ak.GetDisplayName() + " (cat '" + vibe + "')")
-
-    If _PoseVibe(ak, vibe, _MuseFireLabel(sPose), "", 1)
-        _MuseFireSuccess(ak, sPose, Utility.GetCurrentRealTime())
-        Return True
-    EndIf
-    Debug.Trace("[SNAnimGS] pose-picker fallback fire REFUSED (no event sent): " + ak.GetDisplayName() + " (" + sPose + ")")
-    Return False
+; REV-163: the full pose catalog for the muse consideration context pack --
+; every fireable library member, one entry per line. The separators are the
+; two-character JSON escape \n (written \\n here; decoded to a real newline
+; at render), and the text carries no quotes/backslashes, so the pack stays
+; valid JSON. Order matches the prompt's library/male-safe split and the
+; _MuseFireVibe allowlist -- the catalog and the fireable set are ONE list
+; (the REV-25 2a discipline).
+String Function _MusePoseCatalogText()
+    String s = _MusePoseCatalogLine("PoseSeduce")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseSelfTouch")
+    s = s + "\\n" + _MusePoseCatalogLine("PosePresent")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseDance")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseDanceSexy")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseGroundSexy")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseGroundIdle")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseWorkout")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseStretch")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseSubmission")
+    s = s + "\\n" + _MusePoseCatalogLine("PosePlead")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseAroused")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseBraceArm")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseDrink")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseDrool")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseHandOnChin")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseHandOnFace")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseMeditate")
+    s = s + "\\n" + _MusePoseCatalogLine("PoseScratchHead")
+    Return s
 EndFunction
 
-; The post-fire bookkeeping of the muse direct fire (extracted REV-152 so the
-; decision-callback path and the fallback path share the exact sentinels,
-; notification and interval re-arm of the pre-picker fire branch).
+; The post-fire bookkeeping of the muse direct fire (extracted REV-152; REV-163
+; note: the decision-callback path is retired with the picker, so this now
+; serves the single consideration-fire path -- sentinels, notification and
+; interval re-arm stay identical).
 Function _MuseFireSuccess(Actor ak, String sPose, Float fStamp)
     ; REV-26 Task 1b: male fires carry an explicit [male vocab] tag.
     If _SexOf(ak) == 0
@@ -1119,41 +1153,10 @@ Function _MuseFireSuccess(Actor ak, String sPose, Float fStamp)
     EndIf
 EndFunction
 
-; The decision callback (the 145 consideration-callback dispatch discipline:
-; async, on a worker, guards re-checked live -- overdrive may have turned ON
-; between ask and answer; the arbiter's ElseIf discipline: overdrive wins).
-Function OnPosePicked(String answer, String resultJson, Int success)
-    Actor ak = _posePickActor
-    String sVibe = _posePickVibe
-    String sPose = _posePickPose
-    _posePickActor = None   ; single-in-flight: clear FIRST (no stale reentry)
-    If !ak
-        Debug.Trace("[SNAnimGS] pose-picker callback dropped: no pending actor (stale/lost call)")
-        Return
-    EndIf
-    Debug.Trace("[SNAnimGS] pose-picker answer received: " + ak.GetDisplayName() + " (cat '" + sVibe + "', answer '" + answer + "', success " + success + ")")
-    If StorageUtil.GetIntValue(None, "GSAnim.Overdrive", 0) == 1
-        Debug.Trace("[SNAnimGS] pose-picker callback skipped: overdrive turned on mid-flight - no fire (arbiter discipline)")
-        Return
-    EndIf
-    If success == 1 && answer != ""
-        ; Pool validation (the template's options came from this same CSV;
-        ; defense in depth -- the _PoseVibe guard re-checks too).
-        String csv = _VibeEventsFor(ak, sVibe)
-        If StringUtil.Find("," + csv + ",", "," + answer + ",") != -1
-            If _PoseVibe(ak, sVibe, _MuseFireLabel(sPose), answer, 1)
-                _MuseFireSuccess(ak, sPose, Utility.GetCurrentRealTime())
-                Return
-            EndIf
-            Debug.Trace("[SNAnimGS] pose-picker picked fire REFUSED (no event sent): " + ak.GetDisplayName() + " (" + sPose + ")")
-            Return
-        EndIf
-        _PosePickFallbackFire(ak, sVibe, sPose, "answer '" + answer + "' not in pool '" + sVibe + "'")
-    Else
-        String sErr = SkyrimNetApi.GetJsonString(resultJson, "error", "")
-        _PosePickFallbackFire(ak, sVibe, sPose, "success " + success + " error '" + sErr + "'")
-    EndIf
-EndFunction
+; REV-163: OnPosePicked (the ded/pose_picker decision callback) is RETIRED
+; with the picker lane -- the consideration call's own answer now carries the
+; exact move (CLIP), parsed in OnMuseConsideration and fired through
+; _PoseVibe's sForceEvent leg. No decision callback exists on this path.
 
 Function _PacifyGS(Actor ak, Bool on)
     If !ak
@@ -1199,11 +1202,14 @@ EndFunction
 ; fires. Refusal legs release any live idle hold (flag-guarded — the T3
 ; pre-fire path acquires the class-0 hold BEFORE this dispatch, so a
 ; refusal here must never strand it).
-; REV-152: sForceEvent added -- the decision callback's exact pick fires through
-; this same hardened chain (idle-interrupt + hold + recheck + guards) instead of
-; the random draw; empty = today's random draw (every pre-existing callsite
-; unchanged). The forced event is validated against the pool at draw time
-; (belt-and-suspenders; OnPosePicked validates before calling too).
+; REV-152/163: sForceEvent -- the exact-pick leg. The retired picker's
+; plumbing, kept: the consideration call's CLIP answer (REV-163) fires
+; through this same hardened chain (idle-interrupt + hold + recheck +
+; guards) instead of the random draw; empty = the random draw (Sheogorath/T3,
+; degenerate pools, and the ruled absent/invalid-CLIP fallback -- every
+; pre-existing callsite unchanged). The forced event is validated against
+; the pool at draw time (belt-and-suspenders; the caller validates before
+; calling too).
 ; REV-159 5.3: aiRoute tags the fire lane for the per-route pose-narration
 ; toggles (user-authored titles, 137f rider): 1 = Sanguine mode fire
 ; (consideration picks + fallbacks), 2 = emergent autonomous fire (Sheogorath
@@ -1283,7 +1289,7 @@ Bool Function _PoseVibe(Actor ak, String vibe, String label, String sForceEvent 
             Return False
         EndIf
         ev = sForceEvent
-        Debug.Trace("[SNAnimGS] pose-picker forced pick fires: " + ak.GetDisplayName() + " -> " + ev + " (cat '" + vibe + "')")
+        Debug.Trace("[SNAnimGS] exact-pick fires: " + ak.GetDisplayName() + " -> " + ev + " (cat '" + vibe + "', consideration CLIP)")
     EndIf
     Bool lockAI = (vibe == "submission")
     ak.SetRestrained(True)
@@ -1571,16 +1577,11 @@ Bool    _bMuseArousalResolved = False
 ; sentinel) — the single-in-flight pattern of _musePendingActor (one ask, one
 ; callback; never multi-set).
 String  _sMuseArous = ""
-; REV-152 (pose-picker build, pose-picker.md REV-134e spec + REV-136 consumer
-; model): the decision-call pending state. The muse lane's FINAL pose pick is
-; deferred to the decision callback (the second half of the pose thread): the
-; consideration call resolves the CATEGORY as today, then SendCustomDecisionToLLM
-; picks the pose WITHIN the category. Single-in-flight, the _musePendingActor
-; pattern (one ask, one callback); cleared FIRST in the callback, and on send
-; failure (the caller then falls back synchronously).
-Actor   _posePickActor = None
-String  _posePickVibe  = ""
-String  _posePickPose  = ""
+; REV-163 (picker decommission, user ruling 2026-10-25): the _posePick*
+; decision-call pending state (Actor/_posePickVibe/_posePickPose, REV-152)
+; is RETIRED -- no decision call exists on the muse path anymore; the exact
+; move rides the consideration answer itself (OnMuseConsideration's CLIP
+; parse), so _musePendingActor is once again the only in-flight state.
 ; Phase 4c rider: heartbeat rate-limit clock for the one-shot muse debug window. Member,
 ; not StorageUtil: diagnostic-only precision — a script reload mid-window at worst resets
 ; the 30s beat spacing; the window BOUNDS are StorageUtil so saves keep them.
@@ -2039,13 +2040,20 @@ String Function _MusePackContext(Actor ak, Int anPool)
     ElseIf _GenderPolicy() == 2
         sPolicy = "all-poses"
     EndIf
+    ; REV-163 (picker decommission): the itemized pose catalog rides the SAME
+    ; consideration call -- warning + description + move list per category
+    ; (_MusePoseCatalogText), so the model that already holds the full scene
+    ; context also picks the exact move. Text carries no quotes/backslashes;
+    ; line separators are JSON-escaped newlines, decoded at render.
+    String sCatalog = _MusePoseCatalogText()
     Return "{\"npcName\":\"" + sName + "\",\"npcRace\":\"" + sRace \
         + "\",\"npcSex\":\"" + sSex \
         + "\",\"location\":\"" + sLoc + "\",\"nearby\":\"" + sNear \
         + "\",\"arousal\":\"" + sArous \
         + "\",\"arousalTier\":\"" + sTier + "\",\"posePolicy\":\"" + sPolicy \
         + "\",\"timeOfDay\":\"" + sTod \
-        + "\",\"maxRecentEvents\":12}"
+        + "\",\"poseCatalog\":\"" + sCatalog + "\"" \
+        + ",\"maxRecentEvents\":12}"
 EndFunction
 
 ; REV-26 Task 1a (user ruling, approved split): MALE-OK vibe set — vibe-level split. The
@@ -2222,8 +2230,10 @@ EndFunction
 
 ; SendCustomPromptToLLM callback for the muse nudge (gsanim_muse_consideration.prompt).
 ; success 1 = real answer; 0 = render/network failure -> treated as MISS (no seed, logged).
-; Output contract: "POSE: <name> | THOUGHT: <one-sentence grounded in-world thought>" or
-; "MISS". Guards are RE-CHECKED here (seed time) — the moment between ask and answer can
+; Output contract (REV-163): "POSE: <name> | CLIP: <move key> | THOUGHT: <one-sentence
+; grounded in-world thought>" (CLIP optional — single-move / near-identical picks),
+; "POSE: <name> | THOUGHT: <line>", or "MISS". Guards are RE-CHECKED here (seed
+; time) — the moment between ask and answer can
 ; change everything; a failed guard is a dropped nudge, never a seed.
 Function OnMuseConsideration(String response, Int success)
     Actor ak = _musePendingActor
@@ -2254,7 +2264,10 @@ Function OnMuseConsideration(String response, Int success)
         EndIf
         Return
     EndIf
-    ; Marker parse, whitespace-tolerant: "POSE: <name> | THOUGHT: <line>" / "MISS".
+    ; Marker parse, whitespace-tolerant (REV-163 contract):
+    ;   "POSE: <name> | CLIP: <move key> | THOUGHT: <line>"
+    ;   "POSE: <name> | THOUGHT: <line>"  (single-move / near-identical picks, or a dropped CLIP)
+    ;   "MISS"
     Int iPose = StringUtil.Find(response, "POSE:")
     Int iThought = StringUtil.Find(response, "| THOUGHT:")
     If iPose < 0 || iThought < 0 || iThought <= iPose
@@ -2264,7 +2277,29 @@ Function OnMuseConsideration(String response, Int success)
         EndIf
         Return
     EndIf
-    String sPose = StringUtil.Substring(response, iPose + 5, iThought - iPose - 5)
+    ; REV-163 (picker decommission): the CLIP field -- the exact move within
+    ; the picked category, picked by the consideration model itself from the
+    ; poseCatalog in its own context pack. Optional: single-move picks and the
+    ; near-identical aroused pair carry no CLIP, and a dropped CLIP merely
+    ; degrades to the pool's random draw (sentinel at fire time, never a miss).
+    Int iClipMark = StringUtil.Find(response, "| CLIP:")
+    String sClip = ""
+    If iClipMark > iPose && iClipMark < iThought
+        sClip = StringUtil.Substring(response, iClipMark + 7, iThought - iClipMark - 7)
+        If StringUtil.GetNthChar(sClip, 0) == " "
+            sClip = StringUtil.Substring(sClip, 1, StringUtil.GetLength(sClip) - 1)
+        EndIf
+        While StringUtil.GetLength(sClip) > 0 \
+           && StringUtil.GetNthChar(sClip, StringUtil.GetLength(sClip) - 1) == " "
+            sClip = StringUtil.Substring(sClip, 0, StringUtil.GetLength(sClip) - 1)
+        EndWhile
+    EndIf
+    String sPose = ""
+    If iClipMark > iPose && iClipMark < iThought
+        sPose = StringUtil.Substring(response, iPose + 5, iClipMark - iPose - 5)
+    Else
+        sPose = StringUtil.Substring(response, iPose + 5, iThought - iPose - 5)
+    EndIf
     Int iBar = StringUtil.Find(sPose, "|")
     If iBar >= 0
         sPose = StringUtil.Substring(sPose, 0, iBar)
@@ -2335,34 +2370,30 @@ Function OnMuseConsideration(String response, Int success)
         ElseIf _IsBusyElsewhere(ak)
             Debug.Trace("[SNAnimGS] sanguine mode direct fire skipped: busy at fire time - seed-only")
         Else
-            If _PosePickWanted(sFireVibe)
-                ; REV-152 (pose picker): this category carries per-pose catalog
-                ; descriptions -- the FINAL pose pick defers to the decision
-                ; model instead of the random draw. The category decision itself
-                ; (sFireVibe) and the thought-seed (GenerateNPCThought above)
-                ; already fired on THIS consideration call; only the pose event
-                ; itself waits for OnPosePicked. Single-in-flight: members set
-                ; here, cleared FIRST in the callback; on send failure the ruled
-                ; fallback (random-in-category) runs synchronously.
-                _posePickActor = ak
-                _posePickVibe  = sFireVibe
-                _posePickPose  = sPose
-                String sPack = _PosePickPack(ak, sFireVibe)
-                Int rcPick = SkyrimNetApi.SendCustomDecisionToLLM("ded/pose_picker", sPack, Self as Quest, "SkyrimNet_AnimationsGS", "OnPosePicked")
-                Debug.Trace("[SNAnimGS] pose-picker call issued: cat '" + sFireVibe + "', " + ak.GetDisplayName() + ", rc=" + rcPick + ", pack: " + sPack)
-                If rcPick != 1
-                    _posePickActor = None
-                    _PosePickFallbackFire(ak, sFireVibe, sPose, "send rc=" + rcPick)
+            ; REV-163 (picker decommission): the consideration answer's CLIP
+            ; fires through the exact-pick plumbing (sForceEvent -- the proven
+            ; REV-152 machinery, minus the decision call). Validation here +
+            ; the _PoseVibe pool guard (defense in depth). An absent/invalid
+            ; CLIP degrades to the pool's random draw, sentinel'd -- the only
+            ; random lanes left are Sheogorath/T3, degenerate pools, and this
+            ; ruled fallback.
+            String sForceEvent = ""
+            If sClip != ""
+                String csvMuse = _VibeEventsFor(ak, sFireVibe)
+                If StringUtil.Find("," + csvMuse + ",", "," + sClip + ",") != -1
+                    sForceEvent = sClip
+                    Debug.Trace("[SNAnimGS] sanguine mode direct fire: LLM move pick '" + sClip + "' (cat '" + sFireVibe + "')")
+                Else
+                    Debug.Trace("[SNAnimGS] sanguine mode direct fire: LLM move pick '" + sClip + "' NOT in pool '" + sFireVibe + "' - degrading to random draw")
                 EndIf
-                ; rc==1: the fire (or its fallback) happens in OnPosePicked --
-                ; the 145 async dispatch discipline (no synchronous fire here).
-            ElseIf _PoseVibe(ak, sFireVibe, _MuseFireLabel(sPose), "", 1)
+            Else
+                Debug.Trace("[SNAnimGS] sanguine mode direct fire: no CLIP in answer - random draw (single-move or near-identical category, or a dropped field)")
+            EndIf
+            If _PoseVibe(ak, sFireVibe, _MuseFireLabel(sPose), sForceEvent, 1)
                 ; REV-137a 2.3 (outcome-true, §157 finding 2.3): the fire sentinel
                 ; fires ONLY on a True return from _PoseVibe (event actually sent).
-                ; REV-152: the success bookkeeping is extracted (_MuseFireSuccess)
-                ; so the decision-callback path shares the exact same sentinels,
-                ; notification and interval re-arm; the stamp stays fNow for this
-                ; synchronous path (unchanged semantics).
+                ; The success bookkeeping (_MuseFireSuccess) carries the exact
+                ; sentinels, notification and interval re-arm on every fire path.
                 _MuseFireSuccess(ak, sPose, fNow)
             Else
                 Debug.Trace("[SNAnimGS] sanguine mode direct fire REFUSED (no event sent): " + ak.GetDisplayName() + " (" + sPose + ") -- reason per the refusal sentinel above")

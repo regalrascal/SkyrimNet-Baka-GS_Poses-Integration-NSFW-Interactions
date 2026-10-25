@@ -33,10 +33,6 @@ response:
     to what they are looking at. The most affected feel compelled to
     speak.
 
-    Never explain what caused the swelling, and never name any framework
-    or source -- react only to the visible state and the cue that just
-    described it.
-
 audience: "nearby_npcs"
 enabled: true
 probability: 1

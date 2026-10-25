@@ -23,9 +23,6 @@ response:
     scandal, or interest -- each true to who they are and where they stand. The
     most affected feel compelled to speak.
 
-    Do not invent details about the tattoo beyond what the cue described, and never
-    name any framework or source -- react only to the visible mark.
-
 audience: "nearby_npcs"
 enabled: true
 probability: 1

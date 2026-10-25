@@ -1,0 +1,67 @@
+where does the picker model enter the pose picking pipeline after the dll fix is implemented. I always envisioned the pipeline working like this (for emergent and Sanguine poses):
+
+Though/dialogue calling for pose -> LLM checks actions -> Finds top level pose categories -> reads descriptions of pose categories which also carry a list of contained poses -> enters appropriate category (drilldown) -> either continues itself or switches to picker model -> analyses the names/descriptions of the poses and compares with relevant scene context -> picks the pose that is the best match.
+
+Is this what we're doing or trying to do?
+
+zhipu
+GLM 5.3
+
+|
+
+12:06 PM
+
+|
+
+Cost: $0.3604
+
+
+Thought for 1m 28s
+
+
+Both good instincts — one is a confirmation I can make from the records, and the other surfaces a genuine design decision worth making explicit.
+
+First: no misattribution — the fix targets the live category, and the dead one is confirmed dead. The category you're remembering is SNBaka_Pose — removed at REV-59 (2026-09-30), which matches your memory exactly: pre-DeD-rename, the very first DLL surgery of the stewardship, documented in pose-removal.md and PROJECT_STATE §59. The 2.3b fix targets SNGS_Pose — the surviving category, the one all 27 pose actions retargeted to at the Beta 25 migration (rev-53), and which since the REV-103 pack-split has been DLL-registered (Baka DLL owner + GS esp-probe fallback) — which is precisely why its description lives in the SkyrimNetBridge.cpp blocks Cline just edited. The dead SNBaka_Pose registration exists nowhere in any current source tree; it survives only as informational comments in the motherboard psc (developer-facing, invisible to the LLM). So the fix and the defunct category are cleanly distinct — but your caution is exactly the right reflex, and I'd suggest a cheap belt-and-suspenders receipt anyway: a one-line rider to the REV-161 continuation set having Cline cite the exact edited RegisterOne("SNGS_Pose") block plus a grep proving SNBaka_Pose is registered nowhere. That makes the non-collision a receipt rather than my assertion.
+
+Second: your pipeline is what we built — with one lane deliberately excepted, and your question surfaces whether that exception should stand. The mapping, step by step:
+
+Steps 1–4 (the drilldown): yes — this is SkyrimNet's native menu structure, categories listing members. And here's the satisfying connection: 2.3b is literally the fix that makes your step 3 true. Before it, the SNGS_Pose category description read like a callable action and named no members — so the LLM staring at its menu saw a pose-shaped verb with nothing under it. Now the description says "THIS NAME IS A CATEGORY, NOT A CALLABLE ACTION" and lists the eight member actions. Your envisioned pipeline required that member list; 2.3b delivers it.
+Sanguine lane: exactly your steps 5–7, with "switches to picker" as the ruled shape. The consideration call does the category selection and seeds the thought; then the decision model takes the second half — a context pack (target, arousal tier, policy mode, current pose, location class) and the category's poses as options carrying descriptions, not bare keys — that descriptions-not-keys requirement was forced by your own twerk acceptance case, exactly as you intuited. Callback resolves to the pose event, existing executor chain fires it.
+Dialogue/emergent lane: "continues itself" — and this is the one deliberate divergence. Per your own 137f(d) ruling, verbally-commanded poses stay in SkyrimNet's native action selection (the main LLM picking the member directly from its descriptions), with improvements deferred to the SN devs. Your twerk test ran this lane — the picker never entered it — which is why the fix that landed there was 2.3a (the posedancesexy.yaml "Twerking IS this action" wording), and the picked-but-died execution is the separate 2.3 diagnosis still pending in the continuation set.
+The decision your question surfaces: your step 5 says "either continues itself or switches to picker" — but as ruled and built, dialogue-initiated poses only continue themselves; the picker is Sanguine/autonomous-only. If you now want dialogue commands to hand off to the picker too, that's a (d) re-ruling plus a scoped build (routing pose-intent from the conversation lane into the decision call). My honest recommendation: leave (d) standing for now. The dialogue lane already gives the main LLM the full conversational context (why ask a second model what the first one already knows?), the picker handoff adds a model call's latency and cost to every pose command, and the 2.3a wording fix plus the pending exec fix may resolve your twerk failure entirely. Test that first; if poses still misroute after the wording lands, the handoff is a cheap re-ruling.
+
+Want me to fold the two receipts (the SNBaka_Pose absence grep + the §173 emergent-lane wiring citation, so you can see exactly where the picker enters for each lane) into the REV-161 continuation set before you send it? Both are one-liners.
+
+Tristan Euringer
+
+|
+
+12:15 PM
+
+That's my thought as well. The picker seemed like a good idea at first, but see what information it actually has exposed to it makes me feel like it just robs choice context rather than sharpening the decision. Yes, arousal and location might offer some insight to what category pose you might want to do, but not enough to pick between 6 similar dances, and it's all information the first LLM already had.
+
+The picker is genuinely useful when pure decorator numbers and easy papyrus pulls can be assigned decision weight, but that's not what this pose choice is, and I don't think it is suited.
+
+zhipu
+GLM 5.3
+
+|
+
+12:15 PM
+
+|
+
+Cost: $0.1208
+
+Agreed — and your reasoning lands exactly on the architectural line that matters: the decision model earns its keep when it can be handed better-formalized inputs than the generalist already has (numbers, decorators, cheap Papyrus pulls that can carry decision weight). A pose choice is the opposite case — it's a semantic judgment made of exactly the context the first LLM is already holding. Handing it to the picker means paying to strip context down to a thin pack and asking a lesser model to reconstruct the judgment. Your "robs choice context rather than sharpening the decision" is the correct diagnosis, and it matches the planner's own instinct — the decision API was always a candidate, never a requirement (B11).
+
+So the ruling this makes: retire the pose picker's decision-model leg — and here's the good news about what actually survives, because this isn't a deletion, it's a demotion:
+
+The picker's build wasn't wasted. The decision-chain plumbing (context packs, callbacks, the shipped template) works and is proven. It becomes a pattern on the shelf for the cases where it genuinely fits — and your criterion just defined those cases: pure decorator/number inputs with decidable weight. If a future feature needs a numeric decision (a fight-flight intensity roll, a yes/no consent gate keyed to hard state, an arousal-thresholded branch), the machinery is sitting there.
+The Sanguine pipeline simplifies to your steps 1–4 plus the consideration, which already did the work. The consideration call picks the category and the member in one pass with full context — which was always the alternative shape, and is now the shape. The thin context pack stops being a decision input and stops existing as a bottleneck.
+The dialogue/emergent lane was never on the picker (your 137f(d) ruling, now standing permanently rather than deferred) — so it loses nothing. The 2.3a wording fix and the pending exec fix are the whole cure for that lane.
+One honest cost note: this means the [REV-158] dist's picker legs never re-test, and the "twerk for me" acceptance case now rides entirely on the main-LLM lane — which makes the description enrichment (3.3) suddenly load-bearing instead of secondary. The main LLM can only pick "twerk" if the pose descriptions say twerk. I'd elevate that task's priority in the continuation set: rich, move-naming per-pose descriptions are now the mechanism that makes semantic pose selection work, for both the dialogue lane and Sanguine's consideration.
+
+For the records: this ruling goes in as a supersession note on pose-picker.md (INDEX row 18) — the decision-model leg retired-by-design with your criterion as the rationale; the machinery retained as a pattern; the simplified pipeline documented. It also thins the release-testing surface by one lane, which your credits will appreciate.
+
+The REV-161 continuation set therefore gains two one-liners (the receipts from my last message: the SNBaka_Pose absence grep + the §173 wiring citation for the records) and one amendment: 3.3 elevated to primary (the descriptions are the semantic-selection mechanism now), and the picker retirement noted in records. Otherwise the set stands as issued — send it through whenever, and the [REV-161] delta retest after it will be: the popup fix, the panel-after-execution fix, strip persistence, FHU narration + the band verdict, the recast ambient, sliders, creature fixes, and now the twerk test running purely on the enriched-description main-LLM lane. Simpler pipeline, same power.
