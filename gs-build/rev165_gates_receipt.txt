@@ -31,7 +31,7 @@ PASS -- v8a zip: 345 entries
 PASS -- v8b manifest-rev165 written
 PASS -- v8c zip sha256 sidecar PRESENT
 PASS -- v8d info.xml version 0.3.0-alpha
-PASS -- v8e public-staging: release state staged (changes present, unpushed)
+PASS -- v8e public-staging: release state committed on main, ahead of origin (push user-gated)
 Delectatio-et-Dominium-rev103-pack-split_backup|2026-10-12 21:19:33|265
 PASS -- v9 modlist assertion: mods tree + profiles UNCHANGED across the session
 

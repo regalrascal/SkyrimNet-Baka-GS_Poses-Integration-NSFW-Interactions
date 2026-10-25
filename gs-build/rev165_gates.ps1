@@ -113,9 +113,9 @@ try {
     Gate 'v8c zip sha256 sidecar PRESENT' (Test-Path -LiteralPath ($z + '.sha256'))
     Gate "v8d info.xml version 0.3.0-alpha" (((Get-Content (Join-Path $root "fomod\info.xml") -Raw)) -match "<Version>0\.3\.0-alpha</Version>")
     $gs = git -C $pub status --porcelain
-    Gate "v8e public-staging: release state staged (changes present, unpushed)" (@($gs).Count -gt 0)
+    $ahead = git -C $pub rev-list origin/main..main
+    Gate 'v8e public-staging: release state committed on main, ahead of origin (push user-gated)' (@($ahead).Count -gt 0)
 } finally { $zip.Dispose() }
-
 # ---- v9: modlist write assertion (session end-diff, read-only) ----
 & pwsh -NoProfile -File (Join-Path $root "gs-build\modlist_snapshot.ps1")
 fc.exe /b (Join-Path $root "gs-build\modlist_baseline.txt") (Join-Path $root "gs-build\modlist_snapshot.txt") | Out-Null
