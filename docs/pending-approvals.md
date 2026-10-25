@@ -26,111 +26,6 @@ If an entry would be a very large amount of text, the pending-text item may inst
 ---
 
 ***
-Entry 15
-
-Subject README arousal-framework line (15a) + FOMOD wizard-render test (15b)
-
-Pending text:
-1. The draft arousal-framework line shipped in the public-staging README's "Soft (strongly recommended)" section (pick ONE framework: OSL Aroused Reborn or SL Aroused NG; runtime chain Reborn -> SL Aroused -> neutral), from the REV-108b C4-supersession ruling. It rides the public-staging README, user-reviewable at the pre-push section-7 review (REV-111 rider); the wording ruling is the user's edits to that draft line.
-    Full entry detail + REV-111 rider: historical copy, lines 232-259.
-***User: Readme updated directly. Item closed.***
-2. The MO2 wizard-render test against dist [REV-108b] (checkbox must be CLICKABLE and STICK with GS Poses deselected; GS files ABSENT post-install; then a full install for the 11-page MCM parity). MO2's wizard cannot be headless-simulated — this is a user leg, not a text ruling.
-    (Test procedure; no wording pending.)
-***User: The wizard is rendering with tooltip descriptions intact. All items are selectable/de-selectable. Item closed.***
-***
-
-***
-Entry 16
-
-Subject REV-109 MCM restructure bulk reword set (16a-16d)
-
-Pending text:
-1. The REV-109 display-length audit reword set, shipped as first drafts in `Scripts/Source/DeD_MCM.psc`: (16a) three class-(b) splits moving long text from the label/value surface into the InfoText (QTE Keys; SlaveTats intro; GS Poses intro); (16b) six absent-state "(not installed)" tail shortenings; (16c) the SlaveTats status refresh value ("N sections"); (16d) the new Settings-page headers "Framework"/"Maintenance" + the moved title "Delectatio et Dominium" and tagline "Bedroom drama for SkyrimNet". All ASCII; user wording rulings pending per the entry-14 user-editable-baseline precedent.
-    Full OLD -> NEW set quoted verbatim: historical copy, lines 261-330 (includes the REV-109b/109c riders — the strings ship on the six stacked "Baka Interactions" section surfaces).
-***User: MCM line splits and restructure landed successfully. The only edits I would make at this time would be to capitalize all the top level menu names (Baka, GS, Tattoos, Cum Effects, etc.).***
-
-***
-Entry 30
-
-Subject Player-target policy MCM control (30a) + baka consideration prompt (30b)
-
-Pending text:
-1. [CLOSED 2026-10-24 at the REV-150 build — entry 30a.] The user's edit pass REMOVED the saves-migration sentence from the tooltip; the remaining text applied to the live DeD_MCM surface (the sentence stripped from DeD_MCM.psc L1701 area, byte-proven ABSENT from the pex). Wording of record: baka-module.md REV-150.
-    Title: "NPCs May Target You"
-    Tooltip: "When on, NPCs and creatures may choose you as the target of their autonomous actions (the Baka module's single central gate; your own initiations are never blocked). When off, nothing targets you unless you start it." 2. The baka daemon's candidate-selection prompt (30b), STAGED draft in-tree; the Mephala selection lane REQUIRES it (absent = the attempt refuses NAMED, prompt-absent); Molag-Bal needs no prompt. The user's install ruling = their 30b voice/wording ruling. The prompt receives the candidate pool, current mode, target-sex level, and player-target policy state; returns ONE pick or a refuse+reason.
-    Filepath of record: fork tree `external\regalrascal.baka-gs-integration\prompts\snbaka_muse_consideration.prompt` (DRAFT-flagged header, this register cited).
-    Full entry + REV-145/REV-146 riders: historical copy, lines 937-985.
-
-***User note: Entry 30 tooltip text edited (the 2026-10-24 pen = the ruling; 30a CLOSED at the REV-150 build.***
-***User: The snbaka_muse_consideration.prompt reads well. It seems to be working in-game too. The only refinement I would give is having an optional direct narration sidecar, but I believe that is implemented already. Approved, closed.***
-***
-
-
-
-***
-Entry 32
-
-Subject Pose-picker decision template (ded/pose_picker.prompt)
-
-Pending text:
-1. The REV-152 pose-picker decision template, shipped draft-flagged (header cites this entry) at fork tree `SKSE\Plugins\SkyrimNet\external\regalrascal.baka-gs-integration\prompts\decisions\ded\pose_picker.prompt`. User-facing LLM prompt content: the npc/moment state blocks (name, sex, location, arousal, pose policy, current pose state) + the 'pose choice' question ('Choose the single pose from the options below that this NPC would most plausibly perform at this exact moment ... Answer with one option key only') + the criteria loop rendering the dynamic poseOptions array (one 'EVENTKEY: description' line per pose of the selected category; poses.js = catalog of record). The decision model picks the pose WITHIN the category already resolved by Sanguine's consideration call; the OnPosePicked callback fires the choice through the REV-137-hardened executor (random-in-category fallback on any failure). Options are dynamic per call — only the question/state wording is fixed text. Wording ships draft-flagged at the user's pen (entries 15/16/26 precedent).
-    Full text: fork tree path above (41 lines, ASCII-only).
-***User: My ruling as of rev-161 is that 
-
-***
-
-***
-Entry 33
-
-Subject FHU inflate narration trigger (guidance text + MCM label/tooltip)
-
-Pending text:
-1. The REV-153 sdb_fhu_inflate_narr trigger's response guidance — the Follow-up Prompt pattern (REV-134f precedent) applied to FHU per the user's 2026-10-24 exchange shape ("a similar format to the cum detection prompt + optional direct narration trigger"). Two-surface distinction per the entry-22 precedent: the cue = WHAT HAPPENED (the entry-32-approved in-script orifice/consent/arousal desc, unchanged); the narration guidance = HOW TO RESPOND. No template variables per the D8/sec.137 binding rule; ASCII. Shipped DRAFT-flagged (header cites this entry) in the fork tree `SKSE\Plugins\SkyrimNet\external\regalrascal.fhu-inflation\triggers\sdb_fhu_inflate_narr.yaml` (response.content):
-    [REV-161b RE-VOICE (2026-10-25, per the user's narration-voice occurrence-#2 ruling; the instruction-voiced REV-153 draft superseded — kept for the record below it):]
-    The recently filled character's belly swells with warmth. Nearby people start to notice. Their reactions differ -- a comment, a tease, concern, envy, shock, amusement -- but they all notice, and the most affected feel compelled to speak.
-
-    The source of the swelling is not apparent; the visible moment speaks for itself.
-    [Superseded draft, for the record: "Someone nearby has just had their belly swell noticeably fuller. Characters who notice are prompted to respond to the moment they just witnessed -- a comment, a reaction, a tease, concern, or envy, as each personality dictates. One line or one action each. / Do not explain what caused the swelling, and never name any framework or source -- respond only to the visible moment just described."]
-2. The Fill Her Up MCM "Follow-up Prompt" toggle surfaces (label + tooltip DRAFT per the same exchange shape, the 134f/17b precedent; DEFAULT OFF — the Follow-up Prompt precedent; gated second surface, cue mandatory while the module is active):
-    Label: "Follow-up Prompt"
-    Tooltip: "Additional direct narration for inflation cues"
-***
-
-*Register state after the REV-152 build session (2026-10-24): entries 15 and 16 CLOSED at the user's pen (inline closure notes — the fork-copy notes carried to GS canonical lockstep this session). Open entries 26, 30 (30b only), 32. Entry 32 STAGED at the REV-152 build (the pose-picker decision template, draft at the user's pen). Pre-REV-152 state: open entries 15, 16, 26, 30 (30b only — 30a CLOSED at the build).
-
-***
-Entry 34
-
-Subject FHU ambient bystander cues (band wordings + ambient-narration guidance + MCM labels/tooltips)
-
-Pending text:
-1. The REV-154 ambient bystander cue band x source wordings (the in-script descs composed for the sdb_fhu_ambient event — the planner's 30%/60% expose bands applied to FHU, the cum-ambient entry-19 subjectless shape): noticeable band = curious stares / suggestive comments ("Nearby characters notice that <name>'s belly is noticeably swollen and trade curious stares; a few dare low, suggestive comments."); heavy band = scandalized whispers ("Nearby characters cannot help staring at <name>'s heavily distended belly; scandalized whispers follow them wherever they move."); creature-source variants read the creature class ("...a few mutter that some beast has left them stuffed." / "...scandalized whispers spread that some beast has pumped them full."). Full text: SNBaka_FHUInflationModule.psc `_AmbientFire` (four desc branches; indeterminate source skips cleanly).
-2. The REV-154 sdb_fhu_ambient_narr trigger's response guidance — the Follow-up Prompt pattern (153/134f precedent) applied to the AMBIENT bystander cue (the gated second surface; band wordings above are the mandatory cue). No template variables per the D8/sec.137 binding rule; ASCII. Shipped DRAFT-flagged (header cites this entry) in the fork tree `SKSE\Plugins\SkyrimNet\external\regalrascal.fhu-inflation\triggers\sdb_fhu_ambient_narr.yaml` (response.content):
-    [REV-161b RE-VOICE (2026-10-25, per the user's narration-voice occurrence-#2 ruling; the instruction-voiced REV-154 draft superseded — kept for the record below it):]
-    A nearby character is visibly inflated, their belly swollen well past what a normal belly looks like. Those who notice take the sight in their own way -- curious stares, low suggestive comments, scandalized whispers, concern, or embarrassment -- each true to who they are and to what they are looking at. The most affected feel compelled to speak.
-    [Superseded draft, for the record: "A nearby character is visibly inflated, their belly swollen well past what a normal belly looks like. Characters who notice are prompted to react to them -- curious stares, low suggestive comments, scandalized whispers, concern, or embarrassment, as each personality and the visible state dictate. One line or one action each. / Never explain what caused the swelling, and never name any framework or source -- react only to the visible state and the cue that just described it."]
-3. The Fill Her Up MCM ambient surfaces (labels + tooltips + notification, DRAFTs; "Ambient Narration" DEFAULT OFF; band sliders default 30/60 per the C5 ruling — planner values = defaults, the MCM is the user valve):
-    Labels: "Ambient Narration" / "Noticeable Band" / "Heavy Band"
-    Tooltips: "Additional direct narration for ambient bystander cues" / "Bystander reactions start once inflation passes this percent of Fill Her Up's maximum (default 30%)." / "Reactions escalate to scandalized whispers above this percent (default 60%)."
-    Notification: "Ambient Narration enabled: ambient bystander cues also produce a direct narration line." / "Ambient Narration disabled."
-***
-
-***
-Entry 35
-
-Subject Tattoo v2 ambient exposure cues + application lanes (branch wordings + narr guidance + two action descriptions + MCM labels/tooltips)
-
-Pending text:
-1. The REV-156 sdb_tattoo_observed branched cue wording (the in-script desc composed by SNBaka_SlaveTatsModule.AmbientExposurePass — branches on application-specific information: location + the SPECIFIC mark + the wearer; the wearer's observable arousal tier rides the REV-82 APPROVED _ArousalClause wording of record verbatim — cited, not re-drafted): "<name> has a tattoo showing on <location>: '<tattoo name>' (<section>). Anyone who notices it reacts to the specific mark." Location branches (v3 area -> observable wording): Body = "their exposed torso" / Face = "their face" / Hands = "their bare hands" / Feet = "their bare feet" / unknown = "their exposed skin". Full text: SNBaka_SlaveTatsModule.psc AmbientExposurePass (the RegisterEvent call).
-2. The REV-156 sdb_tattoo_observed_narr trigger's response guidance — the Follow-up Prompt pattern (134f/153/154 precedent) applied to the tattoo AMBIENT cue (the gated second surface, DEFAULT OFF; the mandatory cue is the sdb_tattoo_observed event text itself, cue-only, no yaml of its own — the 134d anatomy). No template variables per the D8/sec.137 binding rule; ASCII. Shipped DRAFT-flagged (header cites this entry) in the fork tree SKSE\Plugins\SkyrimNet\external\regalrascal.baka-gs-integration\triggers\sdb_tattoo_observed_narr.yaml (response.content):
-    [REV-161b RE-VOICE (2026-10-25, per the user's narration-voice occurrence-#2 ruling; the instruction-voiced REV-156 draft superseded — kept for the record below it):]
-    A nearby character has a visible tattoo showing on their skin, and it has just been noticed. Those who see it take the specific mark the cue described in their own way -- a comment, a look, a step closer or away, amusement, scandal, or interest -- each true to who they are and where they stand. The most affected feel compelled to speak.
-    [Superseded draft, for the record: "A nearby character has a visible tattoo showing on their skin, and it has just been noticed. Characters who see it are prompted to react to the specific mark the cue described -- a comment, a look, a step closer or away, amusement, scandal, or interest, as each personality and their own state dictate. One line or one action each. / Do not invent details about the tattoo beyond what the cue described, and never name any framework or source -- react only to the visible mark." The invent-no-details constraint is carried by the cue itself (the desc names location + the specific mark + section) plus the story-truth rider class; if the user wants it explicit, it can return as story truth ("nothing beyond the mark the cue described is apparent to onlookers") at the pen.]
-3. The two new LLM action descriptions (DRAFTs; the planner's dominant-relationship dialogue row and ownership/humiliation NPC-on-player row as the wording basis; full text: fork tree SKSE\Plugins\SkyrimNet\external\regalrascal.baka-gs-integration\actions\CommandTattoo.yaml and MarkPlayer.yaml description blocks — CommandTattoo: "The initiator commands a tattoo onto a standing character who accepts their dominance..."; MarkPlayer: "An NPC who wants to humiliate the player, or mark ownership of them, applies a tattoo to the player's skin. The NPC decides where the mark goes, which specific tattoo it is, and its color, based on their own arousal, mood, and character...").
-4. The SlaveTats MCM ambient surfaces (labels + tooltips, DRAFTs; "Tattoo Ambient Narration" DEFAULT OFF — the Follow-up Prompt precedent; "Ambient Exposure Chance" default 35 per the user's ~35% ruling; the "Ambient Observation Cues" tooltip RE-POINTED to the daemon-tick pass):
-    Labels: "Ambient Exposure Chance" / "Tattoo Ambient Narration"
-    Tooltips: "Chance each daemon-tick ambient pass fires a visible-tattoo reaction cue when someone nearby has an exposed mark (default 35%). Failing rolls are silent." / "Additional direct narration for ambient tattoo reaction cues (a second prompt surface on top of the mandatory cue). Default OFF." / "Master gate for ambient tattoo reaction cues: while a Baka daemon mode is on, every daemon tick rolls a chance for nearby personas to notice any VISIBLE tattoo - covered marks are not reacted to, marks applied by any means are. Default ON."
-***
 
 Entry 36
 
@@ -143,9 +38,6 @@ Pending text:
 4. The two REV-157 AMBIENT-CUE DESC SLIMS (ruling (b) — nudge-class wording; the standing facts moved to the bio fragments, the application events untouched per ruling (a)): the FHU sdb_fhu_ambient band x source texts (4, in SNBaka_FHUInflationModule.AmbientExposePass — e.g. noticeable/human "A few passersby steal glances at <name>'s noticeably swollen belly." / heavy/human "Heads turn as <name> passes; the hugely swollen belly draws every eye." / noticeable+heavy/creature murmurs branches) and the ST sdb_tattoo_observed cue (in SNBaka_SlaveTatsModule.AmbientExposurePass — location + specific mark + wearer + the APPROVED REV-82 arousal clause retained; the directive tail "Anyone who notices it reacts to the specific mark." REMOVED).
 ***
 
-*Register state after the REV-157 build session (2026-10-24): NEW entry 36 STAGED (the REV-157 prompt-layer mold — the 4 fragment branch texts + the two ambient-cue desc slims, one batch entry, DRAFTs at the user's pen). Open entries 26, 30 (30b only), 32, 33, 34, 35, 36. Fork copy lockstep.*
-
-*Register state after the REV-158 final-batch dist cut (2026-10-24): NO rulings arrived before the cut — the open set (26, 30b, 32, 33, 34, 35, 36) ALL SHIPPED DRAFT-FLAGGED in the [REV-158] dist per the standing precedent (the install-time ruling is the user's; the first enabled render is the probe per the shipped-fragment convention). No entries closed; no new entries staged. Fork copy lockstep, hashes reported in the session report.*
 ***
 Entry 37
 
@@ -160,24 +52,6 @@ Pending text:
 6. The 2.3 RECOMMENDATION (not built - surfaced): the CommandTattoo action description could state that no tools or preparation are needed ("The mark appears on their skin at the initiator command - no tools or preparation are needed."); the 10-24 non-pick was the absent-build (the action was not in the tested [REV-148] install), so this is an optional nudge at the user pen.
 ***
 
-*Register state after the REV-159 polish-session build (2026-10-25): NEW entry 37 STAGED (the polish-session batch - mode-narration labels + guidance, cadence slider labels, pose-narration tooltips, the user-provided 3.2(b) texts cited, the F-2 FOMOD descriptions, the 2.3 recommendation). Open entries 26, 30b, 32, 33, 34, 35, 36, 37. Fork copy lockstep, hashes in the session report.*
-
-Entry 38
-
-Subject REV-160 narration-voice sweep (one batch entry): 14 Baka trigger yamls + sdb_slapped/sdb_spanked/sdb_tattoo_applied/sdb_tattoo_removed + 3 in-script cue sites re-voiced to narration; rule citation rides the entry
-
-Pending text:
-Swept (DRAFTs at the user pen -- full text at the cited paths; the REV-160 pattern of record is the user own example: in-story storyteller narration, third person, present tense, no meta-instruction):
-1-12. The baka trigger yaml set at SKSE\Plugins\SkyrimNet\external\regalrascal.baka-gs-integration\triggers\ -- baka_calloff, baka_defeat, baka_escalate, baka_interaction_end, baka_interaction_start, baka_intervention, baka_opportunity, baka_panic, baka_resist_fail, baka_resist_start, baka_resist_success, baka_sexlab_trigger: every directive frame removed ("Generate ...", "Do NOT", "Match their personality exactly", "Make it land", "call the action, do not just narrate"); replaced with third-person present-tense world narration (action-option facts kept: Execute/Escalate/HelpUp/Release listings, "never StartNewSex"). baka_escalate_slipped.yaml left as-is (already narrative).
-13-14. sdb_slapped.yaml + sdb_spanked.yaml (same directory): "Generate their immediate reaction ... Match their personality exactly. Do not describe ..." re-voiced to narration register.
-15-16. sdb_tattoo_applied.yaml + sdb_tattoo_removed.yaml: "React only to what is observable / do not name any framework or source" recast as story truth ("How the mark came to be is not apparent to onlookers, and nothing beyond the event text is." / "nothing beyond it is apparent to onlookers.").
-17-19. IN-SCRIPT, Scripts\Source\SkyrimNet_BakaIntegration.psc: _RoleplayHint tails -- "Speak and react in character as whichever of them is talking." and "React in character." REMOVED (narrative bodies kept verbatim); the two baka_defeat/baka_opportunity cue twins (L~4632/L~4725) -- "must still decide NOW and carry it out (use the action, do not just describe it)" -> "the choice is on them right now, and it lands through action"; "Pick ONE and do it now." -> "The decision lands through the action itself."
-RULE CITATION (rides this entry): STANDING_RULESET REV-160 rider -- NARRATION-VOICE STANDARD (all trigger/narration content is in-story narration; LLM instructions live in prompt files and action descriptions only; the ship-gate grep gains the instruction-verb patterns).
-FLAGGED-ONLY (NOT swept at REV-160; per-item user ruling required -- GRANDFATHER keep as ruled vs RE-VOICE re-rule the voice): the register-DRAFT narration yamls carrying the same instruction-tone patterns -- sdb_cum_ambient_narr (entry 22, user-verbatim wording of record -- already narrative), sdb_mephala_mode_narr + sdb_molagbal_mode_narr + gsanim_sanguine_mode_narr + gsanim_sheogorath_mode_narr (entry 37), sdb_tattoo_observed_narr (entry 35), sdb_fhu_ambient_narr (entry 34), sdb_fhu_creature_cum + sdb_fhu_inflate + sdb_fhu_deflate_anal/oral/vaginal (rev-149 entries). [RESOLVED (2026-10-25, REV-161b): the per-item ruling arrived the same session -- the user's occurrence-#2 message ruled the whole flagged class re-voiced. All 14 surfaces re-voiced (the 12 named here MINUS sdb_cum_ambient_narr, which was already narrative and untouched, PLUS acheron_downed.yaml and baka_opportunity.yaml, which carried the same directive ladder); receipts: PROJECT_STATE S185; gate v10 extended to all 32 direct_narration yamls, 0 hits. The entries stay open only for their remaining wording dispositions.]
-***
-
-*Register state after the REV-160 session (2026-10-25): NEW entry 38 STAGED (the narration-voice sweep batch -- 19 swept surfaces + rule citation + the flagged-only list). Open entries 26, 30b, 32, 33, 34, 35, 36, 37, 38. Fork copy lockstep, hashes in the session report.*
-
 Entry 39
 
 Subject REV-161 dogfood-continuation batch: CommandTattoo call-phrases + kill-vs-ink, down.yaml Execute mention, tattoo ambient recast, three ambient cadence sliders, twelve pose pool enrichments
@@ -190,7 +64,4 @@ Pending text:
 5. Twelve pose action description pool enrichments (batch DRAFTs at the user pen; the twerk-bearing pair flagged PRIORITY): each pose yaml gains a "THE POOL THIS ACTION DRAWS FROM:" line naming the moves in its pool (posedancesexy + posegroundsexy priority -- the twerk-bearing set). Full text: regalrascal.gs-poses\actions\pose{dance,dancesexy,groundsexy,groundidle,seduce,present,selftouch,stretch,workout,submission,plead,idle}.yaml (both copies; all 24 files hash-matched at the cut).
 ***
 
-*Register state after the REV-161 session (2026-10-25): NEW entry 39 STAGED (the dogfood-continuation batch -- CommandTattoo phrases/kill-vs-ink, down.yaml Execute mention, the tattoo ambient recast, the three ambient cadence sliders, the twelve pose pool enrichments). Open entries 26, 30b, 32, 33, 34, 35, 36, 37, 38, 39. Fork copy lockstep, hashes in the session report.*
-
-*Register note (2026-10-25, REV-161b -- narration-voice occurrence #2): the user s re-flag of the narration-voice standard (trigger content = in-story narration, not LLM instructions; REV-160 rider) is the per-item ruling the rider s flag-only protection required. The instruction-voice defects on the fhu/acheron/gs-poses narr surfaces -- including the entry-32/33 family -- are RE-VOICED per that ruling (14 surfaces; receipts: PROJECT_STATE S185; gate v10 extended to all 32 direct_narration yamls, 0 hits). The entries stay open for the user s remaining wording dispositions.*
-*Register state after the REV-162 session (2026-10-25): ENTRY 26 CLOSED at the user s pen (both items approved verbatim in-register: the 0175_ded_cum facts fragment approved; the decorated-template stash approved with the user s tier-2 note; both user ruling lines preserved verbatim in the historical copy L1128-1129; closure note + 0520 tier-2 addendum appended there). NEW FLAG-ONLY note (Task 3, REV-162): the SNGS_Pose category description s member list was extended from the 8 glossed names to the full 27-name enumeration (names only; no new prose glosses; the REV-103-ruled prose untouched) in both DLL sources -- the description is a wording-of-record surface, so the extension is FLAGGED for the user s disposition (keep as shipped / amend); shipped in [REV-162] with gate receipts. NOTE (same session): the user s live in-register pen on entry 32 ( My ruling as of rev-161 is that , preserved verbatim, appears cut off mid-sentence -- completion at the user s convenience) is the newest edit of record. Open entries: 30b, 32, 33, 34, 35, 36, 37, 38, 39. Fork+GS lockstep, hashes in the session report.*
+*Register state after the 2026-10-25 post-REV-162 reconciliation session (the user pen, live in-register rulings): entries 15, 16, 30 (30a at the REV-150 build + 30b user-approved), 32 (picker SHELVED per the user ruling -- the ruling sentence is now COMPLETE, no longer cut off; the decommission the ruling asks for is NOT yet applied: the call site is still live at SkyrimNet_AnimationsGS.psc L2338-2358 with _PosePickWanted live at L1023 -- OUTSTANDING CODE TASK, not a text item), 33, 34 and 35 CLOSED at the user pen and REMOVED to the historical copy (user ruling lines verbatim there; the user lightly-edited shipped yamls are the wording of record). Entry 38 (the REV-160/161b narration-voice sweep) TENTATIVELY APPROVED and closed per the user wholesale ruling, 2026-10-25: "The edits for that update are all tentatively approved, I don't want to look at every single trigger again." Open entries: 36, 37, 39 (entry 37 item 1 re-voiced mode-narr texts carry the same tentative approval). NOTE (recorded as-is per the tentative-approval ruling): sdb_fhu_ambient_narr.yaml and sdb_tattoo_observed_narr.yaml still carry their instruction-voiced tails ("Never explain..." / "Do not invent...") under the user-edited first paragraphs -- revisit only if dogfood flags them. Prior dated register notes carried to the historical copy this session. Fork+GS lockstep, hashes in the session report.*
