@@ -1,5 +1,5 @@
 name: "sdb_fhu_inflate"
-description: "An actor's belly is suddenly, noticeably fuller (DRAFT - rev-149, sec.7 approval pending; orifice/consent/arousal branches composed at fire time)"
+description: "An actor's belly is suddenly, noticeably fuller (DRAFT - rev-149, re-voiced REV-164 per the user-quoted pattern, sec.7 approval pending; orifice/consent/arousal branches composed at fire time)"
 
 eventCriteria:
   eventType: "sdb_fhu_inflate"
@@ -7,13 +7,8 @@ eventCriteria:
 response:
   type: "direct_narration"
   content: |
-    {{ originator }}'s belly is noticeably fuller now, swelling with warmth.
-    How it shows on them, and how they or someone nearby takes it, is theirs --
-    embarrassment, pride, discomfort, desire, or casual acceptance -- true to
-    who they are.
-
-    Never explain what caused the swelling, and never name any framework or
-    source -- describe only the state as it is visible right now.
+    {{ originator }} has swollen with cum. They react to how it looks, feels,
+    and where it entered from -- true to who they are.
 
 audience: "nearby_npcs"
 

@@ -1,0 +1,37 @@
+PASS -- v1a pex: ApplyTattoo downed-gate string PRESENT
+PASS -- v1b pex: ApplyTattoo curated-fallback string PRESENT
+PASS -- v1c pex: ApplyTattoo [nopacks] refuse PRESENT
+PASS -- v1d pex: bFHUAmbientNarration property PRESENT
+PASS -- v1e pex: Acheron DownCueCount key PRESENT
+PASS -- v1f pex: Acheron DownCueGateRT key PRESENT
+PASS -- v1g pex: Acheron 180s gate trace PRESENT
+PASS -- v1h pex: FHU first-fire acceleration trace PRESENT
+PASS -- v2a tree: Force Tattoo tile ABSENT from panel
+PASS -- v2b tree: downed dispatch no longer routes choice 12
+PASS -- v2c tree: _ForcedTattoo_Execute RETAINED (daemon lane)
+PASS -- v2d zip: Force Tattoo tile ABSENT
+PASS -- v3a BK DLL: new Display direction string PRESENT
+PASS -- v3b BK DLL: Display member list PRESENT
+PASS -- v3c BK DLL: old Display string ABSENT
+PASS -- v3d BK DLL: new Pose audience string PRESENT
+PASS -- v3e BK DLL: old Pose repeller ABSENT
+PASS -- v3f GS DLL: new Pose audience string PRESENT
+PASS -- v3g GS DLL: old Pose repeller ABSENT
+PASS -- v3h zip: both rebuilt DLLs present
+PASS -- v4 tree+zip: ZERO instructional remnants in the 21 swept yamls
+PASS -- v4b narration-voice grep: ZERO directive frames in direct_narration yamls
+PASS -- v5a tree: user-quoted inflate pattern PRESENT
+PASS -- v5b tree: acheron_downed cooldown 60
+PASS -- v5c tree: acheron_downed neutral order (HelpUp first, Execute last)
+PASS -- v5d psc: cue-cap constants (3 fires / 60s spacing / 180s gate)
+PASS -- v6a tree: bFHUAmbientNarration default True
+PASS -- v6b tree: first ambient fires at band entry
+PASS -- v7a lockstep: SkyrimNet_BakaIntegration.psc fork == GS-repo compile source
+PASS -- v7b lockstep: dll-source-gs SkyrimNetBridge.cpp fork == GS-repo mirror
+PASS -- v8a zip: 345 entries
+PASS -- v8b zip: re-voiced FHU inflate PRESENT
+PASS -- v8c zip: manifest-rev164 written
+Delectatio-et-Dominium-rev103-pack-split_backup|2026-10-12 21:19:33|265
+PASS -- v9 modlist assertion: mods tree + profiles UNCHANGED across the session
+
+REV-164 GATES: ALL PASS

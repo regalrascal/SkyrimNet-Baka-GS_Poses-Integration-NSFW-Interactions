@@ -69,8 +69,8 @@ Scriptname SNBaka_FHUInflationModule
 ;       SOURCE (creature-sourced reads the creature class; human-sourced reads
 ;       generic; indeterminate source SKIPS cleanly, sentinel'd). Band + source
 ;       wordings are sec.7 DRAFTs (rev-154, register entry 34).
-;   (c) LIFECYCLE: anchor at first band crossing -- the first ambient fires one
-;       cadence AFTER state-start (the instant cue owns the fresh-inflation
+;   (c) LIFECYCLE: anchor at first band crossing -- the first ambient fires AT
+;       BAND ENTRY (REV-164 first-fire acceleration; the instant cue owns the fresh-inflation
 ;       moment; no catch-up per the REV-127 rule); keys clear when the amount
 ;       drops below the noticeable band (deflate / the module's clear paths);
 ;       a 7200s-RT failsafe-class lifetime guard exhausts the episode so a
@@ -482,8 +482,9 @@ EndFunction
 ; per-actor-cooldown pattern, REV-74 rider; NOT a DeDService timer rule: FHU
 ; has no DeDService state family and no compiled sr_* reference is possible --
 ; fork Scripts\Source carries zero sr_*.psc stubs). Cadence 60s RT per actor,
-; anchored at FIRST band crossing (first ambient = state-start + one cadence;
-; the instant cue owns the fresh-inflation moment; no catch-up per REV-127).
+; anchored at FIRST band crossing (first ambient fires AT band entry as of the
+; REV-164 first-fire acceleration; the instant cue owns the fresh-inflation
+; moment; no catch-up per REV-127).
 ; Band floors = PERCENT of FHU maxInflation via the MCM sliders (C5 ruling:
 ; planner values 30/60 are the defaults, the MCM is the user valve). Band +
 ; source wordings are sec.7 DRAFTs (rev-154, register entry 34). All
@@ -530,13 +531,17 @@ Function _CheckAmbientExpose(SkyrimNet_BakaIntegration akHost, Actor akActor, Fl
     EndIf
     Float nextAt = StorageUtil.GetFloatValue(None, kNext, 0.0)
     If nextAt == 0.0
-        ; Band entry: anchor the episode. The FIRST ambient fires one cadence
-        ; after state-start -- the instant inflate cue owns the fresh moment,
-        ; and a re-crossing never catches up on missed ticks (REV-127 rule).
+        ; Band entry: anchor the episode. REV-164 (Issue #4, user ruling --
+        ; first-fire acceleration): the FIRST ambient fires AT BAND ENTRY, not
+        ; one cadence later -- the +60s dead-air dies; the instant inflate cue
+        ; still owns the fresh-moment narrative, and the cadence paces every
+        ; LATER fire. A re-crossing never catches up on missed ticks (REV-127
+        ; rule, unchanged).
         StorageUtil.SetFloatValue(None, kStart, now)
-        StorageUtil.SetFloatValue(None, kNext, now + fCad)
-        akHost._Log("[SNBaka] FHU ambient expose: band entered for " + akActor.GetDisplayName() + " (amount " + afCur + " >= noticeable " + fNotice + ") -- first ambient anchored at +" + fCad + "s (REV-154; cadence key REV-161)")
-        Return
+        StorageUtil.SetFloatValue(None, kNext, now)
+        akHost._Log("[SNBaka] FHU ambient expose: band entered for " + akActor.GetDisplayName() + " (amount " + afCur + " >= noticeable " + fNotice + ") -- first ambient fires NOW (REV-164 acceleration; cadence key REV-161 paces later fires)")
+        ; Fall through: nextAt == now, so the cadence check below admits the
+        ; immediate first fire.
     EndIf
     If now < nextAt
         Return

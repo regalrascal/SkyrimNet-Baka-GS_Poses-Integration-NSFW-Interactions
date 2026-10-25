@@ -59,10 +59,17 @@ void SkyrimNetBridge::Init() {
     // REV-162 (Task 3, itemization audit): the member list extended from the 8
     // glossed names to the full 27-member enumeration (matches the Baka DLL's
     // owning def verbatim; every callable pose visible by name).
+    // REV-164 (Issue #2, the description-misroute class): "for no one in particular"
+    // REPELLED audience-driven dances - a "dance for me" request misrouted to
+    // SNBaka_Display (whose members make the TARGET perform). Rewritten: posing on
+    // your own OR on request - they watch, you dance (PoseDance, PoseDanceSexy).
+    // Kept in lockstep with the Baka DLL's owning def (dll-source/src).
     RegisterOne("SNGS_Pose",
-        "Pose, dance, stretch, show off  -  express a mood through your body, on your own, for no one in "
-        "particular: a SOLO held pose or gesture, no target, no physical contact (unlike SNBaka_Display, "
-        "which is a brief beat performed FOR someone else). Use when the moment invites it: music playing "
+        "Pose, dance, stretch, show off  -  express a mood through your body, on your own OR because "
+        "someone asked to watch: they watch, you dance (PoseDance, PoseDanceSexy for dancing, twerking, "
+        "or any lewd hip/backside show performed for a watcher). A held pose or performance by YOU, "
+        "no physical contact (unlike SNBaka_Display, where the TARGET performs the display for you). "
+        "Use when the moment invites it: music playing "
         "and you feel like dancing, celebrating a win, flirting or being teased, freshly complimented, "
         "dared, flushed with wine, relaxing or bored, praying or meditating, pleading or surrendering to "
         "someone of higher status, training, stretching, or simply striking an attitude as you speak  -  "

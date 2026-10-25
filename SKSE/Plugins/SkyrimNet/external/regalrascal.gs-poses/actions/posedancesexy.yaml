@@ -16,10 +16,12 @@ description: |
 
   OVERRIDING CIRCUMSTANCES: even a shy character, when the wine, the dare, or the crowd has
   loosened them past usual restraint, may let the slip happen — write them surprising themselves.
-  There must be a reason in the scene; this is never a blanket license.
+  The scene gives the reason — a mood, a dare, a look — and without one the
+  moment simply passes the pose by.
 
   THE POOL THIS ACTION DRAWS FROM: twerking while looking back, slow twerking, sensual hips with hands up, a slow hip dance with hand on chin, moving in circles bent low, tik-tok hips, sensual semi-shy swaying, and (for men) a standing lewd suggestion. (REV-161 4.3 moves enrichment - register batch DRAFT; PRIORITY SET: this is the twerk-bearing pool.)
-  DO NOT USE: in combat, in danger, or during a sex scene.
+  A fight, real danger, or an ongoing sex scene ends the pose at once — it never
+  begins in one.
 questEditorId: SkyrimNet_AnimationsGS
 scriptName: SkyrimNet_AnimationsGS
 executionFunctionName: PoseDanceSexy_Execute

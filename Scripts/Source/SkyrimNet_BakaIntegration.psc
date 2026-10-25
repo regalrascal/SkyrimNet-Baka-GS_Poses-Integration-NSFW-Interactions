@@ -258,16 +258,21 @@ Bool  Property bFHUInflateNarration = False Auto
 ; REV-154 (FHU ambient bystander reaction cue -- the planner's 30%/60% expose
 ; bands, the cum-ambient pattern applied to FHU; the user's 2026-10-24 shape):
 ; bFHUAmbientNarration = the gated direct-narration second surface for the
-; AMBIENT cue (Fill Her Up MCM "Ambient Narration", DEFAULT OFF; the yaml
+; AMBIENT cue (Fill Her Up MCM "Ambient Narration"; the yaml
 ; sdb_fhu_ambient_narr.yaml matches the sdb_fhu_ambient_narr event type ONLY,
 ; so ambient cue and narration are fully separable -- the 153/134f pattern).
+; REV-164 (Issue #4, user ruling): DEFAULT FLIPPED OFF -> ON (the 163 dogfood
+; ran ambient-narration dark because nobody had found the toggle; defaults now
+; match the intended out-of-box experience). A user who turned it off in the
+; MCM keeps their off (the key is read live per fire).
 ; iFHUAmbientNoticeBand / iFHUAmbientHeavyBand = the band floor percents of
 ; FHU maxInflation (planner defaults 30/60; the MCM sliders are the user valve
 ; per the C5 ruling). The ambient cue itself (sdb_fhu_ambient) rides the
 ; 10s level poll with a per-actor 60s cadence, anchored at first band
 ; crossing, no catch-up, 7200s-RT lifetime guard (module detail in
-; SNBaka_FHUInflationModule._CheckAmbientExpose).
-Bool  Property bFHUAmbientNarration = False Auto
+; SNBaka_FHUInflationModule._CheckAmbientExpose). REV-164: the FIRST ambient
+; now fires AT BAND ENTRY (first-fire acceleration, module-side).
+Bool  Property bFHUAmbientNarration = True Auto
 Int   Property iFHUAmbientNoticeBand = 30 Auto
 Int   Property iFHUAmbientHeavyBand  = 60 Auto
 ; REV-159 5.1 (user-ruled at the dogfood): MODE DIRECT-NARRATION TRIGGERS, the
@@ -8822,22 +8827,53 @@ Function _ST_MenuChoice(String asSlot, String asSection, String asName)
 EndFunction
 
 ; --- REV-72 SlaveTats LLM actions (external YAML: apply_tattoo / remove_tattoos) ---
-; Thin executors — the module owns all state/gating. ApplyTattoo uses the spank-slot set
-; (the natural "mark them" choice); RemoveTattoos strips everything the MODULE applied
-; (never Baka's own "SkyrimNet Spank" heat marks). REV-74: bookkeeping and the
-; sdb_tattoo_applied/removed event fires now live INSIDE the module (single-entry rule —
-; these thin calls no longer duplicate the bookkeeping here).
+; Thin executors — the module owns all state/gating. RemoveTattoos strips everything
+; the MODULE applied (never Baka's own "SkyrimNet Spank" heat marks). REV-74: bookkeeping
+; and the sdb_tattoo_applied/removed event fires now live INSIDE the module
+; (single-entry rule — these thin calls no longer duplicate the bookkeeping here).
+;
+; REV-164 (Issue #3, user ruling + why-trace verdict): the LLM apply lane gains the
+; DOWNED-GATE (target must be downed; the standing-NPC lane is CommandTattoo per
+; REV-156 4.5), and is DECOUPLED from the MCM spank-set requirement. WHY-TRACE: the
+; retired Force Tattoo tile's executor (SNBaka_SlaveTatsModule.ForcedTattoo) refuses
+; [noset] when neither Defeat nor Spank set is configured (module L716-718), and this
+; executor's own SpankSet read was the same configured-set coupling as a SILENT no-op —
+; the invisible refuser behind the tile failures (and behind any LLM apply attempt
+; with no set configured). Per the 156 spec the lane selects from the TARGET's
+; available set; the spank-set requirement scopes to the spank-HOOK path only.
+; Pick order: configured spank set (kept as the preferred pick when present) ->
+; module curated fallback from the target's available packs (ValidatePick, the 156
+; class) -> reason-coded refuse [nopacks].
 Function ApplyTattoo_Execute(Actor akInitiator, Actor akTarget)
     If !akTarget || !SNBaka_SlaveTatsModule.Installed()
+        Return
+    EndIf
+    ; REV-164 downed-gate (user ruling): the LLM apply lane requires the target
+    ; to be downed.
+    If !_IsDownedAny(akTarget)
+        _Log("[SNBaka] ApplyTattoo REFUSE [notdowned]: " + akTarget.GetDisplayName() + " is not downed -- LLM apply lane gated (REV-164)")
+        Return
+    EndIf
+    If _ChildBoundaryRefused(akInitiator, akTarget, "ApplyTattoo")
         Return
     EndIf
     Actor p = Game.GetPlayer()
     String section = StorageUtil.GetStringValue(p, "SNBaka.ST.SpankSetSection", "")
     String name = StorageUtil.GetStringValue(p, "SNBaka.ST.SpankSetName", "")
-    If section == "" || name == ""
-        Return    ; no set configured — action is a silent no-op (MCM/SlaveTats menu sets it)
+    If section != "" && name != ""
+        _Log("[SNBaka] ApplyTattoo APPLY (lane=llm_action, who picked: configured spank set '" + name + "' (" + section + ")) on " + akTarget.GetDisplayName() + " -- REV-164")
+        SNBaka_SlaveTatsModule.ApplyTattoo(akTarget, section, name, -1, True, "llm_action")
+        Return
     EndIf
-    SNBaka_SlaveTatsModule.ApplyTattoo(akTarget, section, name, -1, True, "llm_action")
+    ; REV-164 decouple: no set configured -- pick from the target's available
+    ; packs instead of the historic silent no-op.
+    String[] pick = SNBaka_SlaveTatsModule.ValidatePick("", "")
+    If pick.Length < 2 || pick[0] == "" || pick[1] == ""
+        _Log("[SNBaka] ApplyTattoo REFUSE [nopacks]: no spank set configured and no usable pack entry -- REV-164")
+        Return
+    EndIf
+    _Log("[SNBaka] ApplyTattoo APPLY (lane=llm_action, who picked: module curated fallback '" + pick[1] + "' (" + pick[0] + ")) on " + akTarget.GetDisplayName() + " -- REV-164")
+    SNBaka_SlaveTatsModule.ApplyTattoo(akTarget, pick[0], pick[1], -1, True, "llm_action")
 EndFunction
 
 Function RemoveTattoos_Execute(Actor akInitiator, Actor akTarget)
@@ -9330,15 +9366,14 @@ Function _DispatchDownedAction(Int choice, Actor akCaster, Actor akVictim)
         ; after a strip; only this tile activates it; restores ONLY our tracked queue).
         _StripRestore_Execute(akCaster, akVictim)
         Return
-    ElseIf choice == 12
-        ; [REV-150 4.3] "Force Tattoo" tile (slavetats.md REV-134e 6.3 + register
-        ; entry 28 wording of record for the cue). PLAYER-CLICKED, UNGATED (the
-        ; Execute pattern: the downed gate above is the only day-one gate; the
-        ; AI-aggressor daemon lane is the gated lane, via _ForcedTattooGateCheck).
-        ; Pure service delegation: the module owns set pick + apply; gates +
-        ; cue fire live in the executor below. Composes with Strip (10).
-        _ForcedTattoo_Execute(akCaster, akVictim)
-        Return
+    ; REV-164 (Issue #3, user ruling): the "Force Tattoo" tile (choice 12) is
+    ; RETIRED from the downed panel + this dispatcher -- the LLM lane
+    ; (ApplyTattoo, now downed-gated + decoupled per the why-trace verdict)
+    ; and the gated AI-aggressor daemon lane (_ForcedTattoo_Execute via
+    ; _ForcedTattooGateCheck) cover both remaining surfaces; the tile was the
+    ; silent-[noset] failure surface. ids 8 (Apply Tattoo picker), 9 (Remove
+    ; Tattoos), 10/11 (Strip/restore) are untouched; id 12 is now dead space
+    ; below the +100 offset.
     ElseIf choice == 3 && StorageUtil.GetIntValue(akVictim, "SNBaka.Tied", 0) == 1
         ; Stand Back must not quietly free a TIED prisoner — the bindings are the point.
         _Log("[SNBaka] _DispatchDownedAction: Stand Back refused — " + akVictim.GetDisplayName() + " is TIED (untie them first)")

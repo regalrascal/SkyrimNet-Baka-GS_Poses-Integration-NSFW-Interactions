@@ -1,5 +1,5 @@
 name: "sdb_fhu_deflate_anal"
-description: "An inflated actor can no longer hold the load in (DRAFT - rev-149, sec.7 approval pending)"
+description: "An inflated actor can no longer hold the load in (DRAFT - rev-149, re-voiced REV-164, sec.7 approval pending)"
 
 eventCriteria:
   eventType: "sdb_fhu_deflate_anal"
@@ -7,13 +7,9 @@ eventCriteria:
 response:
   type: "direct_narration"
   content: |
-    {{ originator }} can no longer hold it in -- they clench and helplessly
-    let it out of their backside. How the moment shows on them is theirs --
-    relief, mortification, defiance, or a steadying breath -- true to who
-    they are.
-
-    Never explain what caused the swelling or where it went, and never name
-    any framework or source -- react only to the visible change.
+    {{ originator }} can no longer hold the cum in -- they clench, then
+    helplessly let it out of their backside. They react to what their body
+    just did and who saw it -- true to who they are.
 
 audience: "nearby_npcs"
 

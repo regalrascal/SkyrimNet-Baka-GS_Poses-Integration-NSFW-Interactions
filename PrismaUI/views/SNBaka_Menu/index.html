@@ -583,15 +583,12 @@ const DOWNED_ACTIONS = [
   // sit below the +100 regular-pick offset).
   { id: 10, label: 'Strip'         },
   { id: 11, label: 'Allow to dress' },
-  // REV-150 4.3 - the forced-tattoo action (slavetats.md REV-134e spec 6.3 +
-  // register entry 28 wording of record for the cue; built this rev). id 12
-  // force-applies the configured degradation set to the downed victim
-  // (player-clicked, UNGATED per the Execute pattern; the AI-aggressor daemon
-  // lane is gated by the Execute-gate 3-level consent class). Same
-  // unconditional-affordance contract as 8/9 (ruling 2B): the button list is
-  // host surface; Papyrus handles empty-state refusals reason-coded. The
-  // DLL's numeric pipe is untouched (id 12 sits below the +100 offset).
-  { id: 12, label: 'Force Tattoo'  },
+  // REV-164 (Issue #3, user ruling): the "Force Tattoo" tile (id 12) is
+  // RETIRED from the panel -- the LLM lane (ApplyTattoo action, now
+  // downed-gated + decoupled from the configured-set requirement per the
+  // REV-164 why-trace) and the gated AI-aggressor daemon lane cover both
+  // remaining surfaces; the tile was the silent-[noset] failure surface.
+  // The DLL's numeric pipe is untouched (id 12 simply no longer ships).
 ];
 
 // In-combat "Grapple" menu — shown instead of the normal interact menu when the target is hostile
