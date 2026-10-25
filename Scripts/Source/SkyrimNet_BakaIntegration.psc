@@ -1448,6 +1448,30 @@ Bool Function _HasLiveCombatTarget(Actor a) Global
     Return target && !target.IsDead() && !target.IsDisabled() && !_IsDownedAny(target)
 EndFunction
 
+; Utility.GetCurrentRealTime() restarts at 0 on every game LAUNCH, but the *RT stamps below live in
+; StorageUtil and so ride along in the save. Confirmed live bug: a follower stamped at ~9000s in an
+; earlier session read "only -9093s since last attempt, need 3.0s" and refused every on-hit struggle
+; until this session's clock caught up (2.5 hours of play). Setup() can't clear them -- it never runs
+; on load here (the MCM quest has no player alias, so SkyUI never sends it OnGameReload). Instead every
+; reader/writer of these keys goes through this: _fLastSeenRT is saved with the quest, so a clock that
+; reads LOWER than it means a relaunch, and every surviving stamp is from a dead clock.
+Float _fLastSeenRT = 0.0
+Float Function _RTNow()
+    Float now = Utility.GetCurrentRealTime()
+    ; The 5s slack is for concurrent hit events: one thread can read the clock, lose the CPU, and
+    ; compare after another thread has already stored a slightly later reading (confirmed in the
+    ; log: "446.727 < 447.051" read as a relaunch). A real relaunch drops the clock by far more.
+    If now < _fLastSeenRT - 5.0 || _fLastSeenRT == 0.0   ; 0.0 = first call on a save from before this fix
+        StorageUtil.ClearFloatValuePrefix("SNBaka.LastCreatureAttemptRT")
+        StorageUtil.ClearFloatValuePrefix("SNBaka.DefeatGraceUntilRT")
+        _Log("[SNBaka] _RTNow: real-time clock restarted (" + now + " < " + _fLastSeenRT + ") — game relaunched; cleared stale throttle/grace stamps")
+        _fLastSeenRT = now
+    ElseIf now > _fLastSeenRT
+        _fLastSeenRT = now
+    EndIf
+    Return now
+EndFunction
+
 ; Called the instant a struggle resolves with the victim defeated (creature OR human attacker) --
 ; starts the post-defeat grace window (fPostDefeatGraceDuration) so passive creature paths leave this
 ; specific victim alone for a while instead of re-picking them the moment they're vulnerable again.
@@ -1455,7 +1479,7 @@ Function _StampDefeatGrace(Actor akVictim)
     If !akVictim
         Return
     EndIf
-    StorageUtil.SetFloatValue(akVictim, "SNBaka.DefeatGraceUntilRT", Utility.GetCurrentRealTime() + fPostDefeatGraceDuration)
+    StorageUtil.SetFloatValue(akVictim, "SNBaka.DefeatGraceUntilRT", _RTNow() + fPostDefeatGraceDuration)
 EndFunction
 
 ; True while akVictim is still within their post-defeat grace window AND hasn't already been dragged
@@ -1465,7 +1489,7 @@ Bool Function _InDefeatGrace(Actor akVictim)
     If !akVictim || _HasLiveCombatTarget(akVictim)
         Return False
     EndIf
-    Return Utility.GetCurrentRealTime() < StorageUtil.GetFloatValue(akVictim, "SNBaka.DefeatGraceUntilRT", 0.0)
+    Return _RTNow() < StorageUtil.GetFloatValue(akVictim, "SNBaka.DefeatGraceUntilRT", 0.0)
 EndFunction
 
 ; Delegate a down to Acheron if it's installed. No plugin probe needed: DefeatActor takes (IsDefeated
@@ -1631,8 +1655,17 @@ Function _PacifyActor(Actor ak, Bool on)
     EndIf
     If on
         If StorageUtil.GetIntValue(ak, "SNBaka.Pacified", 0) == 0
-            StorageUtil.SetFloatValue(ak, "SNBaka.OrigAggr", ak.GetActorValue("Aggression"))
+            ; Claim BEFORE reading: concurrent hit-event threads both passed the old check-then-set and
+            ; the second captured the first's 0 as "original". And if a GS pose already holds this
+            ; actor at 0, its saved original is the real one — the live value isn't. Either way a
+            ; captured 0 self-perpetuates across every later pacify/restore (confirmed: Auri, base
+            ; Aggressive, restored to 0 in every session).
             StorageUtil.SetIntValue(ak, "SNBaka.Pacified", 1)
+            Float orig = ak.GetActorValue("Aggression")
+            If StorageUtil.GetIntValue(ak, "GSAnim.Pacified", 0) == 1
+                orig = StorageUtil.GetFloatValue(ak, "GSAnim.OrigAggr", orig)
+            EndIf
+            StorageUtil.SetFloatValue(ak, "SNBaka.OrigAggr", orig)
         EndIf
         ak.SetActorValue("Aggression", 0.0)
         ak.StopCombatAlarm()
@@ -1644,7 +1677,10 @@ Function _PacifyActor(Actor ak, Bool on)
         EndIf
         _Log("[SNBaka] _PacifyActor: calmed " + ak.GetDisplayName() + " (aggr->0, StopCombat, Calm cast; wasInCombat now=" + ak.IsInCombat() + ")")
     ElseIf StorageUtil.GetIntValue(ak, "SNBaka.Pacified", 0) == 1
-        ak.SetActorValue("Aggression", StorageUtil.GetFloatValue(ak, "SNBaka.OrigAggr", 1.0))
+        ; A GS pose still holding the actor keeps them at 0 — its own stop restores the original.
+        If StorageUtil.GetIntValue(ak, "GSAnim.Pacified", 0) == 0
+            ak.SetActorValue("Aggression", StorageUtil.GetFloatValue(ak, "SNBaka.OrigAggr", 1.0))
+        EndIf
         StorageUtil.SetIntValue(ak, "SNBaka.Pacified", 0)
         ; The Calm EFFECT cast on pacify does NOT end with the aggression restore — with any real
         ; duration it kept "liberated" aggressors becalmed and passive long after the struggle
@@ -2495,7 +2531,13 @@ EndFunction
 ; always free to interject or be interjected upon. Any hit that DOES land despite this (the player,
 ; or anything that slips past) still aborts the struggle/scene as normal -- this only stops OTHER
 ; actors from choosing to start something, it doesn't make the pair invulnerable.
-Function _ProtectNearbyAllies(Actor akCenter, Actor akAggressor, Bool abHold)
+; abFull (hold only): True = freeze EVERY nearby actor — kept for player struggles and scene starts,
+; where the re-aggro crash lives (an enemy re-targeting the player while OStim spins up a thread).
+; False = TARGETED: only threats to the victim — actors locked onto akCenter, or hostile to it and not
+; busy fighting anyone else (its lock was just cleared). Player teammates and anyone fighting someone
+; else stay free, so an NPC-only grapple no longer pauses the whole battle or freezes the companions
+; (confirmed: bandits all stopped for a 29s grapple; Jordis/Mjoll frozen through a 23-min scene).
+Function _ProtectNearbyAllies(Actor akCenter, Actor akAggressor, Bool abHold, Bool abFull = True)
     If !akCenter
         Return
     EndIf
@@ -2510,7 +2552,12 @@ Function _ProtectNearbyAllies(Actor akCenter, Actor akAggressor, Bool abHold)
     Int i = 0
     While i < loaded.Length
         Actor a = loaded[i]
-        If a && a != akCenter && a != akAggressor && a != PlayerRef && !a.IsDead() && (!abHold || a.GetDistance(akCenter) <= 3000.0)
+        Bool pick = a && a != akCenter && a != akAggressor && a != PlayerRef && !a.IsDead() && (!abHold || a.GetDistance(akCenter) <= 3000.0)
+        If pick && abHold && !abFull
+            Actor tgt = a.GetCombatTarget()
+            pick = !a.IsPlayerTeammate() && (tgt == akCenter || (!tgt && a.IsHostileToActor(akCenter)))
+        EndIf
+        If pick
             _HoldActorAI(a, abHold)
             ; Deliberately NO calm/pacify on bystanders — a cloak here stopped UNRELATED fights nearby
             ; (correct objection from testing). The victim-side calm in _ProtectVictimTargeting is what
@@ -2527,7 +2574,9 @@ Function _ProtectNearbyAllies(Actor akCenter, Actor akAggressor, Bool abHold)
         EndIf
         i += 1
     EndWhile
-    If abHold
+    If abHold && !abFull
+        _Log("[SNBaka] _ProtectNearbyAllies: " + held + " threat(s) held around " + akCenter.GetDisplayName() + " (targeted)")
+    ElseIf abHold
         _Log("[SNBaka] _ProtectNearbyAllies: " + held + " actor(s) held+calmed around " + akCenter.GetDisplayName())
     Else
         _Log("[SNBaka] _ProtectNearbyAllies: released holds/calms around " + akCenter.GetDisplayName())
@@ -2551,7 +2600,8 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
     EndIf
     ; Not gated on player involvement — a nearby teammate can be hijacked into attacking whoever's
     ; downed regardless of whether the player is one of the two actors in THIS pairing.
-    _ProtectNearbyAllies(akA2, akA1, True)
+    ; Full freeze only with the player in the pair; NPC-only grapples hold just the threats.
+    _ProtectNearbyAllies(akA2, akA1, True, a1IsPlayer || a2IsPlayer)
     ; Reset the escape flag unconditionally, not just inside the resistable branch below -- a
     ; NON-resistable sequence used to leave whatever value the PREVIOUS struggle set, and the
     ; post-escape grace at the bottom of this function keys off it.
@@ -2770,6 +2820,17 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
                     _HoldAnim(akA1, akA2, animsA1[penult], animsA2[penult], fNPCStageTime)
                     _bQTEDefeated = True   ; -> DefeatGroundWindow / escalation
                 EndIf
+            Else
+                ; Interrupted (attacker hit/pulled into combat, death, distance): neither flag got set,
+                ; and callers read "not defeated AND not escaped" as ATTACKER WON — confirmed live: Jordis
+                ; pulled the Thalmor off Borgakh mid-struggle and Borgakh was dropped into a 10s
+                ; bleedout anyway. An interruption frees the victim, same rule as the creature path.
+                _Log("[SNBaka] PlayPairedSequence: NPC struggle interrupted — victim freed")
+                _bAELVictimEscaped = True
+                SkyrimNetApi.RegisterEvent("baka_resist_success", \
+                    akA2.GetDisplayName() + " is freed as " + akA1.GetDisplayName() + " is pulled away.", \
+                    akA1, akA2)
+                _OnVictimWon(akA2, akA1)
             EndIf
         EndIf
     EndIf
@@ -3852,7 +3913,9 @@ Function _EscalationCleanup(Actor akA1, Actor akA2)
     ; Same nearby-teammate protection as PlayPairedSequence's own struggle phase, extended through the
     ; actual sex scene too — a downed/occupied actor is vulnerable to being "executed" by an unrelated
     ; mod's own AI-driven action for this whole window, not just during the preceding struggle.
-    _ProtectNearbyAllies(akA2, akA1, True)
+    ; The thread is already running here, so an NPC-only scene holds just the threats; a player
+    ; scene keeps the full freeze (the OStim player-combat crash).
+    _ProtectNearbyAllies(akA2, akA1, True, akA1 == PlayerRef || akA2 == PlayerRef)
     ; The VICTIM is untouchable for the scene's whole duration, same rule as the struggle phase
     ; (_SetupPair now ghosts both participants): the aggressor's own faction allies won't kill its
     ; prey — a stray ally hit whiffs instead of staggering the animation or feeding OStim a combat
@@ -7237,7 +7300,7 @@ Bool Function _PlayCreatureStruggleNPC(Actor akCreature, Actor akVictim, String[
         marker1 = akVictim.PlaceAtMe(XMarkerBase, 1, False, False)
         marker2 = akVictim.PlaceAtMe(XMarkerBase, 1, False, False)
     EndIf
-    _ProtectNearbyAllies(akVictim, akCreature, True)
+    _ProtectNearbyAllies(akVictim, akCreature, True, False)   ; NPC-only struggle: threats only
     _SetupPair(akCreature, akVictim, 0.0, 0.0, 0.0, True, marker1, marker2, animsA1[0])
 
     Bool aborted = _HoldAnim(akCreature, akVictim, animsA1[0], animsA2[0], fCreatureStruggleDuration)
@@ -7580,7 +7643,10 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
         ; packs often ship PAIR scenes for a creature type but nothing bigger — confirmed live with
         ; rieklings: the 4-actor pick found nothing, the scene was refused, and the retry pipeline
         ; re-grabbed the same victims every ~20s forever. Shrink until a scene exists.
-        If iCreatureBackend == 2
+        ; RESOLVED backend, not the raw setting: on "auto" (0) without SexLab this is OStim too, and
+        ; the raw == 2 check skipped the whole fallback (confirmed live: chaurus group of 4 refused,
+        ; Auri grabbed->claimed->re-downed 4 times running).
+        If _ResolveSexBackend(iCreatureBackend) == 2
             String pickTest = _PickOStimScene(sexActors, "aggressive")
             While pickTest == "" && sexActors.Length > 2
                 Actor droppedComp
@@ -7607,7 +7673,7 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
                 ; Unwind like the refused-scene branch AND back this victim's pipeline off hard, or the
                 ; grab->refuse->re-down loop hammers them every throttle window (the riekling report).
                 _Log("[SNBaka] CreatureEscalate(" + akVictim.GetDisplayName() + "): NO OStim animation exists even for a pair with " + akCreature.GetDisplayName() + " — unwinding, 5-minute creature backoff for this victim")
-                StorageUtil.SetFloatValue(akVictim, "SNBaka.LastCreatureAttemptRT", Utility.GetCurrentRealTime() + 300.0)
+                StorageUtil.SetFloatValue(akVictim, "SNBaka.LastCreatureAttemptRT", _RTNow() + 300.0)
                 _ProtectNearbyAllies(akVictim, akCreature, False)
                 If comp1
                     _PrepGroupCompanion(comp1, False)
@@ -7672,10 +7738,8 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
         _Log("[SNBaka] CreatureEscalate(" + akVictim.GetDisplayName() + "): STARTING creature sex scene (backend=" + iCreatureBackend + ", group size=" + sexActors.Length + ", victimStillDowned=" + _IsDownedAny(akVictim) + ")")
         ; Narrative parity for NPC victims (confirmed feedback: "for other npcs, llm do not get as many
         ; cues as with the player... sometimes it's a bit lost"): the LLM heard the pin start but NOT
-        ; that the claim actually proceeded to a scene. Same eventType the pin cue used.
-        SkyrimNetApi.RegisterEvent("baka_forced", \
-            akCreature.GetDisplayName() + " overpowers the helpless " + akVictim.GetDisplayName() + " completely and claims them right there on the ground.", \
-            akCreature, akVictim)
+        ; that the claim actually proceeded to a scene. Same eventType the pin cue used. Sent only once
+        ; the scene has really started (below) — sent before, a refused scene still told the LLM it happened.
         Int stid = _StartSexScene(sexActors, akVictim, akCreature, "", "aggressive", iCreatureBackend)
         If stid < 0
             ; Scene never started (CTD-guard refusal or OStim failure). This return value used to be
@@ -7702,6 +7766,23 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
             _DelegateDownToAcheron(akVictim)
             UnlockBoth(akCreature, akVictim)
             Return
+        EndIf
+        SkyrimNetApi.RegisterEvent("baka_forced", \
+            akCreature.GetDisplayName() + " overpowers the helpless " + akVictim.GetDisplayName() + " completely and claims them right there on the ground.", \
+            akCreature, akVictim)
+        ; The full prep freeze guarded the thread spin-up; once it's running, an NPC-victim scene
+        ; narrows to threats only so companions/bystanders aren't frozen for the whole scene. The
+        ; mid-scene abort below still handles a real fight reaching the creature.
+        If akVictim != PlayerRef
+            _ProtectNearbyAllies(akVictim, akCreature, False)
+            _ProtectNearbyAllies(akVictim, akCreature, True, False)
+            ; The release above is uncapped — re-hold the scene's own group creatures.
+            If comp1
+                _HoldActorAI(comp1, True)
+            EndIf
+            If comp2
+                _HoldActorAI(comp2, True)
+            EndIf
         EndIf
         _Log("[SNBaka] CreatureEscalate(" + akVictim.GetDisplayName() + "): _StartSexScene returned, entering wait loop")
         ; Wait for the scene to actually END before touching anything — this used to fall straight
@@ -7811,6 +7892,15 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
             If downed && _IsDownedAny(akVictim)
                 _ClearAcheronHold(akVictim)
             EndIf
+            ; A DOWNED victim's struggle cleanup ran _ReassertDownedProtection (still Acheron-held at
+            ; that point) — restrain + DontMove + AI hold. Release them like _ForceRecover does, or the
+            ; freed victim plays her walk cycle stuck in place forever (confirmed: Jordis/Mjoll after
+            ; escaping downed chaurus struggles; DontMove persists in the save).
+            If akVictim != PlayerRef
+                akVictim.SetRestrained(False)
+                akVictim.SetDontMove(False)
+                _HoldActorAI(akVictim, False)
+            EndIf
             _PacifyActor(akVictim, False)
             ; Revert every "lover"-rank anti-re-aggro link touching this victim — the current pair's
             ; AND stale ones left by past cycles (they were never reverted anywhere, so past victims
@@ -7825,6 +7915,11 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
             SkyrimNetApi.RegisterEvent("baka_release", \
                 akVictim.GetDisplayName() + " breaks free of " + akCreature.GetDisplayName() + "'s grip and struggles back to their feet — shaken, but free and ready to fight.", \
                 akVictim, akCreature)
+            ; Overwrite the live "pins ... cannot get away" scene cue (same per-aggressor ID, 25s TTL) so
+            ; it doesn't keep telling the LLM she's still held for the ~10s after she's free.
+            SkyrimNetApi.RegisterShortLivedEvent("baka_scene_" + akCreature.GetFormID(), "baka_release", \
+                akVictim.GetDisplayName() + " has broken free of " + akCreature.GetDisplayName() + " and is no longer held.", \
+                "", 10000, akVictim, akCreature)
             _Log("[SNBaka] CreatureEscalate(" + akVictim.GetDisplayName() + "): victim broke free — fully liberated, fight may resume after the grace window")
             ; Creature LOST the struggle (victim broke free) -- explicitly make sure it's actually back
             ; on its feet and free to act, rather than just trusting PlayPairedSequence's own _CleanupPair
@@ -7851,7 +7946,13 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
             akCreature.EvaluatePackage()
             _Log("[SNBaka] CreatureEscalate(" + akVictim.GetDisplayName() + "): " + akCreature.GetDisplayName() + " lost the struggle -- explicit liberation (stagger + AI released, pose reset)")
         EndIf
-        _CueResistOutcome("baka_forced", akCreature, akVictim)
+        ; Outcome cue states the result explicitly. _CueResistOutcome can't be used here: it reads
+        ; _bAELVictimEscaped, which only the human AEL struggle sets — this path never does, so every
+        ; creature escape ALSO sent "X overpowered Y" right after baka_release (confirmed in the log:
+        ; Mjoll broke free, the LLM got both a release and a forced/overpowered event).
+        If succeed
+            _CueOutcome("baka_forced", akCreature.GetDisplayName() + " overpowered " + akVictim.GetDisplayName() + ". It is over.", akCreature, akVictim)
+        EndIf
     EndIf
     UnlockBoth(akCreature, akVictim)
 EndFunction
@@ -7958,7 +8059,7 @@ Function _TryCreatureEscalateOnDowned(Actor akVictim)
     ; re-downs the victim, which immediately re-fires this same event with zero delay, chaining a second
     ; full struggle QTE onto the first with no breathing room at all. This throttles ANY re-entry
     ; (initial pounce, the "loop" re-check, or this kind of immediate re-trigger) to once per few seconds.
-    Float now = Utility.GetCurrentRealTime()
+    Float now = _RTNow()
     Float lastAttempt = StorageUtil.GetFloatValue(akVictim, "SNBaka.LastCreatureAttemptRT", 0.0)
     If (now - lastAttempt) < 3.0
         _Log("[SNBaka] creature: skipped — only " + (now - lastAttempt) + "s since last attempt, need 3.0s")
@@ -8089,7 +8190,7 @@ Function OnEscalationGateResponse(String response, Int success)
         ; A NO backs this victim's pipeline off ~30s (vs the usual 3s retry) so the same question isn't
         ; peppered at the LLM every engagement roll. Stamping the last-attempt clock into the future
         ; extends the existing throttle without a new key.
-        StorageUtil.SetFloatValue(v, "SNBaka.LastCreatureAttemptRT", Utility.GetCurrentRealTime() + 27.0)
+        StorageUtil.SetFloatValue(v, "SNBaka.LastCreatureAttemptRT", _RTNow() + 27.0)
         Return
     EndIf
     ; The answer took real seconds — re-validate the moment before committing.
@@ -8206,7 +8307,7 @@ Event OnCreatureHitFollower(string eventName, string strArg, float numArg, Form 
     EndIf
     ; Shared per-victim throttle across BOTH paths (same key), so a creature and a human can't chain
     ; grabs on the same victim back-to-back.
-    Float now = Utility.GetCurrentRealTime()
+    Float now = _RTNow()
     Float lastAttempt = StorageUtil.GetFloatValue(victim, "SNBaka.LastCreatureAttemptRT", 0.0)
     If (now - lastAttempt) < 3.0
         _Log("[SNBaka] OnCreatureHitFollower: blocked — only " + (now - lastAttempt) + "s since last attempt on " + victim.GetDisplayName() + ", need 3.0s")
