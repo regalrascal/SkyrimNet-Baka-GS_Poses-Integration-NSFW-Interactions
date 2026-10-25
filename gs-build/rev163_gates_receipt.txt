@@ -1,0 +1,31 @@
+PASS -- v1a pex: OnPosePicked ABSENT
+PASS -- v1b pex: pose_picker ABSENT
+PASS -- v1c pex: _posePickActor ABSENT
+PASS -- v1d pex: _PosePickWanted ABSENT
+PASS -- v1e pex: | CLIP: PRESENT
+PASS -- v1f pex: poseCatalog PRESENT
+PASS -- v1g pex: _MusePoseCatalogText PRESENT
+PASS -- v1h pex: LLM move pick sentinel PRESENT
+PASS -- v1i pex: exact-pick fires sentinel PRESENT
+PASS -- v1j zip pex: picker symbols ABSENT, CLIP PRESENT
+PASS -- v2a tree: pose_picker.prompt deleted
+PASS -- v2b zip: no pose_picker entry
+PASS -- v3a prompt: poseCatalog render PRESENT
+PASS -- v3b prompt: CLIP answer contract PRESENT
+PASS -- v3c prompt: static library list GONE
+PASS -- v3d zip prompt: catalog + CLIP PRESENT
+PASS -- v4 tree: Never explain ABSENT in sdb_fhu_ambient_narr.yaml
+PASS -- v4 tree: Do not invent ABSENT in sdb_tattoo_observed_narr.yaml
+PASS -- v4 tree: FEMALE CHARACTERS ONLY ABSENT in posedance.yaml
+PASS -- v4 tree: DO NOT USE ABSENT in posedance.yaml
+PASS -- v4 tree: DO NOT USE ABSENT in poseseduce.yaml
+PASS -- v4c known-tail census: 10/10 un-swept yamls still carry DO NOT USE (flagged)
+PASS -- v5 psc mirror: fork == GS canonical
+PASS -- v6a register: fork == GS lockstep
+PASS -- v6b register: entry 40 staged
+PASS -- v6c register: open set = 36, 37, 39, 40
+PASS -- v7 staging hash: posedance.yaml
+PASS -- v7 staging hash: poseseduce.yaml
+PASS -- v7 staging hash: gsanim_muse_consideration.prompt
+
+REV-163 GATES: ALL PASS
