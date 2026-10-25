@@ -7,7 +7,7 @@ Public-facing summary: `public-staging/CHANGELOG.md` (v0.3.0-alpha entry); relea
 draft: `releases/RELEASE_NOTES_v0.3.0-alpha.md`.
 
 ### The release arc
-- **The daemon era (Baka Interactions):** Mephala / Molag Bal Muse-style modes with
+- **The daemon era (Baka Interactions):** Mephala / Molag Bal background-daemon modes with
   MCM cadence sliders; seeded in-character thoughts; the tavern/drunk struggle variant.
 - **GS Poses:** one-pass consideration pose picking (the separate pose-picker decision
   retired); Sanguine / Sheogorath narration modes (default off, cadence sliders); pose

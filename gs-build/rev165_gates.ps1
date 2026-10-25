@@ -25,7 +25,7 @@ try {
     $ixx = ZipText 'fomod/info.xml'
     Gate 'v1a zip FOMOD: 0.3.0-alpha moduleName PRESENT' ($mcx.Contains('Delectatio et Dominium (0.3.0-alpha)'))
     Gate 'v1b zip FOMOD: billboard Baka tooltip PRESENT' ($mcx.Contains('Every emergent NSFW moment in DeD starts here'))
-    Gate 'v1c zip FOMOD: billboard GS tooltip PRESENT' ($mcx.Contains('Overdrive Mode raises the intensity'))
+    Gate 'v1c zip FOMOD: billboard GS tooltip PRESENT' ($mcx.Contains('Sheogorath Mode raises the intensity') -and $mcx.Contains('Sanguine Mode, the background daemon'))
     Gate 'v1d zip FOMOD: billboard FHU tooltip PRESENT' ($mcx.Contains('Inflation becomes part of the story'))
     Gate 'v1e zip FOMOD: billboard SlaveTats tooltip PRESENT' ($mcx.Contains('The body keeps the story'))
     Gate 'v1f zip FOMOD: billboard Acheron tooltip PRESENT' ($mcx.Contains('Losing a fight becomes a scene'))
@@ -40,7 +40,7 @@ try {
     # ---- v2: README/CHANGELOG/RELEASE_NOTES (public-staging surfaces) ----
     $rdme = [IO.File]::ReadAllText((Join-Path $pub 'README.md'))
     Gate 'v2a README: requirements home section PRESENT' ($rdme.Contains('## Requirements') -and $rdme.Contains('### Core (always required)'))
-    Gate 'v2b README: DeD Service + independence model rows PRESENT' ($rdme.Contains('**DeD Service**') -and $rdme.Contains('**Independence model:**'))
+    Gate 'v2b README: DeD Service + independence model rows PRESENT' ($rdme.Contains('### DeD Service') -and $rdme.Contains('**Independence model:**'))
     Gate 'v2c README: MCM overview (cadence sliders + narration toggles) PRESENT' ($rdme.Contains('Daemon cadence sliders') -and $rdme.Contains('Sanguine / Sheogorath mode narration'))
     Gate 'v2d README: honest-state notes (Execute experimental + 1.7 line + picker retirement) PRESENT' ($rdme.Contains('Execute action: experimental') -and $rdme.Contains('Address-Library architecture') -and $rdme.Contains('pose picker is retired'))
     Gate 'v2e README: credits Around906 FIRST among persons (Credits section)' ($rdme.Substring($rdme.IndexOf('## Credits')).IndexOf('Around906') -lt $rdme.Substring($rdme.IndexOf('## Credits')).IndexOf('Gunslicer'))

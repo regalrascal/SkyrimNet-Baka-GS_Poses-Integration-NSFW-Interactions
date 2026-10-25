@@ -8,7 +8,7 @@ independence audit, and the full story-voice pass are all in.
 ## Highlights
 
 - **The daemon era** — Mephala and Molag Bal modes let dominant NPCs escalate on their
-  own initiative, on cadences you set. The pose Muse picks both the pose and the exact
+  own initiative, on cadences you set. The pose daemon (Sanguine Mode) picks both the pose and the exact
   move in one consideration pass.
 - **Cum v2, FHU v2, SlaveTats v2** — full applied-cum awareness (appliance authority,
   decal source, ambient follow-ups, aftermath disposition), fully narrated Fill Her Up
