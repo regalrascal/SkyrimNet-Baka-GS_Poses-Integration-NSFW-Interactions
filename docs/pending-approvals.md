@@ -169,3 +169,19 @@ Pending text:
 ***
 
 *Register state after the REV-159 polish-session build (2026-10-25): NEW entry 37 STAGED (the polish-session batch - mode-narration labels + guidance, cadence slider labels, pose-narration tooltips, the user-provided 3.2(b) texts cited, the F-2 FOMOD descriptions, the 2.3 recommendation). Open entries 26, 30b, 32, 33, 34, 35, 36, 37. Fork copy lockstep, hashes in the session report.*
+
+Entry 38
+
+Subject REV-160 narration-voice sweep (one batch entry): 14 Baka trigger yamls + sdb_slapped/sdb_spanked/sdb_tattoo_applied/sdb_tattoo_removed + 3 in-script cue sites re-voiced to narration; rule citation rides the entry
+
+Pending text:
+Swept (DRAFTs at the user pen -- full text at the cited paths; the REV-160 pattern of record is the user own example: in-story storyteller narration, third person, present tense, no meta-instruction):
+1-12. The baka trigger yaml set at SKSE\Plugins\SkyrimNet\external\regalrascal.baka-gs-integration\triggers\ -- baka_calloff, baka_defeat, baka_escalate, baka_interaction_end, baka_interaction_start, baka_intervention, baka_opportunity, baka_panic, baka_resist_fail, baka_resist_start, baka_resist_success, baka_sexlab_trigger: every directive frame removed ("Generate ...", "Do NOT", "Match their personality exactly", "Make it land", "call the action, do not just narrate"); replaced with third-person present-tense world narration (action-option facts kept: Execute/Escalate/HelpUp/Release listings, "never StartNewSex"). baka_escalate_slipped.yaml left as-is (already narrative).
+13-14. sdb_slapped.yaml + sdb_spanked.yaml (same directory): "Generate their immediate reaction ... Match their personality exactly. Do not describe ..." re-voiced to narration register.
+15-16. sdb_tattoo_applied.yaml + sdb_tattoo_removed.yaml: "React only to what is observable / do not name any framework or source" recast as story truth ("How the mark came to be is not apparent to onlookers, and nothing beyond the event text is." / "nothing beyond it is apparent to onlookers.").
+17-19. IN-SCRIPT, Scripts\Source\SkyrimNet_BakaIntegration.psc: _RoleplayHint tails -- "Speak and react in character as whichever of them is talking." and "React in character." REMOVED (narrative bodies kept verbatim); the two baka_defeat/baka_opportunity cue twins (L~4632/L~4725) -- "must still decide NOW and carry it out (use the action, do not just describe it)" -> "the choice is on them right now, and it lands through action"; "Pick ONE and do it now." -> "The decision lands through the action itself."
+RULE CITATION (rides this entry): STANDING_RULESET REV-160 rider -- NARRATION-VOICE STANDARD (all trigger/narration content is in-story narration; LLM instructions live in prompt files and action descriptions only; the ship-gate grep gains the instruction-verb patterns).
+FLAGGED-ONLY (NOT swept; per-item user ruling required -- GRANDFATHER keep as ruled vs RE-VOICE re-rule the voice): the register-DRAFT narration yamls carrying the same instruction-tone patterns -- sdb_cum_ambient_narr (entry 22, user-verbatim wording of record -- already narrative), sdb_mephala_mode_narr + sdb_molagbal_mode_narr + gsanim_sanguine_mode_narr + gsanim_sheogorath_mode_narr (entry 37), sdb_tattoo_observed_narr (entry 35), sdb_fhu_ambient_narr (entry 34), sdb_fhu_creature_cum + sdb_fhu_inflate + sdb_fhu_deflate_anal/oral/vaginal (rev-149 entries).
+***
+
+*Register state after the REV-160 session (2026-10-25): NEW entry 38 STAGED (the narration-voice sweep batch -- 19 swept surfaces + rule citation + the flagged-only list). Open entries 26, 30b, 32, 33, 34, 35, 36, 37, 38. Fork copy lockstep, hashes in the session report.*

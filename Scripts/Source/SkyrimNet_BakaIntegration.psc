@@ -4629,10 +4629,10 @@ Function _DefeatGroundWindow(Actor akA1, Actor akA2)
         SkyrimNetApi.RegisterEvent("baka_defeat", \
             akA2.GetDisplayName() + " is beaten down and helpless at " + akA1.GetDisplayName() + "'s feet. " + \
             akA1.GetDisplayName() + " can talk to them — interrogate, threaten, mock, demand their surrender " + \
-            "or belongings — but must still decide NOW and carry it out (use the action, don't just describe it) " + \
+            "or belongings — but the choice is on them right now, and it lands through action " + \
             "— exactly ONE of: Escalate (force them into sex; use the Escalate action — never StartNewSex), " + \
             "HelpUp (show mercy, stand them up), or Release (step back, let the moment pass). " + \
-            "Pick ONE and do it now. " + akA2.GetDisplayName() + " reacts. One beat.", \
+            "The decision lands through the action itself. " + akA2.GetDisplayName() + " reacts. One beat.", \
             akA1, akA2)
         _Log("[SNBaka] _DefeatGroundWindow: baka_defeat registered for delegated victim " + akA2.GetDisplayName() + " (aggressor " + akA1.GetDisplayName() + ")")
         _StartCooldown(akA1)
@@ -4722,10 +4722,10 @@ Function _DefeatGroundWindow(Actor akA1, Actor akA2)
         SkyrimNetApi.RegisterEvent("baka_defeat", \
             akA2.GetDisplayName() + " is beaten down and pinned, helpless at " + akA1.GetDisplayName() + "'s feet. " + \
             akA1.GetDisplayName() + " can talk to them — interrogate, threaten, mock, demand their surrender " + \
-            "or belongings — but must still decide NOW and carry it out (use the action, don't just describe it) " + \
+            "or belongings — but the choice is on them right now, and it lands through action " + \
             "— exactly ONE of: Escalate (force them into sex; use the Escalate action — never StartNewSex), " + \
             "HelpUp (show mercy, stand them up), or Release (step back, let the moment pass). " + \
-            "Pick ONE and do it now. " + akA2.GetDisplayName() + " reacts. One beat.", \
+            "The decision lands through the action itself. " + akA2.GetDisplayName() + " reacts. One beat.", \
             akA1, akA2)
     EndIf
 
@@ -5645,9 +5645,9 @@ String Function _RoleplayHint(String sType, Actor akAtk, Actor akVic)
     If sType == "baka_forced"
         Return " " + a + " is the aggressor forcing this on " + v + ", who is held and cannot get away. " \
             + v + " would likely be anxious, panicking, frightened, angry, or pleading — whatever fits " + v \
-            + "'s personality and this moment; " + a + " is in control and acting with intent. Speak and react in character as whichever of them is talking."
+            + "'s personality and this moment; " + a + " is in control and acting with intent."
     ElseIf sType == "baka_intimate"
-        Return " " + a + " is being affectionate toward " + v + ". " + v + " might respond shyly, warmly, with surprise, flustered, or playfully — depending on how close the two of them are. React in character."
+        Return " " + a + " is being affectionate toward " + v + ". " + v + " might respond shyly, warmly, with surprise, flustered, or playfully — depending on how close the two of them are."
     EndIf
     Return ""
 EndFunction
