@@ -50,20 +50,6 @@ Pending text:
 ***User: MCM line splits and restructure landed successfully. The only edits I would make at this time would be to capitalize all the top level menu names (Baka, GS, Tattoos, Cum Effects, etc.).***
 
 ***
-Entry 26
-
-Subject Cum prompt-fragment texts (install gate) + decorated-template stash
-
-Pending text:
-1. The staged cum fragments, shipped draft-flagged in the [REV-132b] dist with install GATED on this ruling: `character_bio/0175_ded_cum.prompt` (the facts fragment — self/other split + freshness bands 10 min fresh / 1 h drying / faded) and `user_final_instructions/0520_ded_cum_disposition.prompt` (the disposition fragment — tier-3 "run hot", tier-2 "intrigued", tier-1 "taken aback", keyed on the ACTING NPC's arousal; gate structure + tier-keying are the spec's FIXED parts). Ruling the drafts (edit or approve) = the install gate; enabling them also runs the first-ever runtime test of bio-surface decorators (clean render = LIVE; error box = escalate).
-    Full entry: historical copy, lines 811-825 (texts quoted in cum-prompt-spec.md §3; receipts PROJECT_STATE §145).
-***User: The character_bio/0175_ded_cum.prompt looks good to me. Approved. Item closed.***
-2. The decorated-template stash (the REV-129 riders + branches, REMOVED from `sdb_cum_ambient.yaml` by the REV-132b flattening; verbatim text preserved in git history commit `dc3fceb^..dc3fceb` and the [REV-129] dist) — the reopening asset: riders + branches return to the ambient ONLY if/when response-content decorator rendering is fixed upstream (entry 25's note, historical copy). Until then the ambient ships FLAT (entry-22 base text) and the rich behavior rides the fragments above.
-***User: sdb_cum_ambient.yaml edited slightly for tier 2 cum reaction. Now approved, closed.***
-***
-
-
-***
 Entry 30
 
 Subject Player-target policy MCM control (30a) + baka consideration prompt (30b)
@@ -207,3 +193,4 @@ Pending text:
 *Register state after the REV-161 session (2026-10-25): NEW entry 39 STAGED (the dogfood-continuation batch -- CommandTattoo phrases/kill-vs-ink, down.yaml Execute mention, the tattoo ambient recast, the three ambient cadence sliders, the twelve pose pool enrichments). Open entries 26, 30b, 32, 33, 34, 35, 36, 37, 38, 39. Fork copy lockstep, hashes in the session report.*
 
 *Register note (2026-10-25, REV-161b -- narration-voice occurrence #2): the user s re-flag of the narration-voice standard (trigger content = in-story narration, not LLM instructions; REV-160 rider) is the per-item ruling the rider s flag-only protection required. The instruction-voice defects on the fhu/acheron/gs-poses narr surfaces -- including the entry-32/33 family -- are RE-VOICED per that ruling (14 surfaces; receipts: PROJECT_STATE S185; gate v10 extended to all 32 direct_narration yamls, 0 hits). The entries stay open for the user s remaining wording dispositions.*
+*Register state after the REV-162 session (2026-10-25): ENTRY 26 CLOSED at the user s pen (both items approved verbatim in-register: the 0175_ded_cum facts fragment approved; the decorated-template stash approved with the user s tier-2 note; both user ruling lines preserved verbatim in the historical copy L1128-1129; closure note + 0520 tier-2 addendum appended there). NEW FLAG-ONLY note (Task 3, REV-162): the SNGS_Pose category description s member list was extended from the 8 glossed names to the full 27-name enumeration (names only; no new prose glosses; the REV-103-ruled prose untouched) in both DLL sources -- the description is a wording-of-record surface, so the extension is FLAGGED for the user s disposition (keep as shipped / amend); shipped in [REV-162] with gate receipts. NOTE (same session): the user s live in-register pen on entry 32 ( My ruling as of rev-161 is that , preserved verbatim, appears cut off mid-sentence -- completion at the user s convenience) is the newest edit of record. Open entries: 30b, 32, 33, 34, 35, 36, 37, 38, 39. Fork+GS lockstep, hashes in the session report.*
