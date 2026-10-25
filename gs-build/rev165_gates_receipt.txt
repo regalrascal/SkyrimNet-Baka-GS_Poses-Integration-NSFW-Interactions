@@ -1,0 +1,38 @@
+PASS -- v1a zip FOMOD: 0.3.0-alpha moduleName PRESENT
+PASS -- v1b zip FOMOD: billboard Baka tooltip PRESENT
+PASS -- v1c zip FOMOD: billboard GS tooltip PRESENT
+PASS -- v1d zip FOMOD: billboard FHU tooltip PRESENT
+PASS -- v1e zip FOMOD: billboard SlaveTats tooltip PRESENT
+PASS -- v1f zip FOMOD: billboard Acheron tooltip PRESENT
+PASS -- v1g zip FOMOD: requirements text ABSENT (README-only)
+PASS -- v1h zip FOMOD: independence model line PRESENT
+PASS -- v1i FOMOD parity: every @source exists in zip (24 sources)
+PASS -- v2a README: requirements home section PRESENT
+PASS -- v2b README: DeD Service + independence model rows PRESENT
+PASS -- v2c README: MCM overview (cadence sliders + narration toggles) PRESENT
+PASS -- v2d README: honest-state notes (Execute experimental + 1.7 line + picker retirement) PRESENT
+PASS -- v2e README: credits Around906 FIRST among persons (Credits section)
+PASS -- v2f README: Oldcustard PR #2 credit PRESENT
+PASS -- v2g README: planner disclaimer VERBATIM (transcription line) PRESENT
+PASS -- v2h README: v0.3.0-alpha roadmap line PRESENT
+PASS -- v2i CHANGELOG: v0.3.0-alpha entry PRESENT (public)
+PASS -- v2j RELEASE_NOTES draft PRESENT
+PASS -- v3a zip text entries: PII/machine classes ZERO
+PASS -- v3b public pex headers: identity strings ZERO (patched)
+PASS -- v3c zip: compile-out / internal-dirs ABSENT
+PASS -- v4 narration-voice grep: ZERO directive frames in direct_narration yamls
+PASS -- v5 content-validate layer around906.acheron-integration
+PASS -- v5 content-validate layer regalrascal.baka-gs-integration
+PASS -- v5 content-validate layer regalrascal.fhu-inflation
+PASS -- v5 content-validate layer regalrascal.gs-poses
+PASS -- v7a lockstep: SkyrimNet_BakaIntegration.psc fork == GS-repo compile source
+PASS -- v7b lockstep: dll-source-gs SkyrimNetBridge.cpp fork == GS-repo mirror
+PASS -- v8a zip: 345 entries
+PASS -- v8b manifest-rev165 written
+PASS -- v8c zip sha256 sidecar PRESENT
+PASS -- v8d info.xml version 0.3.0-alpha
+PASS -- v8e public-staging: release state staged (changes present, unpushed)
+Delectatio-et-Dominium-rev103-pack-split_backup|2026-10-12 21:19:33|265
+PASS -- v9 modlist assertion: mods tree + profiles UNCHANGED across the session
+
+REV-165 GATES: ALL PASS

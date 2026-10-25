@@ -1,6 +1,36 @@
 # Changelog
 
-## v0.3.0-alpha — UNPUBLISHED DRAFT (feature work in progress)
+## v0.3.0-alpha — 2026-10-25: the first full release
+
+The full feature arc since v0.1.0: every module shipped, polished, and dogfood-tested.
+Public-facing summary: `public-staging/CHANGELOG.md` (v0.3.0-alpha entry); release notes
+draft: `releases/RELEASE_NOTES_v0.3.0-alpha.md`.
+
+### The release arc
+- **The daemon era (Baka Interactions):** Mephala / Molag Bal Muse-style modes with
+  MCM cadence sliders; seeded in-character thoughts; the tavern/drunk struggle variant.
+- **GS Poses:** one-pass consideration pose picking (the separate pose-picker decision
+  retired); Sanguine / Sheogorath narration modes (default off, cadence sliders); pose
+  narration routes; the pose gender policy dropdown.
+- **Cum v2:** appliance authority, decal source dropdown, ambient cues with cadence
+  slider, per-source firing modes, disposition prompts — backed by DeDService state.
+- **FHU v2:** live per-actor inflation narration; ambient narration default ON with
+  first-fire-at-entry; the OStim climax self-drive.
+- **SlaveTats v2:** Force Tattoo LLM lanes (downed-gated Apply; Command for mark/brand
+  intent); ambient exposure rolls; in-game set picker; ambient interval slider.
+- **The prompt layer:** character-bio / context / final-instruction fragments for
+  cum, FHU, tattoos, spank state, and nearby context.
+- **The Acheron cue cap** (1 at the down moment + 2 @ 60 s, then a 180 s gate).
+- **The story-voice pass:** every narration cue re-voiced to in-story narration.
+- **The independence audit:** every module presence-gated and independently removable.
+- **Safety and polish:** the absolute child boundary; category-description routing
+  fixes (both DLLs rebuilt); Execute ships experimental behind the ask-first gate;
+  Oldcustard PR #2 creature-struggle fixes folded (credit recorded).
+- **v0.3.0-alpha release prep (2026-10-25):** README rewritten to the as-shipped state
+  (requirements home, honest-state notes); FOMOD tooltips re-voiced billboard-tone,
+  requirements text removed from the FOMOD (README-only; text-only — no wizard
+  structure change); full scrub re-run (PII / pex headers / comment-class); public
+  staging synced for the user-gated release push.
 
 ### Removed
 - Removed the vestigial `SNBaka_Pose` category — the dashboard disable-step workaround is no longer needed; all pose actions render under `SNGS_Pose`.
