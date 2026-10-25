@@ -57,8 +57,9 @@ Subject Cum prompt-fragment texts (install gate) + decorated-template stash
 Pending text:
 1. The staged cum fragments, shipped draft-flagged in the [REV-132b] dist with install GATED on this ruling: `character_bio/0175_ded_cum.prompt` (the facts fragment — self/other split + freshness bands 10 min fresh / 1 h drying / faded) and `user_final_instructions/0520_ded_cum_disposition.prompt` (the disposition fragment — tier-3 "run hot", tier-2 "intrigued", tier-1 "taken aback", keyed on the ACTING NPC's arousal; gate structure + tier-keying are the spec's FIXED parts). Ruling the drafts (edit or approve) = the install gate; enabling them also runs the first-ever runtime test of bio-surface decorators (clean render = LIVE; error box = escalate).
     Full entry: historical copy, lines 811-825 (texts quoted in cum-prompt-spec.md §3; receipts PROJECT_STATE §145).
+***User: The character_bio/0175_ded_cum.prompt looks good to me. Approved. Item closed.***
 2. The decorated-template stash (the REV-129 riders + branches, REMOVED from `sdb_cum_ambient.yaml` by the REV-132b flattening; verbatim text preserved in git history commit `dc3fceb^..dc3fceb` and the [REV-129] dist) — the reopening asset: riders + branches return to the ambient ONLY if/when response-content decorator rendering is fixed upstream (entry 25's note, historical copy). Until then the ambient ships FLAT (entry-22 base text) and the rich behavior rides the fragments above.
-    (No wording pending; pointer of record.)
+***User: sdb_cum_ambient.yaml edited slightly for tier 2 cum reaction. Now approved, closed.***
 ***
 
 
@@ -74,7 +75,8 @@ Pending text:
     Filepath of record: fork tree `external\regalrascal.baka-gs-integration\prompts\snbaka_muse_consideration.prompt` (DRAFT-flagged header, this register cited).
     Full entry + REV-145/REV-146 riders: historical copy, lines 937-985.
 
-***User note: Entry 30 tooltip text edited (the 2026-10-24 pen = the ruling; 30a CLOSED at the REV-150 build; 30b remains OPEN at the user's pen for the daemon build).***
+***User note: Entry 30 tooltip text edited (the 2026-10-24 pen = the ruling; 30a CLOSED at the REV-150 build.***
+***User: The snbaka_muse_consideration.prompt reads well. It seems to be working in-game too. The only refinement I would give is having an optional direct narration sidecar, but I believe that is implemented already. Approved, closed.***
 ***
 
 
@@ -87,6 +89,8 @@ Subject Pose-picker decision template (ded/pose_picker.prompt)
 Pending text:
 1. The REV-152 pose-picker decision template, shipped draft-flagged (header cites this entry) at fork tree `SKSE\Plugins\SkyrimNet\external\regalrascal.baka-gs-integration\prompts\decisions\ded\pose_picker.prompt`. User-facing LLM prompt content: the npc/moment state blocks (name, sex, location, arousal, pose policy, current pose state) + the 'pose choice' question ('Choose the single pose from the options below that this NPC would most plausibly perform at this exact moment ... Answer with one option key only') + the criteria loop rendering the dynamic poseOptions array (one 'EVENTKEY: description' line per pose of the selected category; poses.js = catalog of record). The decision model picks the pose WITHIN the category already resolved by Sanguine's consideration call; the OnPosePicked callback fires the choice through the REV-137-hardened executor (random-in-category fallback on any failure). Options are dynamic per call — only the question/state wording is fixed text. Wording ships draft-flagged at the user's pen (entries 15/16/26 precedent).
     Full text: fork tree path above (41 lines, ASCII-only).
+***User: My ruling as of rev-161 is that 
+
 ***
 
 ***

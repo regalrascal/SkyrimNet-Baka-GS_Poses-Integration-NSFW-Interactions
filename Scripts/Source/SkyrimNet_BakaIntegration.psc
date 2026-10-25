@@ -2262,7 +2262,7 @@ Float _fCooldownExpiresAtRT = 0.0   ; 0 = no cooldown pending
 Float _fFHUNextPollRT      = 0.0   ; 0 = poll not running
 Float _RT_POLL_INTERVAL    = 10.0  ; FHU level-poll cadence, real seconds
 Float _fBakaDaemonNextRT   = 0.0   ; REV-145: 0 = daemon tick not armed (both ambient modes off)
-Float _fStripHoldNextRT    = 0.0   ; REV-146a Task 9: strip re-equip block watch (2s cadence while any queue lives)
+Float _fStripHoldNextRT    = 0.0   ; REV-146a Task 9: strip re-equip block watch (0.5s cadence since REV-162, ruling 4.1-b)
 Float _fSTAmbientNextRT    = 0.0   ; REV-159 (dogfood 2.2): SlaveTats ambient exposure pass cadence
 Float _ST_AMBIENT_INTERVAL = 30.0  ; REV-159: DECOUPLED from the daemon ticks -- modes off no longer
                                    ; silences the tattoo observation roll (the design fix confirmed at
@@ -2313,10 +2313,12 @@ Function _ArmRealtimeTimer()
         next = _fSTAmbientNextRT
     EndIf
     ; REV-146a Task 9: the strip re-equip block watch arms on the multiplexer
-    ; whenever a tracked strip queue exists (2s cadence).
+    ; whenever a tracked strip queue exists (0.5s cadence since REV-162, ruling
+    ; 4.1-b: the engine re-dress window closes before the pop renders -- the
+    ; defense wins invisibly).
     If _bStripHoldActive
         If _fStripHoldNextRT <= now + 0.05
-            _fStripHoldNextRT = now + 2.0
+            _fStripHoldNextRT = now + 0.5
         EndIf
         If _fStripHoldNextRT < next
             next = _fStripHoldNextRT
@@ -2365,9 +2367,10 @@ Event OnUpdate()
         EndIf
     EndIf
     ; REV-146a Task 9: the strip re-equip block watch leg (reverts engine-side
-    ; re-equips of tracked queue items while any queue lives; 2s cadence).
+    ; re-equips of tracked queue items while any queue lives; 0.5s cadence
+    ; since REV-162, ruling 4.1-b).
     If _bStripHoldActive && _fStripHoldNextRT > 0.0 && now >= _fStripHoldNextRT
-        _fStripHoldNextRT = now + 2.0
+        _fStripHoldNextRT = now + 0.5
         _StripHoldWatch()
     EndIf
     _ArmRealtimeTimer()
@@ -9102,17 +9105,18 @@ Function _Strip_Execute(Actor akCaster, Actor akVictim)
     _Log("[SNBaka] Strip: APPLIED " + nTaken + " item(s) -> sdb_stripped cue fired")
     ; REV-146a Task 9.3: the RE-EQUIP BLOCK WINDOW (the 9.1 verdict: the re-equip
     ; is engine-side AI outfit re-evaluation, traceless in Papyrus/native logs).
-    ; Keyed to OUR tracked queue: every 2s (the OnUpdate multiplexer) the watch
+    ; Keyed to OUR tracked queue: every 0.5s (the OnUpdate multiplexer; REV-162
+    ; ruling 4.1-b) the watch
     ; re-unequips any queued item the engine put back on, sentinel'd, until the
     ; queue is cleared by Allow to Dress (id 11) or the victim's down-window
     ; ends. SeverActions' lock semantics are respected READ-ONLY (a locked
     ; victim is skipped entirely - their system owns re-dress).
     _bStripHoldActive = True
     _ArmRealtimeTimer()
-    _Log("[SNBaka] strip-hold armed: " + akVictim.GetDisplayName() + " (re-equip block window, queue=" + nTaken + ") -- REV-146a")
+    _Log("[SNBaka] strip-hold armed: " + akVictim.GetDisplayName() + " (re-equip block window, queue=" + nTaken + "; 0.5s watch since REV-162 4.1-b) -- REV-146a")
 EndFunction
 
-; REV-146a Task 9 - THE STRIP RE-EQUIP BLOCK WATCH (multiplexer leg, 2s cadence).
+; REV-146a Task 9 - THE STRIP RE-EQUIP BLOCK WATCH (multiplexer leg, 0.5s cadence since REV-162 4.1-b).
 ; 9.1 VERDICT (dogfood Papyrus.0.log 10-23 13:22:51-55, Vorstag): our Strip
 ; fired at 13:22:51-52 (SexLab StripActorImpl took 3 items); NO Papyrus or DLL
 ; line re-equipped the items (Papyrus.0.log lines 6364-6534 hold zero equip

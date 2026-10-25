@@ -605,3 +605,5 @@ sr_inflateQuest 0x06000D63). As-built + gates of record:
 SkyrimNet-Animations-GS/docs/features/fhu-inflation.md REV-155 section;
 PROJECT_STATE GS-repo section for REV-155. Batch mode: compile gates only,
 no dist; modlist writes NONE.
+
+— Project working notes — REV-162 (2026-10-25, status pointer only; checklist authority = docs/features tree): the ingestion-fix + final-rulings session. (1) The fhu trigger-yaml ingestion investigation VERDICT: NO defect — all pack triggers ingest+fire; the S184 non-ingestion diagnosis corrected (the dogfood ran the deployed [REV-159] pre-161b drafts; log receipts render the deployed texts verbatim); fix = deploy [REV-162]. (2) SNGS_Pose category member lists extended to the full 27-name enumeration (both DLLs; register flag-only). (3) Rulings of record: strip-hold 0.5s (built, option b); Execute-invitation posture KEPT; FHU bands no default change (sliders = the valve). (4) Register entry 26 CLOSED at your in-register pen. Full receipts: PROJECT_STATE S186. — end notes —

@@ -1,3 +1,4 @@
+{% if render_mode == "full" or render_mode == "thoughts" or render_mode == "transform" or render_mode == "action" %}
 {# DeD Cum — body-state facts. INFORMATIVE ONLY, never directive. Tier-0
    (unmarked) renders NOTHING. Windowed: DeD_Cum_PromptShow opens ~1 min per
    10 min of marked time, reopened immediately on application, so state
@@ -28,7 +29,6 @@
    the session's render errors were RESPONSE-CONTENT lane + unknown-variable
    class, NOT this lane) — first enabled render = verdict (a)/(b) LIVE; an
    error box = NOT (escalate). The user's entry-26 ruling gates INSTALL. #}
-{% if render_mode == "full" or render_mode == "thoughts" or render_mode == "transform" or render_mode == "action" %}
 {% if actorUUID and actorUUID != 0 %}
 {% set cum = get_ded_cum(actorUUID) %}
 {% if cum and cum.present %}

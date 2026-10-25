@@ -105,6 +105,9 @@ namespace {
         // rules; a != nullptr is the API header's canonical no-op gate. The GS DLL
         // (SNAnimGS_UI.dll) carries an esp-probe fallback for GS-only installs - with
         // both mods installed, this registration is the only one that fires.
+        // REV-162 (Task 3, itemization audit): the member list extended from the 8
+        // glossed names to the full 27-member enumeration (15 baka-pack + 12 gs-poses
+        // customCategory: SNGS_Pose yamls); every callable pose now visible by name.
         RegisterOne("SNGS_Pose",
             "Pose, dance, stretch, show off  -  express a mood through your body, on your own, for no one in "
             "particular: a SOLO held pose or gesture, no target, no physical contact (unlike SNBaka_Display, "
@@ -118,7 +121,10 @@ namespace {
             "always call the specific member action that fits the moment (PoseDanceSexy for dancing, "
             "twerking or any lewd hip/backside show, PoseSeduce to lure, PosePresent to offer, "
             "PoseGroundSexy for floor poses, PoseStretch, PoseWorkout, PoseSubmission, PosePlead, and "
-            "the rest as listed). The member's own description says who may use it and when.",
+            "the rest by name: PoseAroused, PoseAutograph, PoseBraceArm, PoseCrouch, PoseDance, "
+            "PoseDogeza, PoseDrink, PoseDrool, PoseFood, PoseGroundIdle, PoseHandOnChin, "
+            "PoseHandOnFace, PoseIdle, PoseKneel, PoseMeditate, PosePickpocket, PoseScratchHead, "
+            "PoseSelfTouch, PoseSleep). The member's own description says who may use it and when.",
             [](RE::Actor* a) { return a != nullptr; });
 
     }

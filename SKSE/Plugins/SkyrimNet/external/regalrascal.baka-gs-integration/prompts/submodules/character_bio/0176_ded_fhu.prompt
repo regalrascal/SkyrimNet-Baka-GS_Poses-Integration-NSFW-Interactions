@@ -1,3 +1,4 @@
+{% if render_mode == "full" or render_mode == "thoughts" or render_mode == "transform" or render_mode == "action" %}
 {# DeD FHU inflation — body-state facts. INFORMATIVE ONLY, never directive.
    Tier-0 (nothing in the noticeable band) renders NOTHING. Windowed
    (the 0171 precedent sized for a long-lived state): prompt_show opens
@@ -19,7 +20,6 @@
    in the subject's cell. Branch texts below are STRATEGIST DRAFT
    (register entry 36) — the user's ruling gates INSTALL; first enabled
    render IS the probe (clean = LIVE; error box = escalate). #}
-{% if render_mode == "full" or render_mode == "thoughts" or render_mode == "transform" or render_mode == "action" %}
 {% if actorUUID and actorUUID != 0 %}
 {% set inf = get_ded_inflation(actorUUID) %}
 {% if inf and inf.present %}

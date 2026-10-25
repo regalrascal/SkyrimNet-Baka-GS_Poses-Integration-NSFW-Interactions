@@ -28,7 +28,7 @@
 {% if tier == 3 %}
 When reacting to the cum-soaked person, run hot — open admiration and appetite; you do not bother hiding your fascination.
 {% else if tier == 2 %}
-When reacting to the cum-soaked person, be intrigued — curiosity and fascination, appraising without staring.
+When reacting to the cum-soaked person, be intrigued — with scandalized curiosity and fascination, openly staring.
 {% else if tier == 1 %}
 When reacting to the cum-soaked person, be taken aback — shock, disgust, or scandalized disapproval.
 {% endif %}

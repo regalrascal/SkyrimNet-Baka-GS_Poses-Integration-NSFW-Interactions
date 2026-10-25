@@ -1,0 +1,19 @@
+source entries: 289
+STALE-TREE (build output wins): Scripts/DeD_MCM.pex
+STALE-TREE (build output wins): Scripts/DeDService.pex
+STALE-TREE (build output wins): Scripts/Downed_SkyrimNet.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_AcheronIntegration_MCM.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_AcheronIntegration.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_AnimationsGS.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_BakaIntegration.pex
+STALE-TREE (build output wins): Scripts/SkyrimNet_BakaSL.pex
+STALE-TREE (build output wins): Scripts/SNBaka_CumDetectionModule.pex
+STALE-TREE (build output wins): Scripts/SNBaka_FHUInflationModule.pex
+STALE-TREE (build output wins): Scripts/SNBaka_SlaveTatsModule.pex
+STALE-TREE (build output wins): Scripts/SNBakaUI.pex
+build-output entries (priority 1): 12
+assembled entries: 289
+entry-count assertion PASS: 289 == 289
+manifest written: D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\releases\manifests\manifest-rev162.txt (289 entries)
+zip built: D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\dist\[REV-162] Delectatio-et-Dominium ingestion-fix-final-rulings.zip (348 entries, 7,783,735 B) - size-sanity PASS (7.42 MB within 5..8 MB window)
+zip sha256 sidecar written: D:\Modding\Skyrim\Workspace\Delectatio-et-Dominium\dist\[REV-162] Delectatio-et-Dominium ingestion-fix-final-rulings.zip.sha256 (6CF415082D758333...)

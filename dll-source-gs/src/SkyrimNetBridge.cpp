@@ -56,6 +56,9 @@ void SkyrimNetBridge::Init() {
     // pack; REV-103 ruling (b): ported faithfully; em-dashes rendered "  -  " per the
     // REV-92 DLL ASCII sweep). No visibility gate: the YAML def had none (member actions
     // carry their own eligibility rules) - a != nullptr is the API header's canonical no-op.
+    // REV-162 (Task 3, itemization audit): the member list extended from the 8
+    // glossed names to the full 27-member enumeration (matches the Baka DLL's
+    // owning def verbatim; every callable pose visible by name).
     RegisterOne("SNGS_Pose",
         "Pose, dance, stretch, show off  -  express a mood through your body, on your own, for no one in "
         "particular: a SOLO held pose or gesture, no target, no physical contact (unlike SNBaka_Display, "
@@ -69,7 +72,10 @@ void SkyrimNetBridge::Init() {
         "always call the specific member action that fits the moment (PoseDanceSexy for dancing, "
         "twerking or any lewd hip/backside show, PoseSeduce to lure, PosePresent to offer, "
         "PoseGroundSexy for floor poses, PoseStretch, PoseWorkout, PoseSubmission, PosePlead, and "
-        "the rest as listed). The member's own description says who may use it and when.",
+        "the rest by name: PoseAroused, PoseAutograph, PoseBraceArm, PoseCrouch, PoseDance, "
+        "PoseDogeza, PoseDrink, PoseDrool, PoseFood, PoseGroundIdle, PoseHandOnChin, "
+        "PoseHandOnFace, PoseIdle, PoseKneel, PoseMeditate, PosePickpocket, PoseScratchHead, "
+        "PoseSelfTouch, PoseSleep). The member's own description says who may use it and when.",
         [](RE::Actor* a) { return a != nullptr; });
     SKSE::log::info("[SNAnimGS] REV-103: SNGS_Pose registered by GS fallback (GS-only install).");
 }
