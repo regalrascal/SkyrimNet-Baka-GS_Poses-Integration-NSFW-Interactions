@@ -18,10 +18,10 @@ response:
   type: "direct_narration"
   content: |
     Something has just happened between two people nearby, described by the
-    cue above. Characters who witnessed it are prompted to react to what was
-    described -- a glance, a comment, a step closer or away, amusement,
-    shock, or feigned blindness, as each personality and their own state
-    dictate. One line or one action each.
+    cue above. Those who witnessed it take it in their own way -- a glance, a
+    comment, a step closer or away, amusement, shock, or feigned blindness --
+    each true to who they are and where they stand. The most affected feel
+    compelled to speak.
 
     Do not invent details beyond what the cue described, and never name any
     framework or source -- react only to what just happened.

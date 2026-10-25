@@ -78,17 +78,20 @@ try {
   Check 'retired MCM script name ABSENT across zip' (-not ($zip.Entries | Where-Object { $_.FullName -match 'SkyrimNet_BakaIntegration_MCM' }))
   Check 'retired FHU title Inflation Level Cues ABSENT in pex' ($null -eq $mc -or -not $mc.Contains('Inflation Level Cues'))
   Check 'retired Mephala Mode exact toggle ABSENT in pex' ($null -eq $mc -or -not $mc.Contains(('Mephala Mode' + [char]0)))
-  Log '--- v10: narration-voice grep on the baka trigger set (instruction verbs ABSENT) ---'
+  Log '--- v10: narration-voice grep on ALL direct_narration trigger yamls (instruction verbs ABSENT; REV-161b occurrence #2 ruling) ---'
   $nvHit = 0
-  foreach ($n in 'baka_calloff','baka_defeat','baka_escalate','baka_interaction_end','baka_interaction_start','baka_intervention','baka_opportunity','baka_panic','baka_resist_fail','baka_resist_start','baka_resist_success','baka_sexlab_trigger') {
-    $t = ZipText "SKSE/Plugins/SkyrimNet/external/regalrascal.baka-gs-integration/triggers/$n.yaml"
-    if ($t) {
-      foreach ($patt in 'Generate one','Do NOT','Match their personality exactly','do not just narrate') {
-        if ($t.Contains($patt)) { $nvHit++; Log "  NV HIT: $n.yaml :: $patt" }
-      }
-    } else { $nvHit++; Log "  NV FAIL: $n.yaml missing from zip" }
+  $nvSwept = 0
+  $nvYamls = $zip.Entries | Where-Object { $_.FullName -match 'triggers/.*\.yaml$' }
+  foreach ($e in $nvYamls) {
+    $t = ZipText $e.FullName
+    if ($null -eq $t) { continue }
+    if (-not $t.Contains('direct_narration')) { continue }
+    $nvSwept++
+    foreach ($patt in 'Generate one','Generate a','Do NOT','Do not explain','Match their personality','do not just narrate','are prompted to','is prompted to','One line or one action','Always answer','answer in character','Make at least','call the action') {
+      if ($t.Contains($patt)) { $nvHit++; Log "  NV HIT: $($e.FullName) :: $patt" }
+    }
   }
-  Check "narration-voice: 0 instruction-verb hits in the 12 baka triggers (found $nvHit)" ($nvHit -eq 0)
+  Check "narration-voice: 0 instruction-verb hits across all $nvSwept direct_narration trigger yamls (found $nvHit)" ($nvHit -eq 0 -and $nvSwept -ge 20)
   Log '--- v11: PR#2 fold sentinels (Oldcustard fix/creature-struggle-bugs, by-concept, REV-161) ---'
   $bk = ZipText 'Scripts/SkyrimNet_BakaIntegration.pex'
   Check 'PR#2 (1): _RTStampStale relaunch guard in Baka pex' ($null -ne $bk -and $bk.Contains('_RTStampStale'))

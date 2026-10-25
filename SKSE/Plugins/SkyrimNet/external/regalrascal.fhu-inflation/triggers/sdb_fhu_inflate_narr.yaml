@@ -21,13 +21,13 @@ eventCriteria:
 response:
   type: "direct_narration"
   content: |
-    Someone nearby has just had their belly swell noticeably fuller. Characters
-    who notice are prompted to respond to the moment they just witnessed -- a
-    comment, a reaction, a tease, concern, or envy, as each personality
-    dictates. One line or one action each.
+    The recently filled character's belly swells with warmth. Nearby people
+    start to notice. Their reactions differ -- a comment, a tease, concern,
+    envy, shock, amusement -- but they all notice, and the most affected feel
+    compelled to speak.
 
-    Do not explain what caused the swelling, and never name any framework or
-    source -- respond only to the visible moment just described.
+    The source of the swelling is not apparent; the visible moment speaks
+    for itself.
 
 audience: "nearby_npcs"
 enabled: true

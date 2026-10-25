@@ -17,10 +17,10 @@ response:
   type: "direct_narration"
   content: |
     Someone nearby has just slipped into a pose, described by the cue above.
-    Characters who notice are prompted to react to what was described -- a
-    look of appreciation, a raised eyebrow, a comment, or pretending not to
-    see, as each personality and their own state dictate. One line or one
-    action each.
+    Those who notice take it in their own way -- a look of appreciation, a
+    raised eyebrow, a comment, or pretending not to see -- each true to who
+    they are and where they stand. The most affected feel compelled to
+    speak.
 
     Do not invent details beyond what the cue described, and never name any
     framework or source -- react only to what just happened.

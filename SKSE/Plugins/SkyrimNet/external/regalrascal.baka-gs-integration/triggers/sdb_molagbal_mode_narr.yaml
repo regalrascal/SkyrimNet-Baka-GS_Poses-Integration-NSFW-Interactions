@@ -18,10 +18,10 @@ response:
   type: "direct_narration"
   content: |
     Something has just been done to someone nearby, described by the cue
-    above. Characters who witnessed it are prompted to react to what was
-    described -- fear, fascination, a dark joke, a warning glance, or looking
-    away, as each personality and their own state dictate. One line or one
-    action each.
+    above. Those who witnessed it take it in their own way -- fear,
+    fascination, a dark joke, a warning glance, or looking away -- each true
+    to who they are and where they stand. The most affected feel compelled
+    to speak.
 
     Do not invent details beyond what the cue described, and never name any
     framework or source -- react only to what just happened.

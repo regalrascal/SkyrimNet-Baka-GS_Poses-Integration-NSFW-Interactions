@@ -18,10 +18,10 @@ response:
   type: "direct_narration"
   content: |
     A nearby character has a visible tattoo showing on their skin, and it has just
-    been noticed. Characters who see it are prompted to react to the specific mark
-    the cue described -- a comment, a look, a step closer or away, amusement,
-    scandal, or interest, as each personality and their own state dictate. One line
-    or one action each.
+    been noticed. Those who see it take the specific mark the cue described in
+    their own way -- a comment, a look, a step closer or away, amusement,
+    scandal, or interest -- each true to who they are and where they stand. The
+    most affected feel compelled to speak.
 
     Do not invent details about the tattoo beyond what the cue described, and never
     name any framework or source -- react only to the visible mark.

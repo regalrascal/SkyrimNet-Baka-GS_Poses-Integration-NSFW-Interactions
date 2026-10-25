@@ -17,9 +17,9 @@ response:
   type: "direct_narration"
   content: |
     Someone nearby has just been moved into a pose, described by the cue
-    above. Characters who notice are prompted to react to what was described
-    -- bemusement, delight, unease, a joke, or a wary step back, as each
-    personality and their own state dictate. One line or one action each.
+    above. Those who notice take it in their own way -- bemusement,
+    delight, unease, a joke, or a wary step back -- each true to who they
+    are and where they stand. The most affected feel compelled to speak.
 
     Do not invent details beyond what the cue described, and never name any
     framework or source -- react only to what just happened.

@@ -27,10 +27,11 @@ response:
   type: "direct_narration"
   content: |
     A nearby character is visibly inflated, their belly swollen well past
-    what a normal belly looks like. Characters who notice are prompted to
-    react to them -- curious stares, low suggestive comments, scandalized
-    whispers, concern, or embarrassment, as each personality and the
-    visible state dictate. One line or one action each.
+    what a normal belly looks like. Those who notice take the sight in
+    their own way -- curious stares, low suggestive comments, scandalized
+    whispers, concern, or embarrassment -- each true to who they are and
+    to what they are looking at. The most affected feel compelled to
+    speak.
 
     Never explain what caused the swelling, and never name any framework
     or source -- react only to the visible state and the cue that just

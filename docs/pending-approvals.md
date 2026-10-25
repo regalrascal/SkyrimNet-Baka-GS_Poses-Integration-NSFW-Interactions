@@ -199,3 +199,5 @@ Pending text:
 ***
 
 *Register state after the REV-161 session (2026-10-25): NEW entry 39 STAGED (the dogfood-continuation batch -- CommandTattoo phrases/kill-vs-ink, down.yaml Execute mention, the tattoo ambient recast, the three ambient cadence sliders, the twelve pose pool enrichments). Open entries 26, 30b, 32, 33, 34, 35, 36, 37, 38, 39. Fork copy lockstep, hashes in the session report.*
+
+*Register note (2026-10-25, REV-161b -- narration-voice occurrence #2): the user s re-flag of the narration-voice standard (trigger content = in-story narration, not LLM instructions; REV-160 rider) is the per-item ruling the rider s flag-only protection required. The instruction-voice defects on the fhu/acheron/gs-poses narr surfaces -- including the entry-32/33 family -- are RE-VOICED per that ruling (14 surfaces; receipts: PROJECT_STATE S185; gate v10 extended to all 32 direct_narration yamls, 0 hits). The entries stay open for the user s remaining wording dispositions.*

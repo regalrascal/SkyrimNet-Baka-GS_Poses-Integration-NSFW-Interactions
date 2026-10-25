@@ -1,5 +1,5 @@
 name: "baka_panic"
-description: "The target of a Baka Motion action has just been subjected to a non-consensual or violent act — generate the target's immediate panic reaction."
+description: "The target of a Baka Motion action has just been subjected to a non-consensual or violent act — the target's immediate panic, in-story."
 
 eventCriteria:
   eventType: "baka_panic"
@@ -16,8 +16,9 @@ response:
     warrior breaks differently than a servant, a hardened criminal differently
     than a sheltered villager.
 
-    The panic is still live; the scene holds them. One line or one action of the
-    fear itself -- {{ originator }}'s own moment comes separately.
+    The panic is still live; the scene holds them. What shows is a single
+    line or act of the fear itself -- {{ originator }}'s own moment comes
+    separately.
 
 audience: "nearby_npcs"
 
