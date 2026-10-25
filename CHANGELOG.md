@@ -1,8 +1,8 @@
 # Changelog
 
-## v0.3.0-alpha — 2026-10-25: the first full release
+## v0.3.0-alpha — 2026-10-25: the first full release (alpha state)
 
-The full feature arc since v0.1.0: every module shipped, polished, and dogfood-tested.
+The full feature arc since v0.1.0: every module shipped — in an honest alpha state: tested in-house where possible, and looking to the community for testing, feedback, and shared logs to help diagnose issues.
 Public-facing summary: `public-staging/CHANGELOG.md` (v0.3.0-alpha entry); release notes
 draft: `releases/RELEASE_NOTES_v0.3.0-alpha.md`.
 
