@@ -2507,7 +2507,13 @@ EndFunction
 ; always free to interject or be interjected upon. Any hit that DOES land despite this (the player,
 ; or anything that slips past) still aborts the struggle/scene as normal -- this only stops OTHER
 ; actors from choosing to start something, it doesn't make the pair invulnerable.
-Function _ProtectNearbyAllies(Actor akCenter, Actor akAggressor, Bool abHold)
+; abFull (hold only): True = freeze EVERY nearby actor — kept for player struggles and scene starts,
+; where the re-aggro crash lives (an enemy re-targeting the player while OStim spins up a thread).
+; False = TARGETED: only threats to the victim — actors locked onto akCenter, or hostile to it and not
+; busy fighting anyone else (its lock was just cleared). Player teammates and anyone fighting someone
+; else stay free, so an NPC-only grapple no longer pauses the whole battle or freezes the companions
+; (confirmed: bandits all stopped for a 29s grapple; Jordis/Mjoll frozen through a 23-min scene).
+Function _ProtectNearbyAllies(Actor akCenter, Actor akAggressor, Bool abHold, Bool abFull = True)
     If !akCenter
         Return
     EndIf
@@ -2522,7 +2528,12 @@ Function _ProtectNearbyAllies(Actor akCenter, Actor akAggressor, Bool abHold)
     Int i = 0
     While i < loaded.Length
         Actor a = loaded[i]
-        If a && a != akCenter && a != akAggressor && a != PlayerRef && !a.IsDead() && (!abHold || a.GetDistance(akCenter) <= 3000.0)
+        Bool pick = a && a != akCenter && a != akAggressor && a != PlayerRef && !a.IsDead() && (!abHold || a.GetDistance(akCenter) <= 3000.0)
+        If pick && abHold && !abFull
+            Actor tgt = a.GetCombatTarget()
+            pick = !a.IsPlayerTeammate() && (tgt == akCenter || (!tgt && a.IsHostileToActor(akCenter)))
+        EndIf
+        If pick
             _HoldActorAI(a, abHold)
             ; Deliberately NO calm/pacify on bystanders — a cloak here stopped UNRELATED fights nearby
             ; (correct objection from testing). The victim-side calm in _ProtectVictimTargeting is what
@@ -2539,7 +2550,9 @@ Function _ProtectNearbyAllies(Actor akCenter, Actor akAggressor, Bool abHold)
         EndIf
         i += 1
     EndWhile
-    If abHold
+    If abHold && !abFull
+        _Log("[SNBaka] _ProtectNearbyAllies: " + held + " threat(s) held around " + akCenter.GetDisplayName() + " (targeted)")
+    ElseIf abHold
         _Log("[SNBaka] _ProtectNearbyAllies: " + held + " actor(s) held+calmed around " + akCenter.GetDisplayName())
     Else
         _Log("[SNBaka] _ProtectNearbyAllies: released holds/calms around " + akCenter.GetDisplayName())
@@ -2563,7 +2576,8 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
     EndIf
     ; Not gated on player involvement — a nearby teammate can be hijacked into attacking whoever's
     ; downed regardless of whether the player is one of the two actors in THIS pairing.
-    _ProtectNearbyAllies(akA2, akA1, True)
+    ; Full freeze only with the player in the pair; NPC-only grapples hold just the threats.
+    _ProtectNearbyAllies(akA2, akA1, True, a1IsPlayer || a2IsPlayer)
     ; Reset the escape flag unconditionally, not just inside the resistable branch below -- a
     ; NON-resistable sequence used to leave whatever value the PREVIOUS struggle set, and the
     ; post-escape grace at the bottom of this function keys off it.
@@ -2782,6 +2796,17 @@ Function PlayPairedSequence(Actor akA1, Actor akA2, \
                     _HoldAnim(akA1, akA2, animsA1[penult], animsA2[penult], fNPCStageTime)
                     _bQTEDefeated = True   ; -> DefeatGroundWindow / escalation
                 EndIf
+            Else
+                ; Interrupted (attacker hit/pulled into combat, death, distance): neither flag got set,
+                ; and callers read "not defeated AND not escaped" as ATTACKER WON — confirmed live: Jordis
+                ; pulled the Thalmor off Borgakh mid-struggle and Borgakh was dropped into a 10s
+                ; bleedout anyway. An interruption frees the victim, same rule as the creature path.
+                _Log("[SNBaka] PlayPairedSequence: NPC struggle interrupted — victim freed")
+                _bAELVictimEscaped = True
+                SkyrimNetApi.RegisterEvent("baka_resist_success", \
+                    akA2.GetDisplayName() + " is freed as " + akA1.GetDisplayName() + " is pulled away.", \
+                    akA1, akA2)
+                _OnVictimWon(akA2, akA1)
             EndIf
         EndIf
     EndIf
@@ -3864,7 +3889,9 @@ Function _EscalationCleanup(Actor akA1, Actor akA2)
     ; Same nearby-teammate protection as PlayPairedSequence's own struggle phase, extended through the
     ; actual sex scene too — a downed/occupied actor is vulnerable to being "executed" by an unrelated
     ; mod's own AI-driven action for this whole window, not just during the preceding struggle.
-    _ProtectNearbyAllies(akA2, akA1, True)
+    ; The thread is already running here, so an NPC-only scene holds just the threats; a player
+    ; scene keeps the full freeze (the OStim player-combat crash).
+    _ProtectNearbyAllies(akA2, akA1, True, akA1 == PlayerRef || akA2 == PlayerRef)
     ; The VICTIM is untouchable for the scene's whole duration, same rule as the struggle phase
     ; (_SetupPair now ghosts both participants): the aggressor's own faction allies won't kill its
     ; prey — a stray ally hit whiffs instead of staggering the animation or feeding OStim a combat
@@ -7249,7 +7276,7 @@ Bool Function _PlayCreatureStruggleNPC(Actor akCreature, Actor akVictim, String[
         marker1 = akVictim.PlaceAtMe(XMarkerBase, 1, False, False)
         marker2 = akVictim.PlaceAtMe(XMarkerBase, 1, False, False)
     EndIf
-    _ProtectNearbyAllies(akVictim, akCreature, True)
+    _ProtectNearbyAllies(akVictim, akCreature, True, False)   ; NPC-only struggle: threats only
     _SetupPair(akCreature, akVictim, 0.0, 0.0, 0.0, True, marker1, marker2, animsA1[0])
 
     Bool aborted = _HoldAnim(akCreature, akVictim, animsA1[0], animsA2[0], fCreatureStruggleDuration)
@@ -7719,6 +7746,20 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
         SkyrimNetApi.RegisterEvent("baka_forced", \
             akCreature.GetDisplayName() + " overpowers the helpless " + akVictim.GetDisplayName() + " completely and claims them right there on the ground.", \
             akCreature, akVictim)
+        ; The full prep freeze guarded the thread spin-up; once it's running, an NPC-victim scene
+        ; narrows to threats only so companions/bystanders aren't frozen for the whole scene. The
+        ; mid-scene abort below still handles a real fight reaching the creature.
+        If akVictim != PlayerRef
+            _ProtectNearbyAllies(akVictim, akCreature, False)
+            _ProtectNearbyAllies(akVictim, akCreature, True, False)
+            ; The release above is uncapped — re-hold the scene's own group creatures.
+            If comp1
+                _HoldActorAI(comp1, True)
+            EndIf
+            If comp2
+                _HoldActorAI(comp2, True)
+            EndIf
+        EndIf
         _Log("[SNBaka] CreatureEscalate(" + akVictim.GetDisplayName() + "): _StartSexScene returned, entering wait loop")
         ; Wait for the scene to actually END before touching anything — this used to fall straight
         ; through to UnlockBoth the instant the scene was merely KICKED OFF, releasing the lock while
