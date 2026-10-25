@@ -1,0 +1,33 @@
+name: "sdb_mephala_mode_narr"
+description: "Mephala Mode action narration (MCM-gated optional second surface; register entry 37 DRAFT)"
+
+# REV-159 5.1 (user-ruled at the dogfood; the 134f Follow-up Prompt pattern
+# applied to the MODE-ACTION execution). This yaml matches the gated
+# sdb_mephala_mode_narr event type ONLY: SkyrimNet_BakaIntegration.
+# _DaemonModeNarration emits it when (and only when) the Baka Interactions
+# MCM "Mephala Mode Narration" toggle (motherboard property
+# bMephalaModeNarration, DEFAULT OFF) is ON. The event desc says what just
+# happened (actor names + the picked action); this narration is the gated
+# second surface asking surrounding NPCs to react. No template variables
+# (the D8/sec.137 binding rule); ASCII.
+
+eventCriteria:
+  eventType: "sdb_mephala_mode_narr"
+
+response:
+  type: "direct_narration"
+  content: |
+    Something has just happened between two people nearby, described by the
+    cue above. Characters who witnessed it are prompted to react to what was
+    described -- a glance, a comment, a step closer or away, amusement,
+    shock, or feigned blindness, as each personality and their own state
+    dictate. One line or one action each.
+
+    Do not invent details beyond what the cue described, and never name any
+    framework or source -- react only to what just happened.
+
+audience: "nearby_npcs"
+enabled: true
+probability: 1
+cooldownSeconds: 30
+priority: 7

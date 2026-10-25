@@ -210,7 +210,22 @@ EndFunction
 ; motherboard's multiplexed OnUpdate tick and the seed pass in its _FHUStartPoll).
 ; REV-149: body EXTENDED -- per-orifice caches + the creature-ambient pass ride
 ; the same 10s poll (no new timer class; accept-the-mechanic per ruling (c)).
-Function PollLevels(SkyrimNet_BakaIntegration akHost) Global
+; REV-159 (dogfood 2.1 fix, RELEASE-BLOCKING): the installed FHU Baka Edition
+; 2.11 writes sr.inflater.amount ONE-SHOT at Inflate() end -- the FormListAdd
+; and the amount write land together, between two poll ticks (verified in the
+; 2.11 sources: sr_inflateThread.Inflate tail, FormListAdd + SetFloatValue
+; adjacent). The v1 semantics treated an actor's FIRST sighting as baseline-
+; only (last == -1 -> record, no fire) -- correct when the poll could watch
+; the amount climb tick by tick, but under the one-shot write contract the
+; poll only ever sees the FINAL amount on first sight, so every FIRST
+; inflation of an actor was silently swallowed (the dogfood: cue chain dead,
+; SL + OStim both, no log errors). Fix: on LIVE polls (not the arm-time seed
+; pass, abSeedPass=True) a first-sighting with cur > 0 fires the inflate cue
+; with last = 0 -- the full jump is the event. Re-inflations of already-
+; baselined actors and deflates (progressive writes) are unchanged. The
+; arm-time seed pass keeps baseline-only semantics so a stale inflated actor
+; never fires a boot cue.
+Function PollLevels(SkyrimNet_BakaIntegration akHost, Bool abSeedPass = False) Global
     Form fhq = Game.GetFormFromFile(0x000D63, "sr_FillHerUp.esp")
     If !fhq
         Return
@@ -229,7 +244,15 @@ Function PollLevels(SkyrimNet_BakaIntegration akHost) Global
             Float lastV = StorageUtil.GetFloatValue(None, "SNBaka.FHULast.V." + sId, -1.0)
             Float lastA = StorageUtil.GetFloatValue(None, "SNBaka.FHULast.A." + sId, -1.0)
             Float lastO = StorageUtil.GetFloatValue(None, "SNBaka.FHULast.O." + sId, -1.0)
-            If last >= 0.0 && Math.Abs(cur - last) > 0.001
+            If last < 0.0 && !abSeedPass && cur > 0.0
+                ; REV-159 first-sighting on a LIVE poll: the one-shot write
+                ; contract means this actor was inflated between two ticks --
+                ; the full 0 -> cur jump IS the inflate event (see header).
+                ; Per-orifice "last" values pass 0.0 so _FireChange's delta
+                ; logic resolves the dominant orifice from the current loads.
+                _FireChange(akHost, a, 0.0, cur, 0.0, curV, 0.0, curA, 0.0, curO)
+                akHost._Log("[SNBaka] FHU first-sighting fire (REV-159): " + a.GetDisplayName() + " amount 0.0 -> " + cur + " (one-shot write contract, first inflation)")
+            ElseIf last >= 0.0 && Math.Abs(cur - last) > 0.001
                 _FireChange(akHost, a, last, cur, lastV, curV, lastA, curA, lastO, curO)
             EndIf
             StorageUtil.SetFloatValue(None, "SNBaka.FHULast." + sId, cur)

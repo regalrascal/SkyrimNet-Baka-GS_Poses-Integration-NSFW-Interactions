@@ -256,6 +256,34 @@ Int _fhuNarrOID = -1
 Int _fhuAmbNarrOID = -1
 Int _fhuNoticeOID = -1
 Int _fhuHeavyOID = -1
+; REV-159 5.1/5.2 (user-ruled at the dogfood): the Baka-side mode-narration
+; toggles + cadence sliders on the Baka Interactions page (Ambient Modes
+; section). Narration toggles = motherboard properties bMephalaModeNarration
+; / bMolagBalModeNarration (DEFAULT OFF; the gated second surface for daemon
+; mode-action executions, 134f pattern; labels/tooltips = register entry 37
+; DRAFTs). Cadence sliders = StorageUtil keys SNBaka.MephalaCadence /
+; SNBaka.MolagBalCadence (15s-240s; defaults 45/15, read live at every arm +
+; tick -- no re-arm needed).
+Int _mephNarrOID  = -1
+Int _molagNarrOID = -1
+Int _mephCadOID   = -1
+Int _molagCadOID  = -1
+; REV-159 5.1/5.2/5.3: the GS Poses page build-out -- Sanguine + Sheogorath
+; mode-narration toggles (DEFAULT OFF, StorageUtil GSAnim.SanguineModeNarr /
+; GSAnim.SheogorathModeNarr), the Sanguine + Sheogorath cadence sliders
+; (GSAnim.NudgeInterval of record 137f / GSAnim.T3Interval, 15s-240s), and
+; the three per-route pose-narration toggles (DEFAULT ON, current behavior
+; preserved; TITLES USER-AUTHORED per the 137f rider, register-cited:
+; "Sanguine Pose Narration" / "Emergent Pose Narration" / "Player Initiated
+; Pose Narration"; tooltips = register entry 37 DRAFTs with the lean
+; "narration cue" resolution).
+Int _sangNarrOID      = -1
+Int _sheoNarrOID      = -1
+Int _sangCadOID       = -1
+Int _sheoCadOID       = -1
+Int _poseNarrSangOID  = -1
+Int _poseNarrEmOID    = -1
+Int _poseNarrPlOID    = -1
 
 ; REV-134c: More Cum (register 24, ruled at REV-133c but mis-built into the RETIRED
 ; v7 script -- the §148 wrong-script root cause) is finally built HERE, in the live
@@ -432,7 +460,21 @@ Int Function GetVersion()
     ; and rebuilds (the four-saga rule; v2 lesson standing). No data
     ; migration (motherboard properties only; narration defaults OFF, bands
     ; default to the planner values 30/60).
-    Return 16
+    ; REV-159: SEVENTEENTH canonical bump (v16 -> v17) - THE POLISH SESSION
+    ; (dogfood fixes + build-out): (3.2b) the FHU awareness toggle RETITLED
+    ; "Module Toggle - Fill Her Up Awareness" with its three-row subtext
+    ; retired to a SetInfoText tooltip (user-provided verbatim); (3.2c) the
+    ; duplicate "Bedroom drama for SkyrimNet" tagline REMOVED from the Baka
+    ; Interactions page; (5.1) the Mephala/Molag Bal Mode Narration toggles +
+    ; (5.2) the Mephala/Molag Bal cadence sliders join the Baka Interactions
+    ; page; (5.1/5.2/5.3) the GS Poses page gains the Sanguine/Sheogorath
+    ; narration toggles + cadence sliders + the three USER-AUTHORED pose-
+    ; narration toggles. Visible body change on existing pages: every existing
+    ; save crosses this bump once and rebuilds (the four-saga rule; v2 lesson
+    ; standing). No data migration (new keys all default to their historic
+    ; behavior; narration toggles default OFF, pose-narration toggles default
+    ; ON).
+    Return 17
 EndFunction
 
 Event OnVersionUpdate(Int aVersion)
@@ -495,8 +537,14 @@ Event OnVersionUpdate(Int aVersion)
     ; REV-154 v16 (FHU ambient bystander cues): canary marker - pages rebuilt
     ; FIRST (the v2 lesson, standing). Marker SNBaka.MCMDeD.v16.
     StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v16", 1)
+    ; REV-159 v17 (the polish session): canary marker - pages rebuilt FIRST
+    ; (the v2 lesson, standing). Marker SNBaka.MCMDeD.v17. FHU awareness
+    ; retitle + tooltip; Baka tagline removal; the Baka page mode-narration +
+    ; cadence rows; the GS Poses page build-out (narration toggles, cadence
+    ; sliders, the three user-authored pose-narration toggles).
+    StorageUtil.SetIntValue(Game.GetPlayer(), "SNBaka.MCMDeD.v17", 1)
     _BuildPages()
-    Debug.Trace("[SNBaka] MCM canary: v16 OnVersionUpdate (REV-154: Ambient Narration toggle + band sliders join the Fill Her Up page; pages: " + Pages.Length + ", Main=" + Main + ")")
+    Debug.Trace("[SNBaka] MCM canary: v17 OnVersionUpdate (REV-159: FHU awareness retitle + Baka page mode-narration/cadence rows + GS Poses page build-out; pages: " + Pages.Length + ", Main=" + Main + ")")
 EndEvent
 
 ; ============================================================================
@@ -623,7 +671,10 @@ Event OnPageReset(String page)
         ; gate (Pages[] build); the Lap Sitting toggle keeps its own grey-out.
         SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("Baka Interactions")
-        AddTextOption("Bedroom drama for SkyrimNet", "", OPTION_FLAG_DISABLED)
+        ; REV-159 3.2(c) (user-ruled): the duplicate "Bedroom drama for SkyrimNet"
+        ; tagline REMOVED here (it stays on the first page's Delectatio et
+        ; Dominium header pair, its home of record); AddEmptyOption kept so the
+        ; row layout is unchanged.
         AddEmptyOption()
         ; ---- General (the former "Baka - General" body, moved verbatim) ----
         AddHeaderOption("General")
@@ -643,6 +694,17 @@ Event OnPageReset(String page)
         ; surface); the target-sex dropdown + player-target policy above STAY
         ; (settings, not mode controls). The mode FLAGS themselves live on
         ; StorageUtil and are untouched - existing saves keep their modes.
+        ; REV-159 5.1/5.2 (user-ruled at the dogfood): the mode-NARRATION
+        ; toggles + the mode cadence sliders join here (settings, not mode
+        ; controls -- the mode on/off surface stays Prisma-only). Labels +
+        ; tooltips are register entry 37 DRAFTs (134f naming pattern); the
+        ; cadence keys are read live at every arm + tick (no re-arm needed).
+        AddEmptyOption()
+        AddHeaderOption("Ambient Modes")
+        _mephNarrOID  = AddToggleOption("Mephala Mode Narration",  Main.bMephalaModeNarration)
+        _molagNarrOID = AddToggleOption("Molag Bal Mode Narration", Main.bMolagBalModeNarration)
+        _mephCadOID   = AddSliderOption("Mephala Tick Interval",  StorageUtil.GetFloatValue(None, "SNBaka.MephalaCadence", 45.0), "{0}s")
+        _molagCadOID  = AddSliderOption("Molag Bal Tick Interval", StorageUtil.GetFloatValue(None, "SNBaka.MolagBalCadence", 15.0), "{0}s")
         AddEmptyOption()
         AddHeaderOption("Capture")
         ; OFF removes the Sell-to-Slavery action entirely (not offered to the LLM). Detection first:
@@ -798,10 +860,13 @@ Event OnPageReset(String page)
         SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("FHU Inflation Awareness")
         If Main._FHUInstalled()
-            _fhuAwareOID = AddToggleOption("Inflation Level Cues (Fill Her Up)", Main.bFHUInflationEnabled)
-            AddTextOption("Watches the Fill Her Up inflation level after creampies", "", OPTION_FLAG_DISABLED)
-            AddTextOption("and reports it to SkyrimNet, so the player and NPCs can", "", OPTION_FLAG_DISABLED)
-            AddTextOption("notice and react to how full someone is.", "", OPTION_FLAG_DISABLED)
+            ; REV-159 3.2(b) (USER-PROVIDED verbatim): title "Inflation Level
+            ; Cues (Fill Her Up)" -> "Module Toggle - Fill Her Up Awareness";
+            ; the three-row subtext RETIRED in favor of the tooltip delivered
+            ; as SetInfoText on highlight (the SetInfoText pattern, the
+            ; REV-134d R2 precedent): "Enable/disable cues and reactions for
+            ; Fill Her Up Baka" (user-quoted).
+            _fhuAwareOID = AddToggleOption("Module Toggle - Fill Her Up Awareness", Main.bFHUInflationEnabled)
             ; REV-153: Follow-up Prompt -- same gating posture as the Cum
             ; Effects page's 134f toggle (greyed when the cue module is off;
             ; label DRAFT per the exchange shape, tooltip on highlight).
@@ -818,7 +883,7 @@ Event OnPageReset(String page)
             _fhuNoticeOID = AddSliderOption("Noticeable Band", Main.iFHUAmbientNoticeBand as Float, "{0}%", iAmbFlags)
             _fhuHeavyOID = AddSliderOption("Heavy Band", Main.iFHUAmbientHeavyBand as Float, "{0}%", iAmbFlags)
         Else
-            _fhuAwareOID = AddToggleOption("Inflation Level Cues (not installed)", False, OPTION_FLAG_DISABLED)
+            _fhuAwareOID = AddToggleOption("Module Toggle - Fill Her Up Awareness (not installed)", False, OPTION_FLAG_DISABLED)
             _fhuNarrOID = -1
             _fhuAmbNarrOID = -1
             _fhuNoticeOID = -1
@@ -908,10 +973,27 @@ Event OnPageReset(String page)
         ; option, three modes; the GS script reads the key on every gate (no nudge
         ; needed — every check is a fresh StorageUtil read). Mode names mirror the
         ; policy vocabulary of record.
+        ; REV-159 5.1/5.2/5.3 (user-ruled at the dogfood): the page build-out --
+        ; the Sanguine + Sheogorath mode-narration toggles (DEFAULT OFF) and
+        ; cadence sliders (15s-240s, writing the arbiters' live cadence keys),
+        ; plus the three per-route pose-narration toggles (TITLES USER-AUTHORED
+        ; per the 137f rider, register-cite; DEFAULT ON -- current behavior
+        ; preserved). Tooltips = register entry 37 DRAFTs ("narration cue" lean).
         SetCursorFillMode(TOP_TO_BOTTOM)
         AddHeaderOption("GSPoses - Pose Gender Policy")
         _gsIntroOID = AddTextOption("Who may be posed, by body:", "", OPTION_FLAG_DISABLED)
         _gsGenderPolicyOID = AddMenuOption("Pose Gender Policy", _gsGenderPolicyName(StorageUtil.GetIntValue(None, "GSAnim.GenderPolicy", 0)))
+        AddEmptyOption()
+        AddHeaderOption("Pose Narration")
+        _poseNarrSangOID = AddToggleOption("Sanguine Pose Narration", StorageUtil.GetIntValue(None, "GSAnim.PoseNarrSanguine", 1) == 1)
+        _poseNarrEmOID   = AddToggleOption("Emergent Pose Narration", StorageUtil.GetIntValue(None, "GSAnim.PoseNarrEmergent", 1) == 1)
+        _poseNarrPlOID   = AddToggleOption("Player Initiated Pose Narration", StorageUtil.GetIntValue(None, "GSAnim.PoseNarrPlayer", 1) == 1)
+        AddEmptyOption()
+        AddHeaderOption("Mode Narration & Cadence")
+        _sangNarrOID = AddToggleOption("Sanguine Mode Narration", StorageUtil.GetIntValue(None, "GSAnim.SanguineModeNarr", 0) == 1)
+        _sheoNarrOID = AddToggleOption("Sheogorath Mode Narration", StorageUtil.GetIntValue(None, "GSAnim.SheogorathModeNarr", 0) == 1)
+        _sangCadOID  = AddSliderOption("Sanguine Tick Interval", StorageUtil.GetFloatValue(None, "GSAnim.NudgeInterval", 30.0), "{0}s")
+        _sheoCadOID  = AddSliderOption("Sheogorath Tick Interval", StorageUtil.GetFloatValue(None, "GSAnim.T3Interval", 15.0), "{0}s")
     EndIf
 EndEvent
 
@@ -1105,6 +1187,41 @@ Event OnOptionSelect(Int option)
     ; Prisma panel is the only mode surface -- the motherboard toggles live
     ; in SkyrimNet_BakaIntegration, unchanged). Their OID members retire as
     ; never-bound (-1) no-ops.
+    ; REV-159 5.1: the mode-NARRATION toggles (settings, not mode controls;
+    ; register entry 37 DRAFT labels). Motherboard properties, read at fire
+    ; time -- no re-arm needed.
+    ElseIf option == _mephNarrOID
+        Main.bMephalaModeNarration = !Main.bMephalaModeNarration
+        SetToggleOptionValue(_mephNarrOID, Main.bMephalaModeNarration)
+        If Main.bMephalaModeNarration
+            Debug.Notification("Mephala Mode Narration enabled: mode actions also produce a narration cue.")
+        Else
+            Debug.Notification("Mephala Mode Narration disabled.")
+        EndIf
+    ElseIf option == _molagNarrOID
+        Main.bMolagBalModeNarration = !Main.bMolagBalModeNarration
+        SetToggleOptionValue(_molagNarrOID, Main.bMolagBalModeNarration)
+        If Main.bMolagBalModeNarration
+            Debug.Notification("Molag Bal Mode Narration enabled: mode actions also produce a narration cue.")
+        Else
+            Debug.Notification("Molag Bal Mode Narration disabled.")
+        EndIf
+    ; REV-159 5.1/5.3: the GS-side StorageUtil-keyed toggles (the _ST_Toggle
+    ; helper pattern, None-keyed GSAnim.* keys).
+    ElseIf option == _sangNarrOID
+        _GS_Toggle("GSAnim.SanguineModeNarr", _sangNarrOID, 0)
+        Debug.Notification("Sanguine Mode Narration " + _OnOff(StorageUtil.GetIntValue(None, "GSAnim.SanguineModeNarr", 0)) + ".")
+    ElseIf option == _sheoNarrOID
+        _GS_Toggle("GSAnim.SheogorathModeNarr", _sheoNarrOID, 0)
+        Debug.Notification("Sheogorath Mode Narration " + _OnOff(StorageUtil.GetIntValue(None, "GSAnim.SheogorathModeNarr", 0)) + ".")
+    ; REV-159 5.3: the three per-route pose-narration toggles (TITLES
+    ; USER-AUTHORED, 137f rider; DEFAULT ON -- current behavior preserved).
+    ElseIf option == _poseNarrSangOID
+        _GS_Toggle("GSAnim.PoseNarrSanguine", _poseNarrSangOID, 1)
+    ElseIf option == _poseNarrEmOID
+        _GS_Toggle("GSAnim.PoseNarrEmergent", _poseNarrEmOID, 1)
+    ElseIf option == _poseNarrPlOID
+        _GS_Toggle("GSAnim.PoseNarrPlayer", _poseNarrPlOID, 1)
     ElseIf option == _sellSlaveryOID
         Main.bSellToSlavery = !Main.bSellToSlavery
         SetToggleOptionValue(_sellSlaveryOID, Main.bSellToSlavery)
@@ -1610,6 +1727,28 @@ Event OnOptionSliderOpen(Int option)
         SetSliderDialogDefaultValue(60.0)
         SetSliderDialogRange(10.0, 100.0)
         SetSliderDialogInterval(5.0)
+    ; REV-159 5.2: the four mode-cadence sliders (user-ruled range 15s-240s;
+    ; defaults = each arbiter's historic cadence).
+    ElseIf option == _mephCadOID
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(None, "SNBaka.MephalaCadence", 45.0))
+        SetSliderDialogDefaultValue(45.0)
+        SetSliderDialogRange(15.0, 240.0)
+        SetSliderDialogInterval(5.0)
+    ElseIf option == _molagCadOID
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(None, "SNBaka.MolagBalCadence", 15.0))
+        SetSliderDialogDefaultValue(15.0)
+        SetSliderDialogRange(15.0, 240.0)
+        SetSliderDialogInterval(5.0)
+    ElseIf option == _sangCadOID
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(None, "GSAnim.NudgeInterval", 30.0))
+        SetSliderDialogDefaultValue(30.0)
+        SetSliderDialogRange(15.0, 240.0)
+        SetSliderDialogInterval(5.0)
+    ElseIf option == _sheoCadOID
+        SetSliderDialogStartValue(StorageUtil.GetFloatValue(None, "GSAnim.T3Interval", 15.0))
+        SetSliderDialogDefaultValue(15.0)
+        SetSliderDialogRange(15.0, 240.0)
+        SetSliderDialogInterval(5.0)
     ElseIf option == _resistDifficultyOID
         SetSliderDialogStartValue(Main.fResistDifficulty)
         SetSliderDialogDefaultValue(70.0)
@@ -1748,6 +1887,20 @@ Event OnOptionSliderAccept(Int option, Float value)
     ElseIf option == _fhuHeavyOID
         Main.iFHUAmbientHeavyBand = value as Int
         SetSliderOptionValue(_fhuHeavyOID, value, "{0}%")
+    ; REV-159 5.2: the cadence keys are read live at every daemon arm/tick and
+    ; every muse/T3 gate (no re-arm needed).
+    ElseIf option == _mephCadOID
+        StorageUtil.SetFloatValue(None, "SNBaka.MephalaCadence", value)
+        SetSliderOptionValue(_mephCadOID, value, "{0}s")
+    ElseIf option == _molagCadOID
+        StorageUtil.SetFloatValue(None, "SNBaka.MolagBalCadence", value)
+        SetSliderOptionValue(_molagCadOID, value, "{0}s")
+    ElseIf option == _sangCadOID
+        StorageUtil.SetFloatValue(None, "GSAnim.NudgeInterval", value)
+        SetSliderOptionValue(_sangCadOID, value, "{0}s")
+    ElseIf option == _sheoCadOID
+        StorageUtil.SetFloatValue(None, "GSAnim.T3Interval", value)
+        SetSliderOptionValue(_sheoCadOID, value, "{0}s")
     ElseIf option == _resistDifficultyOID
         Main.fResistDifficulty = value
         SetSliderOptionValue(_resistDifficultyOID, value, "{0}%")
@@ -1845,6 +1998,36 @@ Event OnOptionHighlight(Int option)
     ElseIf option == _fhuHeavyOID
         ; REV-154: tooltip DRAFT (register entry 34, the user's pen).
         SetInfoText("Reactions escalate to scandalized whispers above this percent (default 60%).")
+    ElseIf option == _fhuAwareOID
+        ; REV-159 3.2(b) (USER-PROVIDED verbatim): the retired three-row subtext
+        ; delivered as the tooltip on highlight (SetInfoText pattern).
+        SetInfoText("Enable/disable cues and reactions for Fill Her Up Baka")
+    ; REV-159 5.1/5.2/5.3: the new mode-narration + cadence + pose-narration
+    ; tooltip DRAFTS (register entry 37, the user's pen; the 134f naming
+    ; pattern; the pose-narration tooltips use the lean "narration cue"
+    ; resolution of the user's {{prompt/trigger}} placeholders).
+    ElseIf option == _mephNarrOID
+        SetInfoText("Additional direct narration when Mephala Mode actions fire, asking nearby characters to react")
+    ElseIf option == _molagNarrOID
+        SetInfoText("Additional direct narration when Molag Bal Mode actions fire, asking nearby characters to react")
+    ElseIf option == _mephCadOID
+        SetInfoText("Seconds between Mephala Mode action opportunities (default 45s).")
+    ElseIf option == _molagCadOID
+        SetInfoText("Seconds between Molag Bal Mode action opportunities (default 15s).")
+    ElseIf option == _sangNarrOID
+        SetInfoText("Additional direct narration when Sanguine Mode poses fire, asking nearby characters to react")
+    ElseIf option == _sheoNarrOID
+        SetInfoText("Additional direct narration when Sheogorath Mode poses fire, asking nearby characters to react")
+    ElseIf option == _sangCadOID
+        SetInfoText("Seconds between Sanguine Mode pose opportunities (default 30s).")
+    ElseIf option == _sheoCadOID
+        SetInfoText("Seconds between Sheogorath Mode pose opportunities (default 15s).")
+    ElseIf option == _poseNarrSangOID
+        SetInfoText("Send the narration cue when Sanguine Mode poses an NPC (default on).")
+    ElseIf option == _poseNarrEmOID
+        SetInfoText("Send the narration cue when autonomous or emergent forces pose an NPC (default on).")
+    ElseIf option == _poseNarrPlOID
+        SetInfoText("Send the narration cue when you pose an NPC or gesture for them to stop (default on).")
     ElseIf option == _enabledOID
         SetInfoText("Master switch for all Baka motion interactions.")
     ElseIf option == _animatedTearsOID
@@ -2053,4 +2236,20 @@ Function _ST_Toggle(String asKey, Int aiOID, Int aiDefault)
     Int v = 1 - StorageUtil.GetIntValue(p, asKey, aiDefault)
     StorageUtil.SetIntValue(p, asKey, v)
     SetToggleOptionValue(aiOID, v == 1)
+EndFunction
+
+; REV-159 5.1/5.3: GS toggle helper — flips a None-keyed GSAnim.* int between
+; 1 and 0 (the _ST_Toggle pattern, None-keyed).
+Function _GS_Toggle(String asKey, Int aiOID, Int aiDefault)
+    Int v = 1 - StorageUtil.GetIntValue(None, asKey, aiDefault)
+    StorageUtil.SetIntValue(None, asKey, v)
+    SetToggleOptionValue(aiOID, v == 1)
+EndFunction
+
+; REV-159: "enabled"/"disabled" for the GS narration notifications.
+String Function _OnOff(Int aiV)
+    If aiV == 1
+        Return "enabled"
+    EndIf
+    Return "disabled"
 EndFunction

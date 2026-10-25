@@ -111,6 +111,17 @@ EndFunction
 ;                           defaults to the fMuseNudgeIntervalSec compile-time value — a KEY,
 ;                           because the save-resident member value 100.0 was shadowing the
 ;                           compiled 30.0 on long-lived saves, the diagnosed ~100s gap source)
+;   GSAnim.T3Interval        REV-159 5.2: Sheogorath T3 cadence (StorageUtil, default = the
+;                           fOdT3IntervalSec compiled member 15.0; the GS Poses MCM slider
+;                           writes it live, 15s-240s)
+;   GSAnim.SanguineModeNarr / GSAnim.SheogorathModeNarr
+;                           REV-159 5.1: the per-mode direct-narration toggles (DEFAULT 0 =
+;                           OFF; the gated second surface for mode-action executions, 134f
+;                           pattern; yamls gsanim_sanguine_mode_narr/gsanim_sheogorath_mode_narr)
+;   GSAnim.PoseNarrSanguine / GSAnim.PoseNarrEmergent / GSAnim.PoseNarrPlayer
+;                           REV-159 5.3: the three per-route pose-cue narration toggles
+;                           (DEFAULT 1 = ON, current behavior preserved; the GS Poses page
+;                           owns them, user-authored titles)
 ;   GSAnim.LastOdCue          global timestamp of the last T1 ambience cue
 ;   GSAnim.OverdriveExpire    absolute real-time timestamp when performance mode auto-OFFs
 ;   GSAnim.CombatSuspendStart when the current player-combat suspend began (0 = not suspended;
@@ -635,10 +646,16 @@ Event OnPoseSelected(String asEventName, String asPose, Float afNum, Form akSend
             String sVibe = StorageUtil.GetStringValue(akStop, "GSAnim.Vibe", "")
             _StopActorPose(akStop)
             Debug.Notification(akStop.GetDisplayName() + " stops posing.")
-            SkyrimNetApi.RegisterEvent("gsanim_npc_pose", \
-                PlayerRef.GetDisplayName() + " gestures for " + akStop.GetDisplayName() \
-                + " to stop posing; " + akStop.GetDisplayName() + _StopWording(sVibe), \
-                akStop, None)
+            ; REV-159 5.3: the stop gesture is a player-initiated pose event --
+            ; gated by the player route toggle (DEFAULT ON), same as _PoseDirect.
+            If StorageUtil.GetIntValue(None, "GSAnim.PoseNarrPlayer", 1) == 1
+                SkyrimNetApi.RegisterEvent("gsanim_npc_pose", \
+                    PlayerRef.GetDisplayName() + " gestures for " + akStop.GetDisplayName() \
+                    + " to stop posing; " + akStop.GetDisplayName() + _StopWording(sVibe), \
+                    akStop, None)
+            Else
+                Debug.Trace("[SNAnimGS] gsanim_npc_pose cue GATED-OFF (route 3 player stop, " + akStop.GetDisplayName() + ") -- REV-159 5.3")
+            EndIf
         EndIf
         Return
     EndIf
@@ -1057,7 +1074,7 @@ EndFunction
 Bool Function _PosePickFallbackFire(Actor ak, String vibe, String sPose, String sReason)
     Debug.Trace("[SNAnimGS] pose-picker FALLBACK (random-in-category, reason: " + sReason + "): " + ak.GetDisplayName() + " (cat '" + vibe + "')")
 
-    If _PoseVibe(ak, vibe, _MuseFireLabel(sPose))
+    If _PoseVibe(ak, vibe, _MuseFireLabel(sPose), "", 1)
         _MuseFireSuccess(ak, sPose, Utility.GetCurrentRealTime())
         Return True
     EndIf
@@ -1086,6 +1103,20 @@ Function _MuseFireSuccess(Actor ak, String sPose, Float fStamp)
     ; decision-callback path passes the callback-time clock.
     StorageUtil.SetFloatValue(None, "GSAnim.MuseGlobal", fStamp)
     Debug.Trace("[SNAnimGS] sanguine mode interval re-armed at pose start: " + ak.GetDisplayName() + " (REV-137f)")
+    ; REV-159 5.1 (user-ruled at the dogfood; 134f pattern): the Sanguine MODE
+    ; direct-narration trigger -- DEFAULT OFF, GS Poses page toggle
+    ; (GSAnim.SanguineModeNarr). Desc = what just happened (actor + pose); the
+    ; yaml gsanim_sanguine_mode_narr.yaml (register entry 37 DRAFT) matches the
+    ; event type ONLY and asks surrounding NPCs to react. Silent-with-sentinel
+    ; on the OFF leg. _MuseFireSuccess is the single choke point for every
+    ; genuine Sanguine fire (sync + decision-callback paths).
+    If StorageUtil.GetIntValue(None, "GSAnim.SanguineModeNarr", 0) == 1
+        SkyrimNetApi.RegisterEvent("gsanim_sanguine_mode_narr", \
+            ak.GetDisplayName() + " has just slipped into a pose (" + sPose + ").", ak, None)
+        Debug.Trace("[SNAnimGS] sanguine mode narration FIRED (gsanim_sanguine_mode_narr, " + ak.GetDisplayName() + ") -- REV-159 5.1")
+    Else
+        Debug.Trace("[SNAnimGS] sanguine mode narration OFF -- narration event skipped -- REV-159 5.1")
+    EndIf
 EndFunction
 
 ; The decision callback (the 145 consideration-callback dispatch discipline:
@@ -1110,7 +1141,7 @@ Function OnPosePicked(String answer, String resultJson, Int success)
         ; defense in depth -- the _PoseVibe guard re-checks too).
         String csv = _VibeEventsFor(ak, sVibe)
         If StringUtil.Find("," + csv + ",", "," + answer + ",") != -1
-            If _PoseVibe(ak, sVibe, _MuseFireLabel(sPose), answer)
+            If _PoseVibe(ak, sVibe, _MuseFireLabel(sPose), answer, 1)
                 _MuseFireSuccess(ak, sPose, Utility.GetCurrentRealTime())
                 Return
             EndIf
@@ -1162,7 +1193,16 @@ EndFunction
 ; the random draw; empty = today's random draw (every pre-existing callsite
 ; unchanged). The forced event is validated against the pool at draw time
 ; (belt-and-suspenders; OnPosePicked validates before calling too).
-Bool Function _PoseVibe(Actor ak, String vibe, String label, String sForceEvent = "")
+; REV-159 5.3: aiRoute tags the fire lane for the per-route pose-narration
+; toggles (user-authored titles, 137f rider): 1 = Sanguine mode fire
+; (consideration picks + fallbacks), 2 = emergent autonomous fire (Sheogorath
+; T3 + any LLM-chosen pose action via the Pose*_Execute executors),
+; 3 = player-initiated (the grid/crosshair pick; also the stop gesture).
+; 0/unknown = untagged -- the cue fires ungated (no behavior change).
+; The gate reads StorageUtil keys GSAnim.PoseNarrSanguine/Emergent/Player
+; (DEFAULT 1 = ON -- current behavior preserved; the MCM "GS Poses" page owns
+; them, register entry 37 DRAFT tooltips).
+Bool Function _PoseVibe(Actor ak, String vibe, String label, String sForceEvent = "", Int aiRoute = 0)
     If !ak || ak == PlayerRef
         Return False
     EndIf
@@ -1248,8 +1288,23 @@ Bool Function _PoseVibe(Actor ak, String vibe, String label, String sForceEvent 
     StorageUtil.FormListAdd(None,  "GSAnim.Posing", ak, False)
     StorageUtil.SetStringValue(ak,  "GSAnim.Vibe",   label)   ; Phase 4 rider: named-pose stop wording
     StorageUtil.SetFloatValue(None, "GSAnim.LastPoseFire", Utility.GetCurrentRealTime())  ; observability only since REV-137f (silence-floor reader retired)
-    SkyrimNetApi.RegisterEvent("gsanim_npc_pose", \
-        ak.GetDisplayName() + _PoseVibeDesc(vibe, label), ak, None)
+    ; REV-159 5.3: the per-route pose-narration gate (DEFAULT ON -- the cue fires
+    ; exactly as before unless the user turns a route's toggle off on the GS
+    ; Poses page; silent-with-sentinel on the gated-skip leg, ruleset 5).
+    Int iNarrGate = 1
+    If aiRoute == 1
+        iNarrGate = StorageUtil.GetIntValue(None, "GSAnim.PoseNarrSanguine", 1)
+    ElseIf aiRoute == 2
+        iNarrGate = StorageUtil.GetIntValue(None, "GSAnim.PoseNarrEmergent", 1)
+    ElseIf aiRoute == 3
+        iNarrGate = StorageUtil.GetIntValue(None, "GSAnim.PoseNarrPlayer", 1)
+    EndIf
+    If iNarrGate == 1
+        SkyrimNetApi.RegisterEvent("gsanim_npc_pose", \
+            ak.GetDisplayName() + _PoseVibeDesc(vibe, label), ak, None)
+    Else
+        Debug.Trace("[SNAnimGS] gsanim_npc_pose cue GATED-OFF (route " + aiRoute + ", " + ak.GetDisplayName() + ") -- REV-159 5.3")
+    EndIf
     ; REV-137d 4.1 (user ruling 2026-10-22, USER-AUTHORED per this ruling -- 17b
     ; precedent, register-cited in gs-poses.md REV-137d + posing-gender.md): every
     ; genuine Sheogorath/T3 fire carries an on-screen receipt mirroring the Sanguine
@@ -1268,6 +1323,19 @@ Bool Function _PoseVibe(Actor ak, String vibe, String label, String sForceEvent 
         StorageUtil.SetFloatValue(ak, "GSAnim.T3Mark", 0.0)   ; consume (0.0 = no mark; UnSetValue is not in this API surface)
         Debug.Trace("[SNAnimGS] sheogorath T3 FIRE receipt: " + ak.GetDisplayName() + " (" + vibe + ")")
         Debug.Notification("Sheogorath - " + ak.GetDisplayName() + " (" + vibe + ")")
+        ; REV-159 5.1 (user-ruled at the dogfood; 134f pattern): the Sheogorath
+        ; MODE direct-narration trigger -- DEFAULT OFF, GS Poses page toggle
+        ; (GSAnim.SheogorathModeNarr). The desc says what just happened (actor
+        ; + pose); the yaml gsanim_sheogorath_mode_narr.yaml (register entry 37
+        ; DRAFT) matches the event type ONLY and asks surrounding NPCs to react.
+        ; Silent-with-sentinel on the OFF leg.
+        If StorageUtil.GetIntValue(None, "GSAnim.SheogorathModeNarr", 0) == 1
+            SkyrimNetApi.RegisterEvent("gsanim_sheogorath_mode_narr", \
+                ak.GetDisplayName() + " has just been moved into a pose (" + vibe + ").", ak, None)
+            Debug.Trace("[SNAnimGS] sheogorath mode narration FIRED (gsanim_sheogorath_mode_narr, " + ak.GetDisplayName() + ") -- REV-159 5.1")
+        Else
+            Debug.Trace("[SNAnimGS] sheogorath mode narration OFF -- narration event skipped -- REV-159 5.1")
+        EndIf
     EndIf
     RegisterForSingleUpdate(3.0)
     Return True   ; REV-137a 2.3: outcome-true — the event WAS sent
@@ -1302,9 +1370,16 @@ Function _PoseDirect(Actor ak, String ev, String desc, String cat)
     If desc != ""
         what = "a pose - " + desc
     EndIf
-    SkyrimNetApi.RegisterEvent("gsanim_npc_pose", \
-        ak.GetDisplayName() + " strikes " + what + " at " + PlayerRef.GetDisplayName() + "'s direction.", \
-        ak, None)
+    ; REV-159 5.3: the player-initiated route's pose-narration gate (DEFAULT ON;
+    ; GSAnim.PoseNarrPlayer, GS Poses page -- "Player Initiated Pose Narration",
+    ; user-authored title).
+    If StorageUtil.GetIntValue(None, "GSAnim.PoseNarrPlayer", 1) == 1
+        SkyrimNetApi.RegisterEvent("gsanim_npc_pose", \
+            ak.GetDisplayName() + " strikes " + what + " at " + PlayerRef.GetDisplayName() + "'s direction.", \
+            ak, None)
+    Else
+        Debug.Trace("[SNAnimGS] gsanim_npc_pose cue GATED-OFF (route 3 player, " + ak.GetDisplayName() + ") -- REV-159 5.3")
+    EndIf
 EndFunction
 
 Function _StopActorPose(Actor ak)
@@ -2270,7 +2345,7 @@ Function OnMuseConsideration(String response, Int success)
                 EndIf
                 ; rc==1: the fire (or its fallback) happens in OnPosePicked --
                 ; the 145 async dispatch discipline (no synchronous fire here).
-            ElseIf _PoseVibe(ak, sFireVibe, _MuseFireLabel(sPose))
+            ElseIf _PoseVibe(ak, sFireVibe, _MuseFireLabel(sPose), "", 1)
                 ; REV-137a 2.3 (outcome-true, §157 finding 2.3): the fire sentinel
                 ; fires ONLY on a True return from _PoseVibe (event actually sent).
                 ; REV-152: the success bookkeeping is extracted (_MuseFireSuccess)
@@ -2505,15 +2580,20 @@ Function _OverdriveTick()
     If fLastT3 > fNow
         fLastT3 = 0.0   ; stale cross-session stamp -- house clamp class (REV-17 pattern)
     EndIf
-    If fNow - fLastT3 >= fOdT3IntervalSec
+    ; REV-159 5.2: the T3 cadence is now an MCM SLIDER value (15s-240s, the GS
+    ; Poses page) carried on the fresh key GSAnim.T3Interval (default = the
+    ; historic compiled member -- the 137f save-residue-safe pattern; existing
+    ; installs keep 15s).
+    Float fT3Interval = StorageUtil.GetFloatValue(None, "GSAnim.T3Interval", fOdT3IntervalSec)
+    If fNow - fLastT3 >= fT3Interval
         StorageUtil.SetFloatValue(None, "GSAnim.LastT3Fire", fNow)
         Debug.Trace("[SNAnimGS] sheogorath mode tick: T3 multi-poser fire (clock " + (fNow - fLastT3) \
-            + "s >= interval " + fOdT3IntervalSec + "s; expire in " \
+            + "s >= interval " + fT3Interval + "s; expire in " \
             + (StorageUtil.GetFloatValue(None, "GSAnim.OverdriveExpire", 0.0) - fNow) + "s; REV-137f)")
         _OdAutoPose()
     Else
         Debug.Trace("[SNAnimGS] sheogorath mode tick: T3 window not yet due (clock " + (fNow - fLastT3) \
-            + "s < interval " + fOdT3IntervalSec + "s; REV-137f)")
+            + "s < interval " + fT3Interval + "s; REV-137f)")
     EndIf
 EndFunction
 
@@ -2590,40 +2670,40 @@ EndFunction
 ; it in place" tail removed by user ruling 2026-10-23) AND into the per-actor
 ; GSAnim.Vibe key the stop paths read for named-pose stop wording.
 Function PoseSeduce_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "seduce", "a seductive pose - weight on one hip, gaze holding the room")
+    _PoseVibe(akInitiator, "seduce", "a seductive pose - weight on one hip, gaze holding the room", 2)
 EndFunction
 Function PoseSelftouch_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "selftouch", "a suggestive, self-touching pose - arousal worn openly")
+    _PoseVibe(akInitiator, "selftouch", "a suggestive, self-touching pose - arousal worn openly", 2)
 EndFunction
 Function PosePresent_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "present", "a bent-forward presenting pose, deliberately offering the view")
+    _PoseVibe(akInitiator, "present", "a bent-forward presenting pose, deliberately offering the view", 2)
 EndFunction
 Function PoseDance_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "dance", "a light, playful dance - feet answering the music")
+    _PoseVibe(akInitiator, "dance", "a light, playful dance - feet answering the music", 2)
 EndFunction
 Function PoseDanceSexy_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "dance_sexy", "a slow, provocative dance - a performance with a single intended victim")
+    _PoseVibe(akInitiator, "dance_sexy", "a slow, provocative dance - a performance with a single intended victim", 2)
 EndFunction
 Function PoseGroundSexy_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "ground_sexy", "a sultry sprawl on the ground - low, languid, unhurried")
+    _PoseVibe(akInitiator, "ground_sexy", "a sultry sprawl on the ground - low, languid, unhurried", 2)
 EndFunction
 Function PoseGroundIdle_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "ground_idle", "a spent, sprawling rest on the ground")
+    _PoseVibe(akInitiator, "ground_idle", "a spent, sprawling rest on the ground", 2)
 EndFunction
 Function PoseWorkout_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "workout", "a set of exercises - strength and stamina on display")
+    _PoseVibe(akInitiator, "workout", "a set of exercises - strength and stamina on display", 2)
 EndFunction
 Function PoseStretch_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "stretch", "a long, reaching stretch")
+    _PoseVibe(akInitiator, "stretch", "a long, reaching stretch", 2)
 EndFunction
 Function PoseSubmission_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "submission", "a surrendered pose - body lowered, the shape of yielding")
+    _PoseVibe(akInitiator, "submission", "a surrendered pose - body lowered, the shape of yielding", 2)
 EndFunction
 Function PosePlead_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "plead", "a kneeling plea - lowered before someone it matters to")
+    _PoseVibe(akInitiator, "plead", "a kneeling plea - lowered before someone it matters to", 2)
 EndFunction
 Function PoseIdle_Execute(Actor akInitiator)
-    _PoseVibe(akInitiator, "idle", "an easy stance - hip against the wall, nowhere to be")
+    _PoseVibe(akInitiator, "idle", "an easy stance - hip against the wall, nowhere to be", 2)
 EndFunction
 
 ; Phase 4 rider: shared stop wording — names the held pose from GSAnim.Vibe when present,

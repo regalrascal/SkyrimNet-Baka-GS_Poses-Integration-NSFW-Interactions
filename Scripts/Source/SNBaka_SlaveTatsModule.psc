@@ -44,7 +44,19 @@ Bool Function Installed() Global
     ; Framework presence = the SlaveTats quest record loads from the esp (legacy SE esp, or
     ; the NG overwrite ? NG's runtime SlaveTats.pex shadows SE's by MO2 priority, but both
     ; installs carry SlaveTats.esp; the record resolves either way).
-    Return Game.GetFormFromFile(0x800, "SlaveTats.esp") != None
+    ; REV-159 F-3 (S181 finding): cached ABSENCE -- the uncached probe logged a hard
+    ; Papyrus error on every caller (arm pass + the new 30s ambient cadence) when the
+    ; esp is absent. esp load state cannot change within a session; the flag is set
+    ; once on first failed probe and short-circuits every later call.
+    If StorageUtil.GetIntValue(None, "SNBaka.ST.ProbeAbsent", 0) == 1
+        Return False
+    EndIf
+    Bool bPresent = Game.GetFormFromFile(0x800, "SlaveTats.esp") != None
+    If !bPresent
+        StorageUtil.SetIntValue(None, "SNBaka.ST.ProbeAbsent", 1)
+        Debug.Trace("[SNBaka.ST] Installed: SlaveTats.esp absent (cached absent from now on) -- REV-159 F-3")
+    EndIf
+    Return bPresent
 EndFunction
 
 ; SlaveTatsNG detection (REV-72 research 1d): NG's runtime SlaveTats.VERSION() returns

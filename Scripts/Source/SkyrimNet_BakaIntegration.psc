@@ -270,6 +270,17 @@ Bool  Property bFHUInflateNarration = False Auto
 Bool  Property bFHUAmbientNarration = False Auto
 Int   Property iFHUAmbientNoticeBand = 30 Auto
 Int   Property iFHUAmbientHeavyBand  = 60 Auto
+; REV-159 5.1 (user-ruled at the dogfood): MODE DIRECT-NARRATION TRIGGERS, the
+; 134f Follow-up Prompt pattern per mode. bMephalaModeNarration /
+; bMolagBalModeNarration gate a narration event fired alongside each daemon
+; mode-action execution (desc = what just happened, actor names + action);
+; the yaml (sdb_mephala_mode_narr.yaml / sdb_molagbal_mode_narr.yaml) matches
+; its event type ONLY and asks surrounding NPCs to react (direct_narration).
+; DEFAULT OFF per the user ruling. MOLAG BAL: narration YES, thoughts still NO
+; (both user rulings -- the thought-seeding refusal stands). Labels/tooltips
+; are pending-approvals register DRAFTs (entry 37; the 134f naming pattern).
+Bool  Property bMephalaModeNarration  = False Auto
+Bool  Property bMolagBalModeNarration = False Auto
 ; Per-source vs unified cum-cue shaping (amendment 2b): 0 = unified (framework-neutral,
 ; default -- the proposal awaiting §7 ruling), 1 = per-source wording.
 Int   Property iCumCueMode          = 0    Auto
@@ -508,6 +519,7 @@ Function Setup()
     Else
         _FHUStopPoll()
     EndIf
+    _STAmbientStart()   ; REV-159 (dogfood 2.2): decoupled ST ambient exposure cadence (mode-agnostic)
     ; Re-read SNBaka_Offsets.ini so edits to the offsets file apply on game load (no restart needed).
     SNBakaUI.ReloadOffsets()
     ; Persist the "Sell to Slavery disabled" choice across loads: the YAML re-registers the action every
@@ -652,7 +664,7 @@ EndFunction
 ; engine log line) when the bridge esp is absent. Shared by the Acheron MCM page and
 ; _ArmModules' nudge path.
 Bool Function IsAcheronBridgeInstalled()
-    Return Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp") != None
+    Return _AcheronBridgePresent()
 EndFunction
 
 ; ============================================================
@@ -940,14 +952,21 @@ EndFunction
 ; player-targeting). MCM-controlled -- the toggle builds with the baka-daemon MCM
 ; session; its label/tooltip is a pending-approvals DRAFT (gated, §7).
 ;
-; MIGRATION (the bPlayerCanBeSpanked fold-in; DECIDED + SURFACED at REV-144): a
-; save-restored instance that already ran this module reads the OLD spank key's
-; value as the policy's INITIAL value (continuity: the save's recorded spank-target
-; permission carries module-wide; the spank-scoped gate itself is retired as an
-; admission gate). A FRESH boot (new game, or first-time module install into an
-; ongoing save) seeds 0 = OFF -- the ruled DEFAULT. The retired properties
+; MIGRATION (the bPlayerCanBeSpanked fold-in; DECIDED + SURFACED at REV-144):
+; RETIRED AT REV-159 (dogfood 2.5 verdict). The v1 continuity read seeded the
+; policy from the retired spank property's save value -- but that property's
+; compile-time default is TRUE, so a save that NEVER WROTE the property reads
+; TRUE and is indistinguishable from a save that deliberately set it TRUE
+; (dogfood receipt: "[SNBaka] player-target policy SEEDED: ON (1) (existing
+; save -- seeded from retired bPlayerCanBeSpanked=TRUE, REV-144)" while the
+; user's old spank setting was OFF). The inheritance claim is also retired
+; from the MCM tooltip (register entry 30a already dropped the sentence; the
+; seed now matches the tooltip's promise). The corrected rule: the policy
+; seeds OFF in BOTH branches (fresh boot AND existing save); a one-shot v2
+; correction pass (Seeded2 key) resets the wrongly-inherited ON values that
+; the v1 seed produced, then never runs again. The retired properties
 ; (bPlayerCanBeSpanked / bPlayerCanBeTarget) stay declared for save-member +
-; esp-VMAD compatibility; they no longer gate anything.
+; esp-VMAD compatibility; they no longer gate anything and are no longer read.
 Int Function _PlayerTargetPolicy()
     Return StorageUtil.GetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy", 0)
 EndFunction
@@ -956,24 +975,23 @@ Function _SeedPlayerTargetPolicy()
     If !PlayerRef
         Return
     EndIf
-    If StorageUtil.GetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy.Seeded", 0) == 1
+    If StorageUtil.GetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy.Seeded2", 0) == 1
         Return
     EndIf
-    Int v = 0
-    If !_bFreshBoot && bPlayerCanBeSpanked
-        v = 1   ; save-restored instance: old spank key = policy's initial value
-    EndIf
-    StorageUtil.SetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy", v)
-    StorageUtil.SetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy.Seeded", 1)
-    String sV = "OFF (0)"
-    If v == 1
-        sV = "ON (1)"
-    EndIf
-    If _bFreshBoot
-        _Log("[SNBaka] player-target policy SEEDED: " + sV + " (fresh boot -- DEFAULT OFF ruling, REV-144)")
+    Int iPrior  = StorageUtil.GetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy", 0)
+    Int iV1Ran  = StorageUtil.GetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy.Seeded", 0)
+    If iV1Ran == 1 && iPrior == 1
+        ; the v1 unreliable-inheritance seed produced this ON value -- correct
+        ; it to the ruled default (the user's authority: the boot value is OFF).
+        _Log("[SNBaka] player-target policy CORRECTED: ON (1) -> OFF (0) (the REV-144 continuity seed inherited from retired bPlayerCanBeSpanked, whose TRUE default cannot distinguish set-TRUE from never-written -- inheritance retired, DEFAULT OFF, REV-159)")
+    ElseIf iV1Ran == 0
+        _Log("[SNBaka] player-target policy SEEDED: OFF (0) (DEFAULT OFF, no inheritance -- REV-159)")
     Else
-        _Log("[SNBaka] player-target policy SEEDED: " + sV + " (existing save -- seeded from retired bPlayerCanBeSpanked=" + bPlayerCanBeSpanked + ", REV-144)")
+        _Log("[SNBaka] player-target policy seed v2 pass: already OFF (0) -- no change (REV-159)")
     EndIf
+    StorageUtil.SetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy", 0)
+    StorageUtil.SetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy.Seeded", 1)
+    StorageUtil.SetIntValue(PlayerRef, "SNBaka.PlayerTargetPolicy.Seeded2", 1)
 EndFunction
 
 ; The central admission check. Returns True = this action MAY target the player.
@@ -1102,9 +1120,9 @@ Function _DaemonArm()
     Int iMolag = StorageUtil.GetIntValue(None, "SNBaka.MolagBalMode", 0)
     Int iMeph  = StorageUtil.GetIntValue(None, "SNBaka.MephalaMode", 0)
     If iMolag == 1
-        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 15.0
+        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + StorageUtil.GetFloatValue(None, "SNBaka.MolagBalCadence", 15.0)
     ElseIf iMeph == 1
-        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 45.0
+        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + StorageUtil.GetFloatValue(None, "SNBaka.MephalaCadence", 45.0)
     Else
         _fBakaDaemonNextRT = 0.0
     EndIf
@@ -1139,20 +1157,21 @@ Function _DaemonTick()
     ; re-stamp the scan clock at tick time (the interval-clock pattern)
     ; REV-146a Task 6 (user ruling 2026-10-23): Mephala cadence 30s -> 45s
     ; (fired a bit too often in the [REV-146] dogfood); Molag Bal stays 15s.
+    ; REV-159 5.2: both cadences are now MCM SLIDER values (15s-240s, the Baka
+    ; Interactions page) carried on StorageUtil keys -- the historic constants
+    ; are the DEFAULTS (45.0 / 15.0 unchanged for existing installs).
     If iMode == 2
-        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 15.0
+        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + StorageUtil.GetFloatValue(None, "SNBaka.MolagBalCadence", 15.0)
     Else
-        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + 45.0
+        _fBakaDaemonNextRT = Utility.GetCurrentRealTime() + StorageUtil.GetFloatValue(None, "SNBaka.MephalaCadence", 45.0)
     EndIf
-    ; REV-156 4.1: TATTOO AMBIENT EXPOSURE ROLL — every tick, BOTH modes,
-    ; independent of the Mephala pending-pair state (a cue is not a
-    ; pending action). Visibility-gated inside the module (any visible
-    ; mark incl. foreign, layer-1 truth), ~35% fire chance (MCM
-    ; "Ambient Exposure Chance"), per-actor exposure cooldown; every
-    ; non-fire leg is silent-with-sentinel (no prompt, no dead weight).
-    ; The module owns all gating + receipts; the v1 heartbeat
-    ; ObservationPass is RETIRED (banner at the heartbeat site).
-    SNBaka_SlaveTatsModule.AmbientExposurePass()
+    ; REV-159 (dogfood 2.2): the tattoo ambient exposure roll is DECOUPLED from
+    ; the daemon tick -- it now rides its own multiplexer cadence
+    ; (_STAmbientStart, 30s) so the observed-cue rolls with the modes OFF
+    ; (the dogfood finding: modes-off = silence). Roll chance + cooldown are
+    ; unchanged (module-owned). This call site is RETIRED; banner per the
+    ; ruleset. The v1 heartbeat ObservationPass remains RETIRED (REV-156).
+    ; SNBaka_SlaveTatsModule.AmbientExposurePass()   ; RETIRED at REV-159
     If iMode == 1 && _bMephalaPending
         _Log("[SNBaka] daemon refuse: busy (Mephala pending) -- one pending action at a time -- REV-145")
         Return
@@ -1190,7 +1209,7 @@ Int Function _DaemonScan()
     EndIf
     Int n = 0
     Int nd = 0
-    Bool bGSPresent = Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None
+    Bool bGSPresent = _GSPresent()
     Actor[] akAll = PO3_SKSEFunctions.GetActorsByProcessingLevel(0)
     Int i = 0
     While i < akAll.Length && (n < 64 || nd < 32)
@@ -1727,6 +1746,40 @@ String Function _DaemonTrimSpaces(String s)
     Return s
 EndFunction
 
+; REV-159 5.1: the per-mode direct-narration trigger (user-ruled at the
+; dogfood; the 134f Follow-up Prompt pattern applied to the MODE-ACTION
+; execution). Fired at dispatch time with the live actor names + the picked
+; action, so the narration event's desc says WHAT JUST HAPPENED; the yaml
+; (sdb_mephala_mode_narr.yaml / sdb_molagbal_mode_narr.yaml, register entry
+; 37 DRAFTs) matches the event type ONLY and asks surrounding NPCs to react
+; (direct_narration, audience nearby_npcs). DEFAULT OFF (the motherboard
+; properties bMephalaModeNarration / bMolagBalModeNarration, MCM-gated).
+; MOLAG BAL: narration YES, thoughts still NO -- both user rulings; no
+; GenerateNPCThought call is added on the Molag Bal leg under any setting.
+; Silent-with-sentinel on the OFF leg per the 134f precedent.
+Function _DaemonModeNarration(String asMode, Actor akInitiator, Actor akTarget, String sAction)
+    If !akInitiator || !akTarget
+        Return
+    EndIf
+    Bool bOn = False
+    String sEvent = ""
+    If asMode == "MolagBal" && bMolagBalModeNarration
+        bOn = True
+        sEvent = "sdb_molagbal_mode_narr"
+    ElseIf asMode == "Mephala" && bMephalaModeNarration
+        bOn = True
+        sEvent = "sdb_mephala_mode_narr"
+    EndIf
+    If !bOn
+        _Log("[SNBaka] mode narration OFF (" + asMode + ") -- narration event skipped -- REV-159")
+        Return
+    EndIf
+    String sDesc = akInitiator.GetDisplayName() + " has just acted on " + akTarget.GetDisplayName() \
+        + " (" + sAction + ")."
+    SkyrimNetApi.RegisterEvent(sEvent, sDesc, akInitiator, None)
+    _Log("[SNBaka] mode narration FIRED (" + sEvent + ", " + akInitiator.GetDisplayName() + " -> " + akTarget.GetDisplayName() + ", action " + sAction + ") -- REV-159")
+EndFunction
+
 ; REV-145 3.2/3.4: THE DISPATCH. Idle-interrupt exit first (class-aware exit ->
 ; recheck -> the action's own hold machinery, Baka _HoldActorAI order per
 ; SS161 R.2; the REV-136 2.2 hold acquired at exit-issue), then IsEligible
@@ -1742,7 +1795,7 @@ Function _DaemonDispatchAction(Actor akInitiator, Actor akTarget, String sAction
     EndIf
     ; idle-interrupt: seated/marker-held initiators exit first (REV-135/136/137
     ; service via the GS module-neutral globals; the GS presence probe gates).
-    Bool bGSPresent = Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None
+    Bool bGSPresent = _GSPresent()
     If bGSPresent
         Int iIdle = SkyrimNet_AnimationsGS._IdleClass(akInitiator)
         If iIdle == 1 || iIdle == 2
@@ -1761,6 +1814,9 @@ Function _DaemonDispatchAction(Actor akInitiator, Actor akTarget, String sAction
     EndIf
     ; 137f TIMER ANCHOR: the per-actor action clock starts when the ACTION fires
     StorageUtil.SetFloatValue(akInitiator, "SNBaka.DaemonLast", Utility.GetCurrentGameTime())
+    ; REV-159 5.1: the gated per-mode direct-narration trigger (134f pattern;
+    ; DEFAULT OFF, MCM "Mephala Mode Narration" / "Molag Bal Mode Narration").
+    _DaemonModeNarration(asMode, akInitiator, akTarget, sAction)
     ; struggle-chain: seed the INTENTION, fire the struggle (or its drunk
     ; variant), the follow-up rides the outcome
     If _DaemonIsStruggleChain(sAction)
@@ -2207,6 +2263,39 @@ Float _fFHUNextPollRT      = 0.0   ; 0 = poll not running
 Float _RT_POLL_INTERVAL    = 10.0  ; FHU level-poll cadence, real seconds
 Float _fBakaDaemonNextRT   = 0.0   ; REV-145: 0 = daemon tick not armed (both ambient modes off)
 Float _fStripHoldNextRT    = 0.0   ; REV-146a Task 9: strip re-equip block watch (2s cadence while any queue lives)
+Float _fSTAmbientNextRT    = 0.0   ; REV-159 (dogfood 2.2): SlaveTats ambient exposure pass cadence
+Float _ST_AMBIENT_INTERVAL = 30.0  ; REV-159: DECOUPLED from the daemon ticks -- modes off no longer
+                                   ; silences the tattoo observation roll (the design fix confirmed at
+                                   ; the dogfood: 35% roll + per-actor cooldown unchanged, mode-agnostic)
+
+; REV-159 F-3 (S181 finding): cached presence probes for the GS + Acheron esps.
+; The uncached GetFormFromFile sites logged a hard Papyrus error once per
+; arm-pass/dispatch/delegate on the absent esp (log noise only; the
+; cached-absence pattern applied uniformly). esp load state cannot change
+; within a session, so first read wins and is cached in both directions.
+Bool _bGSPresentCached      = False
+Bool _bGSPresentResolved    = False
+Bool _bAcheronPresentCached    = False
+Bool _bAcheronPresentResolved  = False
+
+Bool Function _GSPresent()
+    If !_bGSPresentResolved
+        _bGSPresentCached   = Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None
+        _bGSPresentResolved = True
+        _Log("[SNBaka] presence probe (cached, REV-159 F-3): SkyrimNet_AnimationsGS.esp present=" + _bGSPresentCached)
+    EndIf
+    Return _bGSPresentCached
+EndFunction
+
+Bool Function _AcheronBridgePresent()
+    If !_bAcheronPresentResolved
+        _bAcheronPresentCached   = Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp") != None
+        _bAcheronPresentResolved = True
+        _Log("[SNBaka] presence probe (cached, REV-159 F-3): SkyrimNet_AcheronIntegration.esp present=" + _bAcheronPresentCached)
+    EndIf
+    Return _bAcheronPresentCached
+EndFunction
+
 
 Function _ArmRealtimeTimer()
     Float now  = Utility.GetCurrentRealTime()
@@ -2219,6 +2308,9 @@ Function _ArmRealtimeTimer()
     EndIf
     If _fBakaDaemonNextRT > 0.0 && _fBakaDaemonNextRT < next
         next = _fBakaDaemonNextRT
+    EndIf
+    If _fSTAmbientNextRT > 0.0 && _fSTAmbientNextRT < next   ; REV-159 (dogfood 2.2)
+        next = _fSTAmbientNextRT
     EndIf
     ; REV-146a Task 9: the strip re-equip block watch arms on the multiplexer
     ; whenever a tracked strip queue exists (2s cadence).
@@ -2259,6 +2351,19 @@ Event OnUpdate()
     If _fBakaDaemonNextRT > 0.0 && now >= _fBakaDaemonNextRT
         _DaemonTick()
     EndIf
+    ; REV-159 (dogfood 2.2): the DECOUPLED SlaveTats ambient exposure pass. The
+    ; roll used to ride _DaemonTick (both modes off = never called = the
+    ; observed-cue never fired -- the dogfood finding). Dispatch-side silent
+    ; gates (module master + observe keys, player-keyed like the module's own
+    ; reads) keep the pass from logging every 30s when observation is off; the
+    ; module's internal gates/receipts are unchanged. Sentinel per ruleset 5.
+    If _fSTAmbientNextRT > 0.0 && now >= _fSTAmbientNextRT
+        _fSTAmbientNextRT = now + _ST_AMBIENT_INTERVAL
+        If PlayerRef && StorageUtil.GetIntValue(PlayerRef, "SNBaka.ST.Enabled", 1) == 1 \
+           && StorageUtil.GetIntValue(PlayerRef, "SNBaka.ST.Observe", 1) == 1
+            SNBaka_SlaveTatsModule.AmbientExposurePass()
+        EndIf
+    EndIf
     ; REV-146a Task 9: the strip re-equip block watch leg (reverts engine-side
     ; re-equips of tracked queue items while any queue lives; 2s cadence).
     If _bStripHoldActive && _fStripHoldNextRT > 0.0 && now >= _fStripHoldNextRT
@@ -2284,10 +2389,25 @@ Function _FHUStartPoll()
     If _fFHUNextPollRT > 0.0 && _fFHUNextPollRT > nowRT && (_fFHUNextPollRT - nowRT) <= _RT_POLL_INTERVAL
         Return  ; already armed, poll pending
     EndIf
-    SNBaka_FHUInflationModule.PollLevels(Self)   ; seed pass: records current amounts, fires no cue (REV-96 Task 2: body moved to the module)
+    SNBaka_FHUInflationModule.PollLevels(Self, True)   ; seed pass: records current amounts, fires no cue (REV-96 Task 2: body moved to the module; REV-159: abSeedPass keeps the arm-time pass baseline-only while LIVE ticks gained the first-sighting fire)
     _fFHUNextPollRT = nowRT + _RT_POLL_INTERVAL
     _ArmRealtimeTimer()
     _Log("[SNBaka] _FHUStartPoll: level poll armed (" + _RT_POLL_INTERVAL + "s, registered-actors only)")
+EndFunction
+
+; REV-159 (dogfood 2.2): start the DECOUPLED SlaveTats ambient exposure cadence.
+; Same idempotent/self-heal posture as _FHUStartPoll: called from Setup()
+; (primary) and the OnUpdateGameTime heartbeat (self-heal); a stale save
+; residue next-time farther out than one interval is treated as not armed
+; (real time resets every game launch).
+Function _STAmbientStart()
+    Float nowRT = Utility.GetCurrentRealTime()
+    If _fSTAmbientNextRT > 0.0 && _fSTAmbientNextRT > nowRT && (_fSTAmbientNextRT - nowRT) <= _ST_AMBIENT_INTERVAL
+        Return  ; already armed, tick pending
+    EndIf
+    _fSTAmbientNextRT = nowRT + _ST_AMBIENT_INTERVAL
+    _ArmRealtimeTimer()
+    _Log("[SNBaka] ST ambient exposure cadence armed (" + _ST_AMBIENT_INTERVAL + "s, decoupled from the daemon modes -- REV-159)")
 EndFunction
 
 Function _FHUStopPoll()
@@ -2768,7 +2888,7 @@ Bool Function _DelegateDownToAcheron(Actor akVictim)
     ; recovery). Probe the bridge's own quest form (SNAcheron_Quest 0x800) directly: None
     ; means the bridge esp is NOT in the load order right now, so we route to the local
     ; fallback window exactly like an absent bridge — no matter what the flags say.
-    If !Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp")
+    If !_AcheronBridgePresent()
         _Log("[SNBaka] _DelegateDownToAcheron: bridge liveness probe FAILED (SNAcheron_Quest 0x800 not loaded) — stale SNAcheron.Present=" + StorageUtil.GetIntValue(PlayerRef, "SNAcheron.Present", 0) + "; routing to local fallback window, victim=" + akVictim.GetDisplayName())
         ; Kill the stale flag so no other Present-reading path is fooled this session —
         ; the bridge re-stamps it on its own init if it ever loads again.
@@ -10762,7 +10882,7 @@ Function _RegisterModEvents()
     ; is actually loaded. _DelegateDownToAcheron carries an independent runtime probe as
     ; belt-and-braces, so a stale value can never route a delegation into the void.
     If PlayerRef && StorageUtil.GetIntValue(PlayerRef, "SNAcheron.Present", 0) == 1 \
-            && !Game.GetFormFromFile(0x800, "SkyrimNet_AcheronIntegration.esp")
+            && !_AcheronBridgePresent()
         StorageUtil.SetIntValue(PlayerRef, "SNAcheron.Present", 0)
         _Log("[SNBaka] Acheron bridge: esp probe failed at re-registration — stale SNAcheron.Present cleared to 0 (local downed fallback owns this session)")
     EndIf
@@ -10848,7 +10968,7 @@ Function _ArmModules()
             _Log("[SNBaka] module-arm: Acheron bridge INSTALLED but manager instance ABSENT at host 0x801 (unexpected — esp attaches the manager there since the REV-62 fold; report if seen) — EnsureAlive() nudge skipped (no-op sentinel)")
         EndIf
     EndIf
-    _Log("[SNBaka] module-arm: GS Poses presence=" + (Game.GetFormFromFile(0xD61, "SkyrimNet_AnimationsGS.esp") != None))
+    _Log("[SNBaka] module-arm: GS Poses presence=" + _GSPresent())
     SNBaka_SlaveTatsModule.Arm()
     ; REV-74 rider 1 — motherboard service registry (first service: tattoo.picker). Hosts
     ; (this quest, the downed menu) presence-probe the registry and CALL the service; the
@@ -11013,6 +11133,7 @@ Event OnUpdateGameTime()
     If bFHUInflationEnabled && SNBaka_FHUInflationModule.Installed()   ; REV-96 Task 2: probe moved to the module (call shape only)
         _FHUStartPoll()
     EndIf
+    _STAmbientStart()   ; REV-159 (dogfood 2.2): the decoupled ST ambient cadence re-asserts from the heartbeat too (self-heal posture)
     Float currentTime = Utility.GetCurrentGameTime()
     If _lastSpankFadeTime <= 0.0
         _lastSpankFadeTime = currentTime

@@ -74,6 +74,19 @@
       opacity: 1;
     }
 
+    /* REV-159 3.1 (dogfood fix; JS/CSS only): the no-target state is still
+       too narrow (the REV-150 fix capped HEIGHT only). The no-target session
+       gets an AUTO-WIDTH class: width follows content between widened
+       bounds, so the "no target selected" overlay + mode footer render
+       comfortably at any ui-scale. Targeted mode is UNCHANGED (fixed 420px).
+       The max is zoom-safe the same way the height cap is: at the default
+       zoom 1.5 the scaled panel stays inside a 100vw viewport. */
+    #panel.no-target {
+      width: auto;
+      min-width: 460px;
+      max-width: 600px;
+    }
+
     /* Gold corner accents */
     #panel::before,
     #panel::after {
