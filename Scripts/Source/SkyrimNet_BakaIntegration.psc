@@ -1448,6 +1448,30 @@ Bool Function _HasLiveCombatTarget(Actor a) Global
     Return target && !target.IsDead() && !target.IsDisabled() && !_IsDownedAny(target)
 EndFunction
 
+; Utility.GetCurrentRealTime() restarts at 0 on every game LAUNCH, but the *RT stamps below live in
+; StorageUtil and so ride along in the save. Confirmed live bug: a follower stamped at ~9000s in an
+; earlier session read "only -9093s since last attempt, need 3.0s" and refused every on-hit struggle
+; until this session's clock caught up (2.5 hours of play). Setup() can't clear them -- it never runs
+; on load here (the MCM quest has no player alias, so SkyUI never sends it OnGameReload). Instead every
+; reader/writer of these keys goes through this: _fLastSeenRT is saved with the quest, so a clock that
+; reads LOWER than it means a relaunch, and every surviving stamp is from a dead clock.
+Float _fLastSeenRT = 0.0
+Float Function _RTNow()
+    Float now = Utility.GetCurrentRealTime()
+    ; The 5s slack is for concurrent hit events: one thread can read the clock, lose the CPU, and
+    ; compare after another thread has already stored a slightly later reading (confirmed in the
+    ; log: "446.727 < 447.051" read as a relaunch). A real relaunch drops the clock by far more.
+    If now < _fLastSeenRT - 5.0 || _fLastSeenRT == 0.0   ; 0.0 = first call on a save from before this fix
+        StorageUtil.ClearFloatValuePrefix("SNBaka.LastCreatureAttemptRT")
+        StorageUtil.ClearFloatValuePrefix("SNBaka.DefeatGraceUntilRT")
+        _Log("[SNBaka] _RTNow: real-time clock restarted (" + now + " < " + _fLastSeenRT + ") — game relaunched; cleared stale throttle/grace stamps")
+        _fLastSeenRT = now
+    ElseIf now > _fLastSeenRT
+        _fLastSeenRT = now
+    EndIf
+    Return now
+EndFunction
+
 ; Called the instant a struggle resolves with the victim defeated (creature OR human attacker) --
 ; starts the post-defeat grace window (fPostDefeatGraceDuration) so passive creature paths leave this
 ; specific victim alone for a while instead of re-picking them the moment they're vulnerable again.
@@ -1455,7 +1479,7 @@ Function _StampDefeatGrace(Actor akVictim)
     If !akVictim
         Return
     EndIf
-    StorageUtil.SetFloatValue(akVictim, "SNBaka.DefeatGraceUntilRT", Utility.GetCurrentRealTime() + fPostDefeatGraceDuration)
+    StorageUtil.SetFloatValue(akVictim, "SNBaka.DefeatGraceUntilRT", _RTNow() + fPostDefeatGraceDuration)
 EndFunction
 
 ; True while akVictim is still within their post-defeat grace window AND hasn't already been dragged
@@ -1465,7 +1489,7 @@ Bool Function _InDefeatGrace(Actor akVictim)
     If !akVictim || _HasLiveCombatTarget(akVictim)
         Return False
     EndIf
-    Return Utility.GetCurrentRealTime() < StorageUtil.GetFloatValue(akVictim, "SNBaka.DefeatGraceUntilRT", 0.0)
+    Return _RTNow() < StorageUtil.GetFloatValue(akVictim, "SNBaka.DefeatGraceUntilRT", 0.0)
 EndFunction
 
 ; Delegate a down to Acheron if it's installed. No plugin probe needed: DefeatActor takes (IsDefeated
@@ -7649,7 +7673,7 @@ Function _DoCreatureEscalation(Actor akCreature, Actor akVictim)
                 ; Unwind like the refused-scene branch AND back this victim's pipeline off hard, or the
                 ; grab->refuse->re-down loop hammers them every throttle window (the riekling report).
                 _Log("[SNBaka] CreatureEscalate(" + akVictim.GetDisplayName() + "): NO OStim animation exists even for a pair with " + akCreature.GetDisplayName() + " — unwinding, 5-minute creature backoff for this victim")
-                StorageUtil.SetFloatValue(akVictim, "SNBaka.LastCreatureAttemptRT", Utility.GetCurrentRealTime() + 300.0)
+                StorageUtil.SetFloatValue(akVictim, "SNBaka.LastCreatureAttemptRT", _RTNow() + 300.0)
                 _ProtectNearbyAllies(akVictim, akCreature, False)
                 If comp1
                     _PrepGroupCompanion(comp1, False)
@@ -8035,7 +8059,7 @@ Function _TryCreatureEscalateOnDowned(Actor akVictim)
     ; re-downs the victim, which immediately re-fires this same event with zero delay, chaining a second
     ; full struggle QTE onto the first with no breathing room at all. This throttles ANY re-entry
     ; (initial pounce, the "loop" re-check, or this kind of immediate re-trigger) to once per few seconds.
-    Float now = Utility.GetCurrentRealTime()
+    Float now = _RTNow()
     Float lastAttempt = StorageUtil.GetFloatValue(akVictim, "SNBaka.LastCreatureAttemptRT", 0.0)
     If (now - lastAttempt) < 3.0
         _Log("[SNBaka] creature: skipped — only " + (now - lastAttempt) + "s since last attempt, need 3.0s")
@@ -8166,7 +8190,7 @@ Function OnEscalationGateResponse(String response, Int success)
         ; A NO backs this victim's pipeline off ~30s (vs the usual 3s retry) so the same question isn't
         ; peppered at the LLM every engagement roll. Stamping the last-attempt clock into the future
         ; extends the existing throttle without a new key.
-        StorageUtil.SetFloatValue(v, "SNBaka.LastCreatureAttemptRT", Utility.GetCurrentRealTime() + 27.0)
+        StorageUtil.SetFloatValue(v, "SNBaka.LastCreatureAttemptRT", _RTNow() + 27.0)
         Return
     EndIf
     ; The answer took real seconds — re-validate the moment before committing.
@@ -8283,7 +8307,7 @@ Event OnCreatureHitFollower(string eventName, string strArg, float numArg, Form 
     EndIf
     ; Shared per-victim throttle across BOTH paths (same key), so a creature and a human can't chain
     ; grabs on the same victim back-to-back.
-    Float now = Utility.GetCurrentRealTime()
+    Float now = _RTNow()
     Float lastAttempt = StorageUtil.GetFloatValue(victim, "SNBaka.LastCreatureAttemptRT", 0.0)
     If (now - lastAttempt) < 3.0
         _Log("[SNBaka] OnCreatureHitFollower: blocked — only " + (now - lastAttempt) + "s since last attempt on " + victim.GetDisplayName() + ", need 3.0s")
